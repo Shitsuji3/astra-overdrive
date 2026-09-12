@@ -1,0 +1,101 @@
+[hidden]{display:none!important}:root{--ink:#060b10;--cyan:#59e7ed;--cream:#f0ead9;--coral:#ff6b55;--muted:#90a5aa}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#020407;color:var(--cream);font-family:"Trebuchet MS",system-ui,sans-serif}body{display:grid;place-items:center}.screen{position:absolute;inset:0}.title-screen{overflow:hidden;background:#050b10}.title-art{position:absolute;inset:0;background:url('assets/title-art.png') center/cover no-repeat;filter:saturate(.88) contrast(1.04);transform:scale(1.03)}.vignette{position:absolute;inset:0;background:linear-gradient(90deg,#03070dcc 0%,#05090d99 34%,#05090d11 68%),linear-gradient(0deg,#030609dd,transparent 40%,#02050799)}.scanlines{position:fixed;inset:0;z-index:10;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0 3px,#7ff4ff06 4px 5px);mix-blend-mode:screen}.title-copy{position:absolute;z-index:2;left:8vw;top:12vh;width:min(570px,46vw);animation:rise .9s ease both}.eyebrow{letter-spacing:.22em;font-size:11px;color:var(--cyan);font-weight:700}.title-copy h1{font-size:clamp(78px,13vw,190px);font-style:italic;letter-spacing:-.1em;line-height:.75;margin:25px 0 0 -12px;color:var(--cream);text-shadow:8px 8px 0 #081419,0 0 34px #58e7ed66}.overdrive{color:var(--coral);font-weight:bold;font-style:italic;font-size:clamp(22px,3vw,42px);letter-spacing:.16em;margin:18px 0}.jp-copy{font-size:14px;line-height:1.8;color:#c6d2ce;margin:40px 0 27px;border-left:2px solid var(--coral);padding-left:14px}.menu{display:grid;gap:5px;width:min(365px,90%)}button{font:inherit;color:inherit}.menu-item{border:0;background:transparent;text-align:left;color:#a5b4b3;padding:9px 12px;letter-spacing:.08em;font-weight:700;cursor:pointer;transition:.15s;display:flex;justify-content:space-between}.menu-item span{font-size:11px;color:#60757a}.menu-item.active,.menu-item:hover,.menu-item:focus-visible{color:#071014;background:var(--cyan);outline:0;box-shadow:8px 0 0 var(--coral)}.menu-item.active span,.menu-item:hover span{color:#315154}.prompt{font-size:10px;color:#70858a;letter-spacing:.12em;margin-top:22px}.hud-corner{position:absolute;z-index:2;color:#688085;font-size:9px;letter-spacing:.15em;line-height:1.8}.hud-corner b{color:var(--cyan)}.corner-tl{left:28px;top:25px}.corner-br{right:28px;bottom:25px;text-align:right}.game-screen{display:grid;place-items:center;background:#020406}.canvas-wrap{position:relative;width:min(100vw,calc(100vh * 16 / 9));aspect-ratio:16/9;background:#050b10;box-shadow:0 0 0 1px #224047,0 0 50px #000}.canvas-wrap canvas{width:100%;height:100%;image-rendering:auto;display:block}.game-hud,#game-hud{position:absolute;inset:16px 20px auto;display:flex;justify-content:space-between;font-size:11px;letter-spacing:.16em;color:var(--cyan);pointer-events:none;text-shadow:0 1px 4px #000}.touch-controls{display:none}.overlay{position:fixed;inset:0;z-index:8;display:grid;place-items:center;background:#020609b8;backdrop-filter:blur(3px)}.panel{min-width:min(430px,88vw);padding:34px;border:1px solid #4fd9db88;background:#071218eF;box-shadow:8px 8px 0 #ff6b55;animation:rise .3s ease both}.panel h2{font-style:italic;font-size:42px;margin:8px 0;color:var(--cream)}.panel p{color:#9cb1b1}.panel button{border:1px solid #5ae6e9;background:#102228;padding:11px 18px;margin:12px 8px 0 0;cursor:pointer}.modal-panel{position:relative}.close{position:absolute;right:12px;top:8px;border:0!important;background:transparent!important;font-size:24px!important}.modal-panel h2{font-size:32px}.settings-row{display:flex;justify-content:space-between;gap:30px;align-items:center;border-top:1px solid #ffffff18;padding:14px 0}.settings-row input{accent-color:var(--cyan)}footer{position:fixed;bottom:9px;z-index:11;left:20px;right:20px;color:#546a70;font-size:9px;letter-spacing:.14em;display:flex;justify-content:space-between}footer span{color:#3f565b}@keyframes rise{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:none}}@media(max-width:700px){.title-copy{left:7vw;top:9vh;width:83vw}.title-art{background-position:62% center;opacity:.72}.jp-copy{margin:24px 0}.touch-controls{display:flex;position:fixed;bottom:24px;left:12px;right:12px;z-index:5;justify-content:space-between;pointer-events:none}.touch-controls button{pointer-events:auto;width:42px;height:42px;border:1px solid #5ae6e988;background:#071218aa;color:var(--cyan);border-radius:50%}.touch-controls button:nth-child(4){margin-left:10px}.hud-corner{display:none}footer{display:none}}
+
+.touch-controls{touch-action:none}.canvas-wrap canvas{image-rendering:pixelated}
+.guide-table{width:100%;border-collapse:collapse;font-size:12px}.guide-table th,.guide-table td{padding:7px 5px;border-bottom:1px solid #ffffff1a;text-align:left}.guide-table th{color:var(--cyan)}.guide-foot{color:var(--muted)}
+.command-strip{position:absolute;top:calc(100% + 10px);left:0;right:0;font-size:9px;letter-spacing:.08em;color:#668086;display:flex;justify-content:space-between}.game-screen{padding-bottom:28px}@media(max-width:700px){.command-strip{font-size:7px;white-space:nowrap;overflow:hidden}.game-screen{padding-bottom:20px}}
+#game-hud{display:none}.modal-panel{max-height:85dvh;overflow:auto}
+@media(max-height:600px){.title-screen{overflow:auto}.title-copy{top:38px;left:6vw}.title-copy h1{font-size:clamp(62px,18vh,100px);margin-top:12px}.overdrive{font-size:20px;margin:8px 0}.jp-copy{font-size:11px;margin:15px 0}.menu-item{padding:6px 10px}.prompt{margin-top:10px;font-size:8px}}@media(pointer:coarse){.touch-controls{display:flex}.game-screen{padding-bottom:62px}.touch-controls{bottom:12px}}@media(pointer:coarse) and (max-height:600px){.panel{padding:20px}.panel h2{font-size:30px;margin:4px 0}.modal-panel{max-height:85dvh;overflow:auto}}
+@media(min-width:701px){.canvas-wrap{width:min(100vw,calc((100dvh - 60px)*16/9))}.command-strip{position:absolute;bottom:28px;top:auto}}
+@media(pointer:coarse){.command-strip{display:none}.game-screen{padding-bottom:80px}.canvas-wrap{width:min(100vw,calc((100dvh - 80px)*16/9))}.touch-controls{position:fixed;display:flex;left:16px;right:16px;bottom:12px;z-index:5;justify-content:space-between}.touch-controls button{width:44px;height:44px}}
+@media(pointer:coarse){.touch-controls button{background:#071820;border:1px solid #59e7ed;color:#59e7ed;border-radius:10px;font-weight:700}.touch-controls button:active{background:#59e7ed;color:#071820}footer{display:none}}
+/* The decorative corner readouts collide with the title block once the window is narrow
+   or short, so they only appear when there is genuinely room for them. */
+@media(max-width:1100px),(max-height:620px){.hud-corner{display:none}}
+/* Stage select. The missions ring a map of the city, the way a campaign map reads: four gates
+   across the top with the gauntlet between them, the map under all of it, and the last four
+   along the bottom. The armed mission carries the same coral highlight as the title menu. */
+.select-screen{display:grid;place-items:center;background:#050b10;overflow:hidden}
+.select-screen::before{content:'';position:absolute;inset:0;background:url('assets/title-art.png') center/cover no-repeat;filter:saturate(.4) brightness(.26) blur(2px)}
+.select-inner{position:relative;z-index:2;width:min(820px,94vw);max-height:92vh;display:flex;flex-direction:column;animation:rise .35s ease both}
+.select-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+.select-inner h2{font-style:italic;font-size:clamp(20px,3.4vw,32px);margin:0;color:var(--cream);letter-spacing:-.02em}
+.select-board{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;align-content:start}
+
+/* One mission. The portrait is the tile; the number, name and record sit around it. */
+.stage-node{grid-column:var(--col);grid-row:var(--row);position:relative;display:block;padding:0;text-align:left;
+  border:1px solid #2c5560;background:#08161d;color:#93a8ac;cursor:pointer;transition:.14s;overflow:hidden}
+.stage-node.node-spare{grid-column:auto;grid-row:auto}
+.stage-node:hover,.stage-node:focus-visible{outline:0;border-color:var(--cyan);background:#0f2c34;color:var(--cream)}
+.stage-node.active{outline:0;border-color:var(--coral);background:#12313a;color:var(--cream);
+  box-shadow:0 0 0 1px var(--coral),0 0 22px #ff6b5545}
+.node-face{display:block;height:clamp(52px,14vh,112px);background:#050d12;border-bottom:1px solid #1d3e47;overflow:hidden}
+.node-face img,.node-emblem{display:block;height:100%;width:auto;margin:0 auto;filter:saturate(.72) brightness(.78)}
+.stage-node:hover .node-face img,.stage-node.active .node-face img{filter:none}
+.node-emblem{color:#4d9aa4;filter:none;transition:.14s}
+.stage-node.active .node-emblem{color:var(--cyan)}
+.node-emblem circle{fill:none;stroke:currentColor;stroke-width:1.4;opacity:.6}
+.node-emblem .thin{stroke:currentColor;stroke-width:.8;opacity:.28}
+.node-emblem text{fill:currentColor;font-style:italic;font-weight:700;font-size:15px}
+.node-no{position:absolute;top:0;left:0;padding:1px 6px 2px;background:#061219d9;color:var(--cyan);
+  font-style:italic;font-weight:700;font-size:13px;line-height:1.3}
+.stage-node.active .node-no{background:var(--coral);color:#08161d}
+.node-name{display:block;font-size:10px;letter-spacing:.08em;padding:5px 7px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stage-rec{display:block;font-size:8px;letter-spacing:.11em;color:#5f767b;padding:2px 7px 6px;white-space:nowrap;overflow:hidden}
+.stage-rec b{color:var(--cyan);font-size:8px}
+.stage-rec .locked{color:#465a60}
+
+/* The map itself: one plate, the routes that run out from the core, and a pin per mission.
+   It is drawn once per opening and then only lit differently, so the pulse never restarts. */
+.select-map{grid-column:1/-1;grid-row:2;height:clamp(120px,26vh,206px);border:1px solid #23464f;
+  background:#04121a;overflow:hidden}
+.select-map svg{display:block;width:100%;height:100%}
+.select-map .plate{fill:#0a2029;stroke:#2f6572;stroke-width:2}
+.select-map .core-plate{fill:#0d2b35;stroke:#356f7c;stroke-width:1;opacity:.9}
+.select-map .grid line{stroke:#17414c;stroke-width:.6}
+.select-map .blocks rect{fill:#123742;stroke:#2c6270;stroke-width:.7}
+.select-map .routes line{stroke:#38798a;stroke-width:1;stroke-dasharray:5 6}
+.select-map .site{cursor:pointer}
+.select-map .site .hit{fill:#0000}
+.select-map .site .halo{fill:none;stroke:#2f6572;stroke-width:1;transform-box:fill-box;transform-origin:center}
+.select-map .site .pip{fill:#0d2b35;stroke:var(--cyan);stroke-width:1.5}
+.select-map .site text{fill:var(--cyan);font-family:inherit;font-weight:700;font-size:12px;text-anchor:middle}
+.select-map .site.core .pip{stroke:var(--cream);fill:#123540}
+.select-map .site.core text{fill:var(--cream)}
+.select-map .site.on .pip{fill:var(--coral);stroke:var(--cream)}
+.select-map .site.on text{fill:#06131a}
+.select-map .site.on .halo{stroke:var(--coral);animation:ping 1.7s ease-out infinite}
+@keyframes ping{0%{transform:scale(.55);opacity:.85}100%{transform:scale(1.45);opacity:0}}
+@media(prefers-reduced-motion:reduce){.select-map .site.on .halo{animation:none;stroke:var(--coral)}}
+
+/* What the cursor is currently sitting on, spelled out under the board. */
+.select-detail{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;margin-top:10px;
+  border:1px solid #23464f;background:#08161dcc;padding:9px 14px;min-height:56px}
+.detail-no{font-style:italic;font-weight:700;font-size:26px;color:var(--coral);line-height:1}
+.detail-main b{display:block;font-size:14px;letter-spacing:.09em;color:var(--cream)}
+.detail-main small{display:block;font-size:10px;color:#7e969a;letter-spacing:.1em;margin-top:2px}
+.detail-main em{display:block;font-style:normal;font-size:11px;color:#8fa3a3;margin-top:4px;line-height:1.55}
+.detail-side{text-align:right;font-size:10px;letter-spacing:.11em;color:#6f878c;line-height:1.6;white-space:nowrap}
+.detail-side i{display:block;font-style:normal;color:var(--coral);letter-spacing:.14em}
+.detail-side u{display:block;text-decoration:none;color:var(--cyan);font-size:11px;margin-top:3px}
+.detail-side u.locked{color:#55696e}
+
+.select-foot{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:12px;flex-wrap:wrap}
+.select-back{border:1px solid #5ae6e9;background:#102228;padding:9px 16px;cursor:pointer;letter-spacing:.08em}
+
+/* Narrow or short, the map is the first thing to go: the board becomes a plain grid of tiles
+   and every mission still fits without scrolling. */
+@media(max-width:760px),(max-height:560px){
+.select-map{display:none}
+.select-board{grid-template-columns:repeat(5,1fr);gap:6px}
+.stage-node{grid-column:auto;grid-row:auto}
+.node-face{height:clamp(42px,12vh,74px)}
+.select-inner h2{font-size:20px}
+.detail-main em{display:none}
+.select-detail{min-height:0;padding:7px 10px;gap:10px}
+.detail-no{font-size:20px}
+.select-foot{margin-top:8px}
+}
+@media(max-width:520px){
+.select-board{grid-template-columns:repeat(3,1fr)}
+.node-name{font-size:9px}
+}

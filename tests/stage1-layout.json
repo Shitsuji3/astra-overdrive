@@ -1,0 +1,1000 @@
+{
+ "worldWidth": 9600,
+ "platforms": [
+  {
+   "x": 0,
+   "y": 310,
+   "w": 760,
+   "h": 50,
+   "type": "floor"
+  },
+  {
+   "x": 860,
+   "y": 310,
+   "w": 760,
+   "h": 50,
+   "type": "floor"
+  },
+  {
+   "x": 1720,
+   "y": 310,
+   "w": 830,
+   "h": 50,
+   "type": "floor"
+  },
+  {
+   "x": 2670,
+   "y": 310,
+   "w": 700,
+   "h": 50,
+   "type": "floor"
+  },
+  {
+   "x": 3520,
+   "y": 310,
+   "w": 520,
+   "h": 50,
+   "type": "floor"
+  },
+  {
+   "x": 4170,
+   "y": 310,
+   "w": 450,
+   "h": 50,
+   "type": "floor"
+  },
+  {
+   "x": 4795,
+   "y": 310,
+   "w": 605,
+   "h": 50,
+   "type": "floor"
+  },
+  {
+   "x": 5520,
+   "y": 310,
+   "w": 700,
+   "h": 50,
+   "type": "floor"
+  },
+  {
+   "x": 6385,
+   "y": 310,
+   "w": 555,
+   "h": 50,
+   "type": "floor"
+  },
+  {
+   "x": 7065,
+   "y": 310,
+   "w": 535,
+   "h": 50,
+   "type": "floor"
+  },
+  {
+   "x": 7785,
+   "y": 310,
+   "w": 465,
+   "h": 50,
+   "type": "floor"
+  },
+  {
+   "x": 8390,
+   "y": 310,
+   "w": 1210,
+   "h": 50,
+   "type": "floor"
+  },
+  {
+   "x": 2550,
+   "y": 295,
+   "w": 120,
+   "h": 15,
+   "type": "platform"
+  },
+  {
+   "x": 3400,
+   "y": 295,
+   "w": 100,
+   "h": 15,
+   "type": "platform"
+  },
+  {
+   "x": 4470,
+   "y": 295,
+   "w": 150,
+   "h": 15,
+   "type": "platform"
+  },
+  {
+   "x": 5455,
+   "y": 295,
+   "w": 110,
+   "h": 15,
+   "type": "platform"
+  },
+  {
+   "x": 6255,
+   "y": 295,
+   "w": 120,
+   "h": 15,
+   "type": "platform"
+  },
+  {
+   "x": 7620,
+   "y": 295,
+   "w": 130,
+   "h": 15,
+   "type": "platform"
+  },
+  {
+   "x": 8265,
+   "y": 295,
+   "w": 120,
+   "h": 15,
+   "type": "platform"
+  },
+  {
+   "x": 9080,
+   "y": 245,
+   "w": 90,
+   "h": 14,
+   "type": "platform"
+  },
+  {
+   "x": 9350,
+   "y": 245,
+   "w": 95,
+   "h": 14,
+   "type": "platform"
+  },
+  {
+   "x": 170,
+   "y": 245,
+   "w": 120,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 390,
+   "y": 190,
+   "w": 150,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 610,
+   "y": 250,
+   "w": 100,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 960,
+   "y": 235,
+   "w": 130,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 1190,
+   "y": 175,
+   "w": 150,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 1390,
+   "y": 250,
+   "w": 130,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 1830,
+   "y": 235,
+   "w": 150,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 2070,
+   "y": 165,
+   "w": 130,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 2290,
+   "y": 245,
+   "w": 160,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 2780,
+   "y": 220,
+   "w": 150,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 3040,
+   "y": 150,
+   "w": 130,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 3260,
+   "y": 245,
+   "w": 130,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 3650,
+   "y": 230,
+   "w": 140,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 3910,
+   "y": 170,
+   "w": 160,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 4210,
+   "y": 245,
+   "w": 150,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 4450,
+   "y": 190,
+   "w": 150,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 4680,
+   "y": 245,
+   "w": 90,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 4880,
+   "y": 185,
+   "w": 120,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 5090,
+   "y": 240,
+   "w": 110,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 5290,
+   "y": 175,
+   "w": 130,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 5560,
+   "y": 245,
+   "w": 120,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 5790,
+   "y": 180,
+   "w": 110,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 6010,
+   "y": 235,
+   "w": 120,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 6180,
+   "y": 165,
+   "w": 110,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 6420,
+   "y": 250,
+   "w": 120,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 6620,
+   "y": 185,
+   "w": 110,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 6820,
+   "y": 240,
+   "w": 120,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 7100,
+   "y": 245,
+   "w": 120,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 7300,
+   "y": 180,
+   "w": 110,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 7500,
+   "y": 240,
+   "w": 130,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 7700,
+   "y": 185,
+   "w": 120,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 7920,
+   "y": 250,
+   "w": 120,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 8110,
+   "y": 190,
+   "w": 130,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 8420,
+   "y": 245,
+   "w": 140,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 8650,
+   "y": 180,
+   "w": 130,
+   "h": 18,
+   "type": "platform"
+  },
+  {
+   "x": 8880,
+   "y": 245,
+   "w": 120,
+   "h": 18,
+   "type": "platform"
+  }
+ ],
+ "enemies": [
+  {
+   "id": 0,
+   "type": "walker",
+   "x": 420,
+   "y": 276,
+   "w": 30,
+   "h": 34,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 420,
+   "baseY": 276,
+   "phase": 0.7,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 1,
+   "type": "drone",
+   "x": 630,
+   "y": 200,
+   "w": 30,
+   "h": 24,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 630,
+   "baseY": 200,
+   "phase": 1.4,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 2,
+   "type": "drone",
+   "x": 510,
+   "y": 120,
+   "w": 30,
+   "h": 24,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 510,
+   "baseY": 120,
+   "phase": 2.0999999999999996,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 3,
+   "type": "walker",
+   "x": 1040,
+   "y": 276,
+   "w": 30,
+   "h": 34,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 1040,
+   "baseY": 276,
+   "phase": 2.8,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 4,
+   "type": "turret",
+   "x": 1330,
+   "y": 276,
+   "w": 28,
+   "h": 34,
+   "hp": 3,
+   "maxHp": 3,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 1330,
+   "baseY": 276,
+   "phase": 3.5,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 5,
+   "type": "drone",
+   "x": 1880,
+   "y": 110,
+   "w": 30,
+   "h": 24,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 1880,
+   "baseY": 110,
+   "phase": 4.199999999999999,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 6,
+   "type": "walker",
+   "x": 2200,
+   "y": 276,
+   "w": 30,
+   "h": 34,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 2200,
+   "baseY": 276,
+   "phase": 4.8999999999999995,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 7,
+   "type": "turret",
+   "x": 2460,
+   "y": 276,
+   "w": 28,
+   "h": 34,
+   "hp": 3,
+   "maxHp": 3,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 2460,
+   "baseY": 276,
+   "phase": 5.6,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 8,
+   "type": "drone",
+   "x": 2880,
+   "y": 115,
+   "w": 30,
+   "h": 24,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 2880,
+   "baseY": 115,
+   "phase": 6.3,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 9,
+   "type": "walker",
+   "x": 3140,
+   "y": 276,
+   "w": 30,
+   "h": 34,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 3140,
+   "baseY": 276,
+   "phase": 7,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 10,
+   "type": "turret",
+   "x": 3320,
+   "y": 276,
+   "w": 28,
+   "h": 34,
+   "hp": 3,
+   "maxHp": 3,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 3320,
+   "baseY": 276,
+   "phase": 7.699999999999999,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 11,
+   "type": "drone",
+   "x": 3830,
+   "y": 125,
+   "w": 30,
+   "h": 24,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 3830,
+   "baseY": 125,
+   "phase": 8.399999999999999,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 12,
+   "type": "walker",
+   "x": 4270,
+   "y": 276,
+   "w": 30,
+   "h": 34,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 4270,
+   "baseY": 276,
+   "phase": 9.1,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 13,
+   "type": "turret",
+   "x": 4360,
+   "y": 276,
+   "w": 28,
+   "h": 34,
+   "hp": 3,
+   "maxHp": 3,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 4360,
+   "baseY": 276,
+   "phase": 9.799999999999999,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 14,
+   "type": "drone",
+   "x": 4900,
+   "y": 150,
+   "w": 30,
+   "h": 24,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 4900,
+   "baseY": 150,
+   "phase": 10.5,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 15,
+   "type": "walker",
+   "x": 5150,
+   "y": 276,
+   "w": 30,
+   "h": 34,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 5150,
+   "baseY": 276,
+   "phase": 11.2,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 16,
+   "type": "turret",
+   "x": 5340,
+   "y": 276,
+   "w": 28,
+   "h": 34,
+   "hp": 3,
+   "maxHp": 3,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 5340,
+   "baseY": 276,
+   "phase": 11.899999999999999,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 17,
+   "type": "drone",
+   "x": 5760,
+   "y": 125,
+   "w": 30,
+   "h": 24,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 5760,
+   "baseY": 125,
+   "phase": 12.6,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 18,
+   "type": "walker",
+   "x": 6060,
+   "y": 276,
+   "w": 30,
+   "h": 34,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 6060,
+   "baseY": 276,
+   "phase": 13.299999999999999,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 19,
+   "type": "turret",
+   "x": 6440,
+   "y": 276,
+   "w": 28,
+   "h": 34,
+   "hp": 3,
+   "maxHp": 3,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 6440,
+   "baseY": 276,
+   "phase": 14,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 20,
+   "type": "drone",
+   "x": 6640,
+   "y": 150,
+   "w": 30,
+   "h": 24,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 6640,
+   "baseY": 150,
+   "phase": 14.7,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 21,
+   "type": "walker",
+   "x": 6870,
+   "y": 276,
+   "w": 30,
+   "h": 34,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 6870,
+   "baseY": 276,
+   "phase": 15.399999999999999,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 22,
+   "type": "turret",
+   "x": 7220,
+   "y": 276,
+   "w": 28,
+   "h": 34,
+   "hp": 3,
+   "maxHp": 3,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 7220,
+   "baseY": 276,
+   "phase": 16.099999999999998,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 23,
+   "type": "drone",
+   "x": 7520,
+   "y": 135,
+   "w": 30,
+   "h": 24,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 7520,
+   "baseY": 135,
+   "phase": 16.799999999999997,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 24,
+   "type": "walker",
+   "x": 7900,
+   "y": 276,
+   "w": 30,
+   "h": 34,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 7900,
+   "baseY": 276,
+   "phase": 17.5,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 25,
+   "type": "turret",
+   "x": 8180,
+   "y": 276,
+   "w": 28,
+   "h": 34,
+   "hp": 3,
+   "maxHp": 3,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 8180,
+   "baseY": 276,
+   "phase": 18.2,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 26,
+   "type": "drone",
+   "x": 8560,
+   "y": 140,
+   "w": 30,
+   "h": 24,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 8560,
+   "baseY": 140,
+   "phase": 18.9,
+   "fireTimer": 1.6
+  },
+  {
+   "id": 27,
+   "type": "walker",
+   "x": 8820,
+   "y": 276,
+   "w": 30,
+   "h": 34,
+   "hp": 2,
+   "maxHp": 2,
+   "facing": -1,
+   "flash": 0,
+   "dead": false,
+   "baseX": 8820,
+   "baseY": 276,
+   "phase": 19.599999999999998,
+   "fireTimer": 1.6
+  }
+ ],
+ "pickups": [
+  {
+   "x": 700,
+   "y": 275,
+   "type": "health",
+   "taken": false
+  },
+  {
+   "x": 1510,
+   "y": 220,
+   "type": "energy",
+   "taken": false
+  },
+  {
+   "x": 2390,
+   "y": 220,
+   "type": "health",
+   "taken": false
+  },
+  {
+   "x": 3330,
+   "y": 205,
+   "type": "energy",
+   "taken": false
+  },
+  {
+   "x": 4400,
+   "y": 275,
+   "type": "health",
+   "taken": false
+  },
+  {
+   "x": 5240,
+   "y": 215,
+   "type": "energy",
+   "taken": false
+  },
+  {
+   "x": 6180,
+   "y": 145,
+   "type": "health",
+   "taken": false
+  },
+  {
+   "x": 7480,
+   "y": 220,
+   "type": "energy",
+   "taken": false
+  },
+  {
+   "x": 8630,
+   "y": 160,
+   "type": "health",
+   "taken": false
+  }
+ ],
+ "checkpoint": {
+  "x": 2700,
+  "y": 270,
+  "active": false
+ },
+ "arena": {
+  "gate": 8950,
+  "checkpoint": 8930,
+  "spawn": 9020,
+  "bossX": 9270,
+  "bossMin": 8990,
+  "bossMax": 9430
+ },
+ "checkpoints": [
+  {
+   "at": 2520,
+   "x": 2700
+  },
+  {
+   "at": 4700,
+   "x": 4850
+  },
+  {
+   "at": 6300,
+   "x": 6450
+  },
+  {
+   "at": 7950,
+   "x": 8100
+  },
+  {
+   "at": 8950,
+   "x": 8930,
+   "heal": true
+  }
+ ],
+ "sections": [
+  {
+   "from": 0,
+   "name": "SIGNAL YARD"
+  },
+  {
+   "from": 800,
+   "name": "COOLANT WORKS"
+  },
+  {
+   "from": 3600,
+   "name": "CONVEYOR SPAN"
+  },
+  {
+   "from": 5500,
+   "name": "SLAG CHANNEL"
+  },
+  {
+   "from": 6990,
+   "name": "CATWALK GRID"
+  },
+  {
+   "from": 8320,
+   "name": "OBSIDIAN GATE"
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "ASTRA // OVERDRIVE",
+  "short_name": "ASTRA",
+  "description": "軌道都市の最終防衛線を突破する2Dアクション。",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#05090d",
+  "theme_color": "#05090d",
+  "categories": ["games"],
+  "icons": [
+    { "src": "assets/brand/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/brand/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "assets/brand/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

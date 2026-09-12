@@ -1,0 +1,24 @@
+const fs=require('fs'),{chromium}=require('C:/Users/situz/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+(async()=>{const br=await chromium.launch({headless:true,executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
+try{const page=await br.newPage({viewport:{width:1440,height:900}});page.setDefaultTimeout(9000);
+const errors=[];page.on('pageerror',e=>errors.push(e.message));
+await page.goto('http://127.0.0.1:4173/');await page.locator('[data-action=start]').click();await page.waitForTimeout(1000);
+fs.mkdirSync('qa/unified/live',{recursive:true});
+const shot=async(name,setup)=>{
+  await page.evaluate(s=>{game.running=false;cancelAnimationFrame(game.raf);
+    const st=game.state,p=st.player;
+    Object.assign(p,{x:200,y:270,vx:0,vy:0,onGround:true,dashTime:0,wallDir:0,saberTime:0,saberCombo:0,charge:0,shootPoseTime:0,facing:1,invuln:0});
+    st.enemies=[];st.bullets=[];st.particles=[];st.message='';st.shake=0;
+    eval('('+s+')')(p,st);
+    AstraRenderer.draw(document.querySelector('canvas').getContext('2d'),st);},setup);
+  fs.writeFileSync('qa/unified/live/'+name+'.png',await page.locator('canvas').screenshot());
+};
+await shot('idle','(p)=>{}');
+await shot('charging','(p)=>{p.charge=.7;}');
+await shot('running','(p)=>{p.vx=190;p.runTime=.18;}');
+await shot('jumping','(p)=>{p.onGround=false;p.vy=-250;}');
+await shot('falling','(p)=>{p.onGround=false;p.vy=200;}');
+await shot('dashing','(p)=>{p.dashTime=.15;p.vx=560;}');
+await shot('saber','(p)=>{p.saberTime=AstraCombat.saberDuration*.55;p.saberCombo=1;p.saberFacing=1;}');
+console.log(JSON.stringify({errors}));
+}finally{await br.close();}})().catch(e=>{console.error(e);process.exitCode=1});

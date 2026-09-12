@@ -1,0 +1,52 @@
+# Builds the game and puts it on GitHub Pages.
+#
+# Pages serves the built bundle, not the repository: the WebP art, the rewritten references and
+# the self-contained check all come from tools/build-release.cjs. The sources stay in the repo
+# so the build can be reproduced, and so the masters are never what a player downloads.
+#
+# One-time setup in the repository: Settings -> Pages -> Source: "GitHub Actions".
+name: Pages
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# A deploy already running is allowed to finish; only queued ones are dropped.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # The game has no dependencies, so there is nothing to install. The tests are plain node
+      # and run in a second; a build that fails them should not reach anybody.
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build:ci
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: release
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,16 @@
+node_modules/
+*.log
+
+# Built output. Rebuilt from source with: npm run build
+release/
+dist/
+
+# QA runs: screenshots, captures and recordings, gigabytes of them. The scripts that
+# produce them are worth keeping, so they are let back in below.
+qa/*
+!qa/*.cjs
+!qa/*.py
+qa-*.png
+
+# stale captured output
+test-out.txt
