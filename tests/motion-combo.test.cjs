@@ -363,3 +363,58 @@ test('the rig carries five stages and the fifth resolves',()=>{
   // a fall long enough to run the pose out puts the blade away rather than holding it for ever
   assert.ok(!rig.blade(rig.pose(5,1)).visible,'and it goes out at the end of the pose');
 });
+
+// --- what makes the plume read as fire rather than as a shape --------------------------------
+// The first version of this move drew nested outlines, which can only give concentric bands on
+// a solid body that holds one shape. Measured against the reference GIF that was wrong three
+// ways at once: the reference's fire covers only a fifth to a third of its own bounding box,
+// its temperature runs diagonally rather than in rings, and it re-forms on an eight frame
+// loop. Those three are what these hold.
+test('the plume is layered from cool to hot, the reference GIF own colour ladder',()=>{
+  const fire=ctx.AstraSaberRig.fire;
+  assert.ok(fire.length>=8,`enough layers to grade: ${fire.length}`);
+  const lum=c=>{const n=parseInt(c.slice(1),16);return ((n>>16)&255)+((n>>8)&255)*2+(n&255);};
+  for(let i=1;i<fire.length;i++)
+    assert.ok(lum(fire[i].c)>lum(fire[i-1].c),`layer ${i} is hotter than ${i-1}`);
+  // and each hotter layer is smaller, so the cool ones are what the silhouette is made of
+  for(let i=1;i<fire.length;i++){
+    assert.ok(fire[i].l<=fire[i-1].l,`layer ${i} reaches no further`);
+    assert.ok(fire[i].w<fire[i-1].w,`layer ${i} is narrower`);
+  }
+});
+test('the plume grades diagonally, not in rings',()=>{
+  const fire=ctx.AstraSaberRig.fire,cool=fire[0],hot=fire[fire.length-1];
+  // the hot end sits further along the axis than the cool end: white at the tip
+  assert.ok(hot.h>cool.h+.08,`hot head further out: ${cool.h} -> ${hot.h}`);
+  // and further across it, toward the leading edge: white on the side it is travelling
+  assert.ok(hot.y<cool.y-.15,`hot head toward the leading edge: ${cool.y} -> ${hot.y}`);
+  // nested outlines would have every layer on one centre, which is what made it a balloon
+  assert.notEqual(hot.h,cool.h);
+  assert.notEqual(hot.y,cool.y);
+});
+test('the plume re-forms as it burns instead of holding one shape',()=>{
+  const rig=ctx.AstraSaberRig;
+  const shape=step=>rig.fire.map((b,i)=>
+    [rig.fireHash(i*3.7+i*11.3,step),rig.fireHash(i*5.1+i*7.9+40,step)]).flat();
+  const first=shape(0);
+  let moved=0;
+  for(let s=1;s<8;s++){
+    const now=shape(s);
+    if(now.some((v,i)=>Math.abs(v-first[i])>.05))moved++;
+  }
+  assert.equal(moved,7,'every step of the loop is a different shape');
+  // but the same step is always the same shape: random per draw would strobe at sixty a second
+  assert.deepEqual(Array.from(shape(3)),Array.from(shape(3)));
+});
+test('the plume is a jet, longer than it is wide, and lies well off vertical',()=>{
+  const rig=ctx.AstraSaberRig,C=ctx.AstraCombat;
+  // measured on the reference: 1.9 body heights along its axis against 0.8 across, and forty
+  // degrees off vertical. A plume as wide as it is long reads as a fan sitting on the hero.
+  for(const t of [.26,.46,.67]){
+    const p=rig.pose(4,t),b=rig.blade(p);
+    const len=Math.hypot(b.tip.x-b.root.x,b.tip.y-b.root.y);
+    assert.ok(len>60,`the jet reaches at ${t}: ${len.toFixed(0)}px`);
+    const off=Math.abs(Math.atan2(b.tip.x-b.root.x,b.root.y-b.tip.y))*180/Math.PI;
+    assert.ok(off>28&&off<58,`and lies off vertical at ${t}: ${off.toFixed(0)} degrees`);
+  }
+});

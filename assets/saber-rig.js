@@ -56,11 +56,11 @@
     [[0,     0, -21,  .12,   2, -22,  2.20,   9,  -9,    0,   0],
      [.035, -1, -20, -.10, -10, -27,  3.05,  10, -10,  -.07,  0],
      [.085,  2, -15,  .30,  17, -11,   .20,  14, -12,   .05,  0],
-     [.14,   3, -18,  .10,  20, -20,  -.72,   9,  -8,  -.08,  2],
-     [.26,   3, -21, -.02,  19, -26, -1.03,   8,  -7,  -.13,  3],
-     [.46,   3, -22, -.08,  18, -32, -1.11,   7,  -6,  -.21,  3],
-     [.67,   3, -22, -.06,  18, -34, -1.29,   7,  -6,  -.17,  2],
-     [.85,   2, -21, -.12,  16, -31,  -.44,   8,  -6,  -.24,  2],
+     [.14,   3, -18,  .10,  20, -20,  -.66,   9,  -8,  -.08,  2],
+     [.26,   3, -21, -.02,  19, -26,  -.71,   8,  -7,  -.13,  3],
+     [.46,   3, -22, -.08,  18, -32,  -.71,   7,  -6,  -.21,  3],
+     [.67,   3, -22, -.06,  18, -34,  -.73,   7,  -6,  -.17,  2],
+     [.85,   2, -21, -.12,  16, -31,  -.50,   8,  -6,  -.24,  2],
      [1,     0, -22,  .02,   8, -30, -1.60,   8,  -8,  -.10,  0]],
     // Stage 5 is not an attack. It is the ride down: the sheet's last three frames snap the
     // arms wide as the plume tears off, then hold a short blade overhead all the way to the
@@ -151,7 +151,7 @@
     var tear=ease(.76,.94,p.t)*(1-held),root=spun(p,p.hand);
     if(tear>.01)root={x:root.x-5*tear,y:root.y-26*tear};
     return{root:root,angle:p.angle,
-      length:13+34*body*surge+22*sweep+25*wind+13*held,width:7+26*body+8*sweep+5*wind,
+      length:13+108*body*surge+34*sweep+34*wind+13*held,width:7+20*body+9*sweep+6*wind,
       alpha:Math.min(1,body*1.25+sweep+wind+.90*held)};
   }
   function blade(p){
@@ -207,41 +207,92 @@
   // The flame, drawn as nested tongues along its own axis: a dark rim, orange body, amber
   // heart and a white core, the way the reference's plume is banded. Behind the figure it is
   // only a glow; in front it is the whole shape, because it swallows the arm.
-  function drawPlume(ctx,p,reduced,behind){
+  // The reference's fire, measured off the GIF: it covers only a fifth to a third of its own
+  // bounding box, its temperature runs diagonally - white at the tip and the leading edge, deep
+  // red at the root and the trailing edge - and the whole thing re-forms on an eight frame
+  // loop. Nested outlines can do none of that: they are solid, their bands are rings, and they
+  // hold one shape. So the fire is a set of separate licks with gaps between them.
+  // The colour ladder is the GIF's own nine warm values, with no gradient between them.
+  //   c colour  l along  w across  x,y where this layer's licks start, as fractions of the
+  //   WHOLE plume (not of this layer, or the narrow hot layers would barely move at all)
+  //   n how many licks  t how fat each one  s how wide the layer's cone opens
+  // The reference's fire, measured off the GIF: a lumpy head two thirds of the way out with a
+  // narrowing throat back to the hand, 1.9 body lengths along its axis and 0.8 across, forty
+  // degrees off vertical, covering only a quarter to a third of its own bounding box, and
+  // re-forming on an eight frame loop. Its temperature runs diagonally, white at the far
+  // leading side and deep red at the root and the trailing side.
+  // A fan of licks spreading from the hand cannot do this: its boundary is a smooth arc, so it
+  // reads as a wedge however the licks are shaped. Hence the head-and-throat build.
+  // Colours are the GIF's own nine warm values, with no gradient between them.
+  //   c colour   l along   w across    h where this layer's head sits, as a fraction of l
+  //   y how far the layer is pushed across the axis, as a fraction of the whole plume's width
+  //   n licks in the head   t how fat each one is   v the throat's half width
+  var FIRE=[
+    {c:'#981810',l:1.00,w:1.00,h:.46,y:.10, n:13,t:.30,v:.26},
+    {c:'#c81810',l:.98, w:.95, h:.47,y:.08, n:12,t:.30,v:.22},
+    {c:'#f01000',l:.96, w:.89, h:.49,y:.05, n:12,t:.31,v:.18},
+    {c:'#f05818',l:.93, w:.82, h:.51,y:.02, n:11,t:.32,v:.14},
+    {c:'#f88818',l:.89, w:.74, h:.53,y:-.02,n:11,t:.33,v:.10},
+    {c:'#e8c838',l:.85, w:.65, h:.55,y:-.06,n:10,t:.34,v:.06},
+    {c:'#f8d828',l:.79, w:.55, h:.57,y:-.10,n:10,t:.36,v:0},
+    {c:'#f8f8b8',l:.72, w:.45, h:.59,y:-.14,n: 9,t:.38,v:0},
+    {c:'#f0f0f0',l:.63, w:.34, h:.61,y:-.17,n: 9,t:.40,v:0}
+  ];
+  // Deterministic, so a lick keeps its shape for as long as the churn step lasts. Random per
+  // draw call would strobe at sixty frames a second.
+  function fireHash(a,b){var x=Math.sin(a*127.1+b*311.7+1.3)*43758.5453;return x-Math.floor(x);}
+  function drawPlume(ctx,p,reduced){
     var f=plume(p);if(!f)return;
+    var churn=reduced?0:Math.floor(p.t*34)%8;
     ctx.save();ctx.translate(f.root.x,f.root.y);ctx.rotate(f.angle);
-    var base=ctx.globalAlpha;
-    // The sheet's plume is a leaf, not an egg: narrow where it leaves the hand, widest a little
-    // past halfway, and closing to a real point. The old outline carried its width all the way
-    // to a blunt curl, which is what made it read as a balloon.
-    function tongue(len,wide,color,alpha){
-      ctx.beginPath();ctx.moveTo(0,-wide*.14);
-      ctx.bezierCurveTo(len*.20,-wide*.96,len*.50,-wide*.66,len,-wide*.10);
-      ctx.bezierCurveTo(len*.54,wide*.56,len*.22,wide*.72,0,wide*.14);
-      ctx.closePath();ctx.globalAlpha=base*f.alpha*alpha;ctx.fillStyle=color;ctx.fill();
+    ctx.globalAlpha=Math.min(1,ctx.globalAlpha*f.alpha);
+    function lick(len,wide){
+      // narrow at the root, widest past the middle, capped: a club. A pointed lick makes a
+      // beam, and the reference's fire has no points in it anywhere.
+      ctx.beginPath();ctx.moveTo(0,-wide*.40);
+      ctx.bezierCurveTo(len*.44,-wide*.96,len*.84,-wide*1.06,len,-wide*.36);
+      ctx.bezierCurveTo(len*1.09,-wide*.10,len*1.09,wide*.10,len,wide*.36);
+      ctx.bezierCurveTo(len*.84,wide*1.06,len*.44,wide*.96,0,wide*.40);
+      ctx.closePath();ctx.fill();
     }
-    if(behind){
-      if(!reduced)tongue(f.length*1.10,f.width*1.24,'#e0201c',.42);
-      tongue(f.length*1.04,f.width*1.10,'#ff3a18',.48);
-    }else{
-      // the sheet edges the whole plume in a red that is plainly red, so this band is almost
-      // opaque; at a quarter alpha it sank into the factory behind it and read as soot
-      if(!reduced)tongue(f.length*1.10,f.width*1.24,'#e01b18',.95);
-      tongue(f.length*1.04,f.width*1.10,'#ff3a10',1);
-      tongue(f.length,f.width,'#ff8a2b',.96);
-      tongue(f.length*.90,f.width*.72,'#ffc24a',1);
-      tongue(f.length*.72,f.width*.44,'#fff0b8',1);
-      tongue(f.length*.50,f.width*.20,'#fffdf2',1);
-      // embers shed off the trailing edge, placed rather than random so they do not flicker
-      if(!reduced){
-        ctx.globalAlpha=base*f.alpha*.85;ctx.fillStyle='#ffa53a';
-        for(var i=0;i<4;i++){
-          var u=.28+i*.19,r=f.width*(.44+.20*i),k=2.6-i*.4;
-          ctx.beginPath();ctx.arc(f.length*u,r,k,0,6.284);ctx.fill();
-        }
+    for(var b=0;b<FIRE.length;b++){
+      if(reduced&&b%2===1)continue;             // half the layers when motion is dialled down
+      var band=FIRE[b],L=f.length*band.l,W=f.width*band.w;
+      var hx=L*band.h,hy=f.width*band.y,hr=W*.72;
+      ctx.fillStyle=band.c;
+      // the throat: what feeds the head from the hand. Only the cool layers have one - the
+      // reference's throat is red and orange, and every bright value it owns is in the head.
+      // Running the white back to the wrist turned the whole thing into a laser.
+      if(band.v)for(var k=0;k<2;k++){
+        var t1=fireHash(k*4.1+b*13.7+700,churn);
+        ctx.save();
+        ctx.rotate((k?.13:-.11)+(t1-.5)*.14);
+        lick(hx*(.78+.34*t1),f.width*band.v*(.76+.48*t1));
+        ctx.restore();
+      }
+      // the head: licks radiating out from its centre, longer forward than back so the billow
+      // is drawn out along the axis rather than round
+      for(var i=0;i<band.n;i++){
+        var a=(i+.5)/band.n*6.2832,
+            r1=fireHash(i*3.7+b*11.3,churn),
+            r2=fireHash(i*5.1+b*7.9+40,churn);
+        ctx.save();
+        ctx.translate(hx+(r1-.5)*hr*.30,hy+(r2-.5)*hr*.30);
+        ctx.rotate(a+(r2-.5)*.34);
+        lick(hr*(1+.46*Math.cos(a))*(.58+.84*r1),hr*band.t*(.66+.68*r2));
+        ctx.restore();
       }
     }
-    ctx.globalAlpha=base;ctx.restore();
+    // embers that have left the mass altogether
+    if(!reduced){
+      ctx.fillStyle='#f88818';
+      for(var e=0;e<7;e++){
+        var e1=fireHash(e*13.1,churn),e2=fireHash(e*17.7+80,churn),k2=1.3+1.9*e2;
+        ctx.fillRect(f.length*(.22+.86*e1)-k2/2,
+                     f.width*(.40+.66*e2)*(e%2?1:-.55)-k2/2,k2,k2);
+      }
+    }
+    ctx.restore();
   }
   function trail(ctx,p,reduced){
     var shape=smear(p);if(!shape)return;
@@ -279,7 +330,7 @@
     var build=rig.build||{x:1,y:1};
     ctx.save();ctx.translate(o.x||0,o.y||0);if(o.facing<0)ctx.scale(-1,1);ctx.scale(build.x,build.y);ctx.imageSmoothingEnabled=false;
     var spin=p.spin||0;
-    if(p.stage>=4)drawPlume(ctx,p,o.reducedMotion,true);
+    if(p.stage>=4)drawPlume(ctx,p,o.reducedMotion);
     else if(p.stage===2)horizontalTrail(ctx,p,false);else trail(ctx,p,o.reducedMotion);
     // The rising cut turns the whole figure about its hip; the flame is drawn outside that turn
     // because its angle was measured against the world, not against the body.
@@ -331,8 +382,9 @@
     if(p.stage===2)horizontalTrail(ctx,p,true);
     if(spin)ctx.restore();
     var b=blade(p);
-    if(p.stage>=4)drawPlume(ctx,p,o.reducedMotion,false);
-    else if(b.visible&&(!smear(p)||smear(p).alpha<.35)){
+    // The rising cut and the ride down carry fire, already drawn behind the figure; only the
+    // three chained swings draw a struck edge here.
+    if(p.stage<4&&b.visible&&(!smear(p)||smear(p).alpha<.35)){
       ctx.save();ctx.lineCap='round';
       function line(width,color){ctx.beginPath();ctx.moveTo(b.root.x,b.root.y);ctx.quadraticCurveTo((b.root.x+b.tip.x)*.5+3*Math.sin(p.t*7),(b.root.y+b.tip.y)*.5-(p.stage===2?1.5:5)*Math.sin(p.t*Math.PI),b.tip.x,b.tip.y);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke();}
       line(5,'#35d77b');line(2.4,'#f3fff9');ctx.restore();
@@ -359,5 +411,6 @@
     return out;
   }
   g.AstraSaberRig={pose:pose,blade:blade,draw:draw,segment:segment,sweep:sweep,
+    fire:FIRE,fireHash:fireHash,
     get turnReady(){return turnReady}};
 })(typeof window!=='undefined'?window:globalThis);
