@@ -4,7 +4,8 @@
 # the self-contained check all come from tools/build-release.cjs. The sources stay in the repo
 # so the build can be reproduced, and so the masters are never what a player downloads.
 #
-# One-time setup in the repository: Settings -> Pages -> Source: "GitHub Actions".
+# Pages turns itself on: configure-pages asks GitHub to enable it for this repository the
+# first time this runs, so nobody has to find the setting by hand.
 name: Pages
 
 on:
@@ -37,6 +38,8 @@ jobs:
       - name: Build
         run: npm run build:ci
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: release
