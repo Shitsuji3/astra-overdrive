@@ -4,8 +4,9 @@
 # the self-contained check all come from tools/build-release.cjs. The sources stay in the repo
 # so the build can be reproduced, and so the masters are never what a player downloads.
 #
-# Pages turns itself on: configure-pages asks GitHub to enable it for this repository the
-# first time this runs, so nobody has to find the setting by hand.
+# One-time setup, and it cannot be automated: Settings -> Pages -> Source: "GitHub Actions".
+# Creating a Pages site is an admin-level call, and the token a workflow runs with never has
+# admin rights, so asking configure-pages to enable it only produces a failed run.
 name: Pages
 
 on:
@@ -38,8 +39,6 @@ jobs:
       - name: Build
         run: npm run build:ci
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: release
