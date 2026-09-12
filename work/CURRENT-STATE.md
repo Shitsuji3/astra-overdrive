@@ -493,3 +493,21 @@ README の先頭に遊ぶリンクを足し、「ステージ3種」という古
 `astra-overdrive` を作る (2) remote を足して push（Git Credential Manager が入っているので
 初回はGitHub自身のサインイン画面が出る。こちらが認証情報を扱うことはない）
 (3) Settings → Pages → Source を "GitHub Actions" にする。詳細は work/PUBLISH-20260912.md。
+
+最新変更（2026-09-12）：GitHub Pages で公開完了。
+**https://Shitsuji3.github.io/astra-overdrive/**
+リポジトリは https://github.com/Shitsuji3/astra-overdrive （Public）。GitHub Desktop から
+公開し、`.github/workflows/pages.yml` が push のたびにテストを通してビルドし `release/` を配る。
+リポジトリのソースそのものではなく、WebP化した出荷用バンドルが配られる。
+つまずいた一点：ワークフローに Pages を自分で有効化させようとして失敗した
+（Create Pages site failed: Resource not accessible by integration）。**Pages サイトの作成は
+リポジトリの管理者権限が要るAPIで、ワークフローのトークンには管理者権限が絶対に付かない。**
+仕組み上できないので指定を外し、Settings → Pages → Source を "GitHub Actions" にする
+一回だけをユーザーに依頼した。その設定ページが404になったのは、Claudeアプリ内蔵の
+ブラウザーで開いていたため。**GitHubはサインアウト状態だと設定ページの存在ごと隠す**
+（403ではなく404）。`git push` はコマンドラインからは通らない。Git Credential Manager に
+古い資格情報が残っていて Password authentication is not supported になる。GitHub Desktop は
+自前のトークンを持っているので、**push は GitHub Desktop から行うこと。**
+公開後、`qa/release-check.cjs` を**本番URLに向けて**実行して確認した。1ステージ走破、
+ドロップ1個、ボスが6技すべて使用、撃破演出2.21秒で勝利、スマホのパッド操作も反応。
+外部通信ゼロ、404ゼロ、例外ゼロ。詳細は work/PUBLISH-20260912.md。
