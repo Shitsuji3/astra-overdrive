@@ -22,7 +22,7 @@
 
 ## ボス
 
-WARDEN / TIDEBREAKER / COILHEAD / ASHMAW / NULLPRIEST / GRAVELOCK / SPARKWIDOW / OBSIDIAN CROWN の8体。装甲は72から132、体格も所持技も別々で、8種の攻撃（扇状射撃・床の波・突進・曲射・全方位・跳躍・地雷・弾幕の壁）を体ごとに配分しています。定義は [`assets/bosses.js`](assets/bosses.js) にデータとして置いてあります。一覧は `node qa/boss-roster.cjs` で書き出せます。
+WARDEN / TIDEBREAKER / COILHEAD / ASHMAW / NULLPRIEST / GRAVELOCK / SPARKWIDOW / OBSIDIAN CROWN の8体。装甲は72から132、体格も所持技も別々で、8種の攻撃（扇状射撃・床の波・突進・曲射・全方位・跳躍・地雷・弾幕の壁）を体ごとに配分しています。**各ボスは4〜6拍の決まった順番を繰り返します。** 1拍は「その技が要る距離まで歩く→溜める→撃つ→立ち止まって隙を晒す」で、隙は最短0.60秒あります。定義は [`assets/bosses.js`](assets/bosses.js) の `routine` にデータとして置いてあります。ループと隙の実測は `node qa/boss-motion.cjs` で出せます。
 
 ステージの定義は [`assets/stages.js`](assets/stages.js) にデータとして置いてあります。1項目足せばステージが増え、選択画面は一覧から自動で作られます。追加したら `node qa/stage-audit.cjs`（到達可能性の静的検証）と `node qa/stage-playthrough.cjs`（実ブラウザでの通し）を実行してください。
 

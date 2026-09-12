@@ -84,7 +84,7 @@ test('the Warden still does exactly what it did before the roster existed', () =
   }
 });
 
-test('a boss is barely bigger than the player, and never plants itself', () => {
+test('a boss is barely bigger than the player', () => {
   const h = harness();
   const { g } = arena(h, 'warden');
   const p = g.state.player;
@@ -92,47 +92,57 @@ test('a boss is barely bigger than the player, and never plants itself', () => {
     assert.ok(def.w > p.w && def.h > p.h, `${def.id} outsizes the player: ${def.w}x${def.h}`);
     assert.ok(def.w <= p.w * 2 && def.h <= p.h * 1.6,
       `${def.id} is only a little bigger: ${def.w}x${def.h} against ${p.w}x${p.h}`);
-    for (const knob of ['stepSpeed', 'hopLift', 'hopChance', 'restless'])
-      assert.ok(def.tuning[knob] > 0, `${def.id} has a ${knob}`);
+    assert.ok(def.tuning.stepSpeed > 0, `${def.id} has a walking speed`);
   }
 });
 
-test('a boss keeps moving between attacks, and hops without shaking the floor', () => {
+test('between attacks a boss walks to one spot and then holds it', () => {
   const h = harness();
   const { g, b } = arena(h, 'warden');
-  const seen = new Set();
-  let airborne = 0, waves = 0, landings = 0, wasUp = false;
-  // hold it between moves so nothing but the scurry can touch the body
-  b.attack = 'tell-volley'; b.timer = 999;
-  let roll = 0;
-  g._roll = () => [.5, .15, .1][roll++ % 3];      // picks a side, a short hop away, and hops
-  for (let i = 0; i < 240; i++) {
+  const C = h.api;
+  let walkedTo = null, still = 0, drifted = 0;
+  for (let i = 0; i < 60 * 30; i++) {
+    // judge each frame by the state it began in: a frame can both finish a walk and start a
+    // wind-up, and the movement in it belonged to the walk
+    const was = { x: b.x, state: String(b.attack), dashing: b.dashTime > 0, air: b.leap || b.y < b.baseY };
     g._boss(1 / 60);
-    seen.add(Math.round(b.x));
-    assert.ok(b.y <= b.baseY, `never sinks through the floor, frame ${i}`);
-    if (b.y < b.baseY) airborne++;
-    if (wasUp && b.y === b.baseY) landings++;
-    wasUp = b.y < b.baseY;
-    waves += g.state.bullets.filter(x => x.kind === 'wave').length;
-    g.state.bullets = [];
+    if (was.state.indexOf('walk-') === 0) walkedTo = b.walkTo;
+    // outside a walk, only a charge or the slam leap may move him
+    else if (b.x !== was.x && !was.dashing && !was.air) drifted++;
+    if (b.x === was.x) still++;
   }
-  assert.ok(seen.size > 40, `it covers ground rather than standing still: ${seen.size} places`);
-  assert.ok(airborne > 20, `and leaves the floor on the way: ${airborne} frames in the air`);
-  assert.equal(waves, 0, 'a hop is not a slam, so the floor stays quiet');
-  assert.ok(b.x >= h.api.arena.bossMin && b.x <= h.api.arena.bossMax, 'and stays in the arena');
-  assert.ok(landings >= 3, `every hop comes back down: ${landings} landings`);
+  assert.equal(drifted, 0, 'he never wanders: every step he takes is on his way somewhere');
+  assert.ok(still > 60 * 12, `and he spends real time planted: ${(still / 60).toFixed(1)}s`);
+  assert.ok(walkedTo !== null && walkedTo >= C.arena.bossMin && walkedTo <= C.arena.bossMax,
+    'the spot he walks to is inside the arena');
+  assert.ok(b.y === b.baseY, 'he is on the floor, not hopping');
 });
 
-test('the scurry gives way to a move that owns the body', () => {
+test('a beat walks him to the distance it asks for', () => {
+  const h = harness();
+  const C = h.api;
+  for (const band of ['near', 'mid', 'far']) {
+    const { g, b } = arena(h, 'warden');
+    const p = g.state.player, mid = p.x + p.w / 2;
+    // aim him at one band and let the walk run its course
+    b.beat = undefined;
+    g._bossBeat(b, h.bosses.get('warden'));
+    b.walkTo = Math.max(C.arena.bossMin, Math.min(C.arena.bossMax, mid + C.bossBands[band] - b.w / 2));
+    for (let i = 0; i < 200 && String(b.attack).indexOf('walk-') === 0; i++) g._boss(1 / 60);
+    assert.ok(Math.abs(b.x - b.walkTo) <= C.bossWalk.settle,
+      `${band}: he got to ${Math.round(b.x)} against ${Math.round(b.walkTo)}`);
+    assert.equal(String(b.attack).indexOf('tell-'), 0, `${band}: and then winds up`);
+  }
+});
+
+test('a charge and the slam leap own the body while they run', () => {
   const h = harness();
   const { g, b } = arena(h, 'warden');
-  g._roll = () => 0;                              // every chance to fidget is taken
   const dashFrom = fire(g, b, 'dash') && b.x;
   for (let i = 0; i < 30; i++) g._boss(1 / 60);
-  assert.ok(b.y === b.baseY, 'no hopping mid-charge');
-  assert.ok(Math.abs(b.x - dashFrom) > 60, 'the charge still covers ground');
+  assert.equal(b.y, b.baseY, 'no hopping mid-charge');
+  assert.ok(Math.abs(b.x - dashFrom) > 60, 'the charge covers ground');
   const { g: g2, b: b2 } = arena(h, 'warden');
-  g2._roll = () => 0;
   fire(g2, b2, 'slam');
   assert.ok(b2.leap, 'the slam takes the wheel');
   let frames = 0;

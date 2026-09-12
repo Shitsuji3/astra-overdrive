@@ -168,7 +168,9 @@ document.addEventListener('keydown',function(e){if(!modal.hidden){if(e.key==='Es
   if(e.key==='Enter'&&document.activeElement.classList.contains('stage-node')){e.preventDefault();document.activeElement.click()}
   return}
 if(!title.hidden){if(e.key==='ArrowDown'){e.preventDefault();active(selected+1);AstraAudio.sound('move')}if(e.key==='ArrowUp'){e.preventDefault();active(selected-1);AstraAudio.sound('move')}if(e.key==='Enter'&&document.activeElement.classList.contains('menu-item')){e.preventDefault();document.activeElement.click()}}},true);
-document.querySelectorAll('[data-input]').forEach(function(b){var a=b.dataset.input;var press=0;b.addEventListener('pointerdown',function(e){e.preventDefault();if(b.setPointerCapture)try{b.setPointerCapture(e.pointerId)}catch(z){}press++;if(a==='pause'){if(game)game.pause()}else if(game)game.setInput(a,true)});function release(){if(a==='pause'||!game)return;// a tap can be over before the loop has stepped once, so hold it for a couple of frames
-var mine=press;requestAnimationFrame(function(){requestAnimationFrame(function(){if(press===mine&&game)game.setInput(a,false)})})}b.addEventListener('pointerup',release);b.addEventListener('pointercancel',release);b.addEventListener('lostpointercapture',release)});
+document.querySelectorAll('[data-input]').forEach(function(b){var a=b.dataset.input;var press=0;b.addEventListener('pointerdown',function(e){e.preventDefault();if(b.setPointerCapture)try{b.setPointerCapture(e.pointerId)}catch(z){}press++;if(a==='pause'){if(game)game.pause()}else if(game)game.setInput(a,true)});// The engine latches the press, so letting go here can be immediate. Holding the button on
+// for a couple of animation frames used to be the way round a lost tap, and it was not
+// reliable: animation frames and game steps do not come at the same rate.
+function release(){if(a==='pause'||!game)return;game.setInput(a,false)}b.addEventListener('pointerup',release);b.addEventListener('pointercancel',release);b.addEventListener('lostpointercapture',release)});
 AstraAudio.setMusic(settings.music===undefined?.45:settings.music);AstraAudio.setSfx(settings.sfx===undefined?.7:settings.sfx);AstraAudio.setMuted(!!settings.muted);setInterval(function(){if(game&&game.state)hud(game.state)},250);showArmed();menu[0].focus();
 })();

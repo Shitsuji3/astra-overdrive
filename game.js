@@ -86,11 +86,16 @@
   };
   // The whole catalogue. Which of these a boss owns is its own business.
   combat.bossPatternOrder = ['volley','wave','dash','mortar','ring','slam','mines','wall'];
-  // A boss is the size of the player and never stands still. Between committed moves it keeps
-  // picking a spot this far from the player and scurrying there, so it is a moving target
-  // rather than a wall. think is the base pause before it picks again; settle is how close
-  // counts as arrived, which stops it twitching on the spot.
-  combat.bossFidget = { think: .3, near: 70, reach: 150, settle: 6 };
+  // How far from the player each beat can ask the boss to stand. Mixing these is what gives a
+  // fight its shape: it backs off to shell you, then closes to sweep you.
+  combat.bossBands = { near: 95, mid: 190, far: 300 };
+  // Walking is bounded. If the arena will not give it the distance it wanted, it takes what it
+  // got and winds up anyway rather than pressing into the wall.
+  combat.bossWalk = { cap: 1.4, settle: 6 };
+  // The opening. Every attack is followed by the boss standing still and starting nothing, and
+  // this is the window the player is meant to take. It tightens as armour drops, never below
+  // this, so there is always a way in.
+  combat.bossRestFloor = .42;
   // Going down takes time: bursts walk over his frame, closing up as they go, and then he
   // goes up all at once.
   combat.bossDeath = { bursts: 9, blastAt: 1.55, end: 2.2 };
@@ -99,14 +104,19 @@
   };
   // Wounded, he winds up faster.
   combat.bossTellScale = [1, .82, .68];
-  // A boss brings its own pool; with nothing named it owns the whole catalogue.
+  // Which attacks a boss owns, taken from the beats of its routine.
   combat.bossPool = function (def) {
     return (def && def.pool && def.pool.length) ? def.pool.slice() : combat.bossPatternOrder.slice();
   };
-  // The pool cycles in order, so the fight stays readable once it has been seen through.
-  combat.bossNext = function (current, def) {
-    var pool = combat.bossPool(def), at = pool.indexOf(current);
-    return pool[(at + 1) % pool.length];
+  // The loop a boss runs, and the beat that follows a given one. Nothing is chosen at random:
+  // the order is written down in the roster and repeats forever.
+  combat.bossRoutine = function (def) {
+    return (def && def.routine && def.routine.length) ? def.routine : null;
+  };
+  combat.bossBeatAfter = function (def, at) {
+    var routine = combat.bossRoutine(def);
+    if (!routine) return 0;
+    return ((at === undefined || at < 0 ? -1 : at) + 1) % routine.length;
   };
   combat.bossOf = function (b) { return global.AstraBosses.get(b && b.id); };
   combat.saberFrameDurations = [.02,.03,.03,.04,.06,.06,.04,.04];
@@ -183,7 +193,7 @@
   global.AstraCombat = combat;
   var NeonGame = function (canvas, opts) {
     opts = opts || {}; this.canvas=canvas; this.onEvent=opts.onEvent||function(){};
-    this.width=640; this.height=360; this.worldWidth=9600; this.input={}; this.padInput={}; this.mouseInput={}; this.keys={};
+    this.width=640; this.height=360; this.worldWidth=9600; this.input={}; this.padInput={}; this.mouseInput={}; this.pressed={}; this.keys={};
     this.stageId=(opts.stage&&global.AstraStages.has(opts.stage))?opts.stage:global.AstraStages.first;
     this.options={reducedMotion:false}; this.acc=0; this.last=performance.now(); this.running=true; this.raf=0; this._pauseLatch=false; this._padStartLatch=false;
     this._bind(); this._bindMouse(); this._reset('menu'); this._loop();
@@ -208,7 +218,7 @@
   NeonGame.prototype._clearMouse=function(){this.mouseInput={};this._shootHeld=false;this._saberHeld=false;if(this.state&&this.state.player){this.state.player.charge=0;this._emit('charge-state',{level:0});}};
   NeonGame.prototype._mapKey=function(k,v){var m={a:'left',arrowleft:'left',d:'right',arrowright:'right',' ':'jump',arrowup:'jump',z:'jump',shift:'dash',x:'dash',j:'shoot',k:'saber'};if(m[k])this.setInput(m[k],v);};
   NeonGame.prototype._reset=function(mode){
-    this.input={}; this.padInput={}; this.mouseInput={}; this.keys={}; this.acc=0; this._jumpHeld=false; this._shootHeld=false; this._dashHeld=false; this._saberHeld=false; this._pauseLatch=false; this._padStartLatch=false;
+    this.input={}; this.padInput={}; this.mouseInput={}; this.pressed={}; this.keys={}; this.acc=0; this._jumpHeld=false; this._shootHeld=false; this._dashHeld=false; this._saberHeld=false; this._pauseLatch=false; this._padStartLatch=false;
     var def=global.AstraCombat.useStage(global.AstraStages.get(this.stageId));
     this.stageId=def.id; this.worldWidth=def.worldWidth;
     var p=[]; function add(x,y,w,h,t){p.push({x:x,y:y,w:w,h:h,type:t||'platform'});}
@@ -225,7 +235,10 @@
   NeonGame.prototype.resume=function(){if(this.state.mode==='paused'){this.state.mode='playing';this.last=performance.now();this.onEvent('resume',this.snapshot());}};
   NeonGame.prototype.retry=function(){if(this.state.mode!=='dead')return;var c={x:this.state.checkpoint.x,active:this.state.checkpoint.active};this._reset('playing');this.state.player.x=c.active?c.x:global.AstraCombat.stage.spawn.x;this.state.player.y=270;this.state.checkpoint.active=c.active;this.state.checkpoint.x=c.x;this.running=true;this.last=performance.now();this.onEvent('start',this.snapshot());};
   NeonGame.prototype.toTitle=function(){this.running=true;this._reset('menu');this.last=performance.now();};
-  NeonGame.prototype.setInput=function(a,v){this.input[a]=!!v;}; NeonGame.prototype.setOptions=function(o){Object.assign(this.options,o||{});if(this.state){this.state.reducedMotion=!!this.options.reducedMotion;this.state.player.reducedMotion=!!this.options.reducedMotion;}};
+  // A press is latched as well as held. The loop does not step once per animation frame, so a
+  // tap can begin and end between two steps; without the latch that tap is simply never seen.
+  // The latch is cleared by the step that reads it, so it can only ever add one frame.
+  NeonGame.prototype.setInput=function(a,v){this.input[a]=!!v;if(v)this.pressed[a]=true;}; NeonGame.prototype.setOptions=function(o){Object.assign(this.options,o||{});if(this.state){this.state.reducedMotion=!!this.options.reducedMotion;this.state.player.reducedMotion=!!this.options.reducedMotion;}};
   NeonGame.prototype.snapshot=function(){return JSON.parse(JSON.stringify(this.state));};
   NeonGame.prototype._emit=function(t,p){this.onEvent(t,p||this.snapshot());};
   NeonGame.prototype._loop=function(){var self=this;if(this.raf)return;var frame=function(now){self.raf=0;var dt=Math.min(.1,(now-self.last)/1000);self.last=now;self._pollGamepad();if(self.state.mode==='playing'){self.acc+=dt;while(self.acc>=1/60){self._tick(1/60);self.acc-=1/60;}}if(global.AstraRenderer&&self.canvas&&self.canvas.getContext)global.AstraRenderer.draw(self.canvas.getContext('2d'),self.state);if(self.running)self.raf=requestAnimationFrame(frame);};this.raf=requestAnimationFrame(frame);};
@@ -275,7 +288,8 @@
   NeonGame.prototype._burst=function(x,y,color){for(var i=0;i<12;i++)this._particle(x,y,color,'burst');this._particle(x,y,color,'ring');};
   NeonGame.prototype._pollGamepad=function(){this.padInput={};if(typeof navigator==='undefined'||!navigator.getGamepads)return;var g=navigator.getGamepads()[0];if(!g)return;var ax=g.axes&&g.axes[0]||0;this.padInput.left=!!((g.buttons[14]&&g.buttons[14].pressed)||ax<-.35);this.padInput.right=!!((g.buttons[15]&&g.buttons[15].pressed)||ax>.35);this.padInput.jump=!!(g.buttons[0]&&g.buttons[0].pressed);this.padInput.dash=!!(g.buttons[1]&&g.buttons[1].pressed);this.padInput.shoot=!!(g.buttons[2]&&g.buttons[2].pressed);this.padInput.saber=!!(g.buttons[3]&&g.buttons[3].pressed);var start=!!(g.buttons[9]&&g.buttons[9].pressed);if(start&&!this._padStartLatch){this._padStartLatch=true;if(this.state.mode==='playing')this.pause();else if(this.state.mode==='paused')this.resume();}if(!start)this._padStartLatch=false;};
   NeonGame.prototype._tick=function(dt){var s=this.state,p=s.player;if(s.mode!=='playing')return;s.time+=dt;s.timeElapsed=s.time;s.messageTimer=Math.max(0,s.messageTimer-dt);p.animTime+=dt;p.invuln=Math.max(0,p.invuln-dt);p.dashCooldown=Math.max(0,p.dashCooldown-dt);p.saberTime=Math.max(0,p.saberTime-dt);p.coyote=Math.max(0,p.coyote-dt);p.jumpBuffer=Math.max(0,p.jumpBuffer-dt);
-    var left=!!(this.input.left||this.padInput.left),right=!!(this.input.right||this.padInput.right),jump=!!(this.input.jump||this.padInput.jump),dash=!!(this.input.dash||this.padInput.dash),shoot=!!(this.input.shoot||this.padInput.shoot||this.mouseInput.shoot||this.mouseInput.pendingShoot),saber=!!(this.input.saber||this.padInput.saber||this.mouseInput.saber||this.mouseInput.pendingSaber);this.mouseInput.pendingShoot=false;this.mouseInput.pendingSaber=false; var jumpPressed=jump&&!this._jumpHeld; if(jumpPressed)p.jumpBuffer=.12;this._jumpHeld=jump;
+    var held=this.pressed;this.pressed={};
+    var left=!!(this.input.left||this.padInput.left||held.left),right=!!(this.input.right||this.padInput.right||held.right),jump=!!(this.input.jump||this.padInput.jump||held.jump),dash=!!(this.input.dash||this.padInput.dash||held.dash),shoot=!!(this.input.shoot||this.padInput.shoot||this.mouseInput.shoot||this.mouseInput.pendingShoot||held.shoot),saber=!!(this.input.saber||this.padInput.saber||this.mouseInput.saber||this.mouseInput.pendingSaber||held.saber);this.mouseInput.pendingShoot=false;this.mouseInput.pendingSaber=false; var jumpPressed=jump&&!this._jumpHeld; if(jumpPressed)p.jumpBuffer=.12;this._jumpHeld=jump;
     var dir=(right?1:0)-(left?1:0); if(p.wallLock>0)dir=0;if(dir){p.facing=dir;p.vx+=(dir*1500)*dt;}else p.vx*=Math.pow(.0008,dt);if(p.dashTime<=0)p.vx=clamp(p.vx,-190,190);else p.vx=p.facing*560;
     if(p.jumpBuffer>0&&(p.onGround||p.coyote>0)){p.vy=-430;p.onGround=false;p.coyote=0;p.jumpBuffer=0;this._emit('sound',{name:'jump'});} if(!jump&&p.vy<-150)p.vy+=900*dt;
     if(dash&&!this._dashHeld&&p.dashCooldown<=0){p.dashTime=.16;p.dashCooldown=.65;p.vx=p.facing*560;p.vy=0;this._emit('sound',{name:'dash'});}this._dashHeld=dash;
@@ -448,7 +462,9 @@
     s.boss={id:def.id,name:def.name,title:def.title,look:def.look||'',sprite:def.sprite||'',
       x:arena.bossX,y:bottom-def.h,baseY:bottom-def.h,w:def.w,h:def.h,
       hp:hp,maxHp:hp,active:true,phase:0,healthPhase:1,attack:'tell-'+def.pool[0],
-      timer:.95,flash:0,facing:-1,vy:0,leap:false,slammed:true,stepTo:undefined,stepWait:0};
+      timer:.95,flash:0,facing:-1,vy:0,leap:false,slammed:true,beat:undefined,walkTo:undefined};
+    // it opens on the first beat of its routine, so the loop starts where the roster says
+    this._bossBeat(s.boss,def);
     return s.boss;
   };
   // In a gauntlet the arena refills until the list runs out.
@@ -480,54 +496,59 @@
       if(b.y>=b.baseY){b.y=b.baseY;if(b.vy>0&&!b.slammed){b.slammed=true;this._bossSlam(b);}b.vy=0;b.leap=false;}
     }
     if(b.dashTime>0){b.dashTime-=dt;b.x=clamp(b.x+b.facing*knob(b,'dashSpeed')*dt,arena.bossMin,arena.bossMax);}
-    if(b.timer<=0){
-      var name=String(b.attack||''),winding=name.indexOf('tell-')===0?name.slice(5):null;
-      if(winding&&C.bossPatterns[winding]){
-        b.attack=winding;b.timer=C.bossPatterns[winding].active;this._bossFire(b,winding);
-      } else {
-        var next=C.bossNext(name,def);
-        b.attack='tell-'+next;b.phase=def.pool.indexOf(next);
-        b.timer=C.bossPatterns[next].tell*C.bossTellScale[b.healthPhase-1]*(def.tempo||1);
-        b.facing=p.x<b.x?-1:1;b.dashTime=0;
-        this._emit('sound',{name:'boss'});
-      }
+    // Walking only ever happens on the way to the spot the next beat asked for, and it ends
+    // the moment the boss gets there.
+    var state=String(b.attack||'');
+    if(state.indexOf('walk-')===0&&b.dashTime<=0&&!b.leap){
+      var gap=(b.walkTo===undefined?b.x:b.walkTo)-b.x;
+      if(Math.abs(gap)>C.bossWalk.settle){
+        var step=knob(b,'stepSpeed')*dt;
+        b.x=clamp(b.x+(gap>0?Math.min(step,gap):Math.max(-step,gap)),arena.bossMin,arena.bossMax);
+      } else b.timer=0;
+      b.facing=(p.x+p.w/2)<b.x+b.w/2?-1:1;
     }
-    this._bossScurry(b,p,dt);
+    // Resting is the opening: it stands, it faces you, and it starts nothing.
+    if(state==='rest')b.facing=(p.x+p.w/2)<b.x+b.w/2?-1:1;
+    if(b.timer<=0){
+      if(state.indexOf('walk-')===0)this._bossWind(b,def,state.slice(5));
+      else if(state.indexOf('tell-')===0&&C.bossPatterns[state.slice(5)]){
+        var move=state.slice(5);
+        b.attack=move;b.timer=C.bossPatterns[move].active;this._bossFire(b,move);
+      } else if(C.bossPatterns[state])this._bossRest(b,def);
+      else this._bossBeat(b,def);
+    }
     if(hit(p,b)&&p.invuln<=0){p.hp-=2;p.invuln=1;s.shake=.3;if(p.hp<=0)this._die();}
   };
-  // Where a boss would stand to hold a given distance on a given side of the player, without
-  // walking out of its own arena.
-  function standAt(b,mid,side,away,arena){
-    return clamp(mid+side*away-b.w/2,arena.bossMin,arena.bossMax);
-  }
-  // Between committed moves the boss refuses to stand still. It picks a spot a short way off
-  // on the player's far side, scurries over, and often hops as it sets out. A dash or the slam
-  // leap owns the body while it runs, so this never fights a move for the same pixel.
-  NeonGame.prototype._bossScurry=function(b,p,dt){
-    var C=global.AstraCombat,arena=C.arena,plan=C.bossFidget;
-    if(b.down||b.dashTime>0||b.leap)return;
-    var mid=p.x+p.w/2,gap=b.stepTo===undefined?0:b.stepTo-b.x,arrived=Math.abs(gap)<=plan.settle;
-    // the pause is a beat taken on arrival, not a clock that runs down while it is still walking
-    if(arrived)b.stepWait=(b.stepWait||0)-dt;
-    if(arrived&&!(b.stepWait>0)&&b.y>=b.baseY&&!b.vy){
-      var side=(b.x+b.w/2)<mid?-1:1;        // keep to the side it is already on
-      if(this._roll()<.28)side=-side;       // ...most of the time, or it is trivial to read
-      var away=plan.near+this._roll()*plan.reach;
-      b.stepTo=standAt(b,mid,side,away,arena);
-      // that spot is the wall it is already against, so go the other way instead of settling
-      if(Math.abs(b.stepTo-b.x)<=plan.settle)b.stepTo=standAt(b,mid,-side,away,arena);
-      b.stepWait=plan.think*(.55+this._roll()*.9)/knob(b,'restless');
-      if(this._roll()<knob(b,'hopChance')){b.vy=-knob(b,'hopLift');b.slammed=true;}
-      gap=b.stepTo-b.x;
-    }
-    // the walk carries on through a hop, which is what makes the hop read as a leap
-    if(Math.abs(gap)>plan.settle){
-      var step=knob(b,'stepSpeed')*dt;
-      b.x=clamp(b.x+(gap>0?Math.min(step,gap):Math.max(-step,gap)),arena.bossMin,arena.bossMax);
-    }
-    if(!b.dashTime)b.facing=mid<b.x+b.w/2?-1:1;
+  // Step to the next beat of the routine and set off for the distance it asks for. Whichever
+  // side of the player it is already on is the side it keeps, unless the arena is too tight
+  // there to give the distance, in which case it crosses over.
+  NeonGame.prototype._bossBeat=function(b,def){
+    var C=global.AstraCombat,arena=C.arena,p=this.state.player,routine=C.bossRoutine(def);
+    if(!routine){b.attack='rest';b.timer=.8;return;}
+    b.beat=C.bossBeatAfter(def,b.beat);
+    var beat=routine[b.beat],mid=p.x+p.w/2,
+        side=(b.x+b.w/2)<mid?-1:1,away=C.bossBands[beat.from]||C.bossBands.mid;
+    b.walkTo=clamp(mid+side*away-b.w/2,arena.bossMin,arena.bossMax);
+    if(Math.abs(b.walkTo+b.w/2-mid)<away-24)
+      b.walkTo=clamp(mid-side*away-b.w/2,arena.bossMin,arena.bossMax);
+    b.attack='walk-'+beat.move;b.timer=C.bossWalk.cap;b.dashTime=0;
   };
-
+  // Plant and telegraph. The wind-up is the same one the warning graphic is drawn from.
+  NeonGame.prototype._bossWind=function(b,def,move){
+    var C=global.AstraCombat,p=this.state.player;
+    if(!C.bossPatterns[move]){this._bossBeat(b,def);return;}
+    b.attack='tell-'+move;b.phase=def.pool.indexOf(move);
+    b.timer=C.bossPatterns[move].tell*C.bossTellScale[b.healthPhase-1]*(def.tempo||1);
+    b.facing=p.x<b.x?-1:1;b.dashTime=0;
+    this._emit('sound',{name:'boss'});
+  };
+  // The recovery the beat asked for. Wounded it shortens, but never past the floor.
+  NeonGame.prototype._bossRest=function(b,def){
+    var C=global.AstraCombat,routine=C.bossRoutine(def),
+        beat=routine&&routine[b.beat===undefined?0:b.beat];
+    b.attack='rest';b.dashTime=0;
+    b.timer=Math.max(C.bossRestFloor,(beat?beat.rest:.8)*C.bossTellScale[b.healthPhase-1]);
+  };
   NeonGame.prototype._die=function(){var s=this.state;if(s.mode==='dead'||s.mode==='victory')return;this._clearMouse();s.mode='dead';s.message='SYSTEM FAILURE';s.messageTimer=999;s.shake=.5;this._emit('death',this.snapshot());};
   NeonGame.prototype.destroy=function(){this.running=false;this._clearMouse();if(this.raf)cancelAnimationFrame(this.raf);global.removeEventListener('keydown',this._keydown);global.removeEventListener('keyup',this._keyup);global.removeEventListener('blur',this._blur);if(this.canvas&&this.canvas.removeEventListener){this.canvas.removeEventListener('mousedown',this._mouseDown);this.canvas.removeEventListener('mouseup',this._mouseUp);this.canvas.removeEventListener('contextmenu',this._contextMenu);}if(this._globalMouseUp)global.removeEventListener('mouseup',this._globalMouseUp);};
   global.NeonGame=NeonGame;

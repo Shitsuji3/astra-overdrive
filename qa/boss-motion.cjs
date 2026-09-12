@@ -1,18 +1,17 @@
-// Measures how much ground a boss actually covers, and photographs a strip of one fight so the
-// footwork can be read at a glance.
+// Reads out the loop each boss runs, and times the opening it leaves after every attack, so
+// the rhythm a player has to learn can be checked as numbers rather than felt for.
 //
 //   node server.cjs
 //   node qa/boss-motion.cjs
 //
-// For every boss it runs the fight headless for twelve seconds with the player parked, then
-// reports the ground covered, how long it spends off the floor, and how it compares with the
-// player's own body. Nothing here judges the numbers; it prints them so they can be judged.
+// The opening is the part that matters: after an attack the boss stands still and starts
+// nothing, and that is the window the player is meant to take. This prints how long that
+// window actually is, and how much of each loop is spent walking rather than planted.
 const fs = require('fs');
 const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE
   || 'C:/Users/situz/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 
 const URL = process.env.GAME_URL || 'http://127.0.0.1:4173/';
-const SECONDS = 12;
 
 (async () => {
   const br = await chromium.launch({ headless: true,
@@ -23,78 +22,60 @@ const SECONDS = 12;
     await page.locator('[data-action=start]').click();
     await page.waitForTimeout(900);
 
-    const rows = await page.evaluate(async (seconds) => {
+    const rows = await page.evaluate(() => {
       const out = [];
       for (const def of AstraBosses.list) {
         game.start({ stage: 'gauntlet' });
         const s = game.state, p = s.player, C = AstraCombat;
         game.running = false; cancelAnimationFrame(game.raf);
         s.enemies = []; s.bullets = []; s.particles = [];
-        p.x = C.arena.gate + 60; p.y = 270; p.vx = 0; p.vy = 0; p.invuln = 1e9; p.hp = 99; p.maxHp = 99;
+        p.x = C.arena.gate + 60; p.y = 270; p.vx = 0; p.vy = 0; p.invuln = 1e9; p.hp = p.maxHp = 99;
         const b = game._spawnBoss(def.id);
-        b.hp = b.maxHp = 1e6;                       // let the whole window be fighting, not dying
-        let ground = 0, air = 0, last = b.x, far = b.x, near = b.x, still = 0;
-        for (let i = 0; i < seconds * 60; i++) {
-          game._boss(1 / 60);
-          const moved = Math.abs(b.x - last);
-          ground += moved; last = b.x;
-          if (moved < .2) still++;
-          if (b.y < b.baseY) air++;
-          far = Math.max(far, b.x); near = Math.min(near, b.x);
+        b.hp = b.maxHp = 1e6;                     // hold it at full armour for one clean loop
+        const beats = def.routine.length;
+        let state = String(b.attack), open = null, walk = null;
+        const opens = [], walks = [], order = [];
+        let frames = 0, planted = 0, last = b.x, ground = 0, held = b.x;
+        while (order.length < beats * 2 && frames < 60 * 180) {
+          held = b.x;
+          game._boss(1 / 60); frames++;
+          ground += Math.abs(b.x - last); last = b.x;
+          if (b.x === held) planted++;                      // it held its ground this frame
+          const now = String(b.attack);
+          if (now === state) continue;
+          if (now === 'rest') open = frames;
+          else if (open !== null) { opens.push((frames - open) / 60); open = null; }
+          if (now.indexOf('walk-') === 0) walk = frames;
+          else if (walk !== null) { walks.push((frames - walk) / 60); walk = null; }
+          if (AstraCombat.bossPatterns[now]) order.push(now);
+          state = now;
         }
-        out.push({ id: def.id, body: def.w + 'x' + def.h,
-          player: p.w + 'x' + p.h,
-          ground: Math.round(ground), span: Math.round(far - near),
-          airPct: Math.round(air / (seconds * 60) * 100),
-          stillPct: Math.round(still / (seconds * 60) * 100) });
+        const mean = xs => xs.reduce((a, z) => a + z, 0) / (xs.length || 1);
+        out.push({ id: def.id, beats,
+          loop: def.routine.map(x => x.move + '@' + x.from).join(' > '),
+          repeats: order.slice(0, beats).join(' ') === order.slice(beats, beats * 2).join(' '),
+          opening: mean(opens), shortest: Math.min.apply(null, opens),
+          walking: mean(walks), planted: planted / frames,
+          loopSeconds: frames / 60 / 2, ground: ground / (frames / 60) });
       }
       return out;
-    }, SECONDS);
-
-    for (const r of rows)
-      console.log(`${r.id.padEnd(15)} body ${r.body.padEnd(6)} vs player ${r.player}   ` +
-        `covers ${String(r.ground).padStart(5)}px in ${SECONDS}s   ` +
-        `range ${String(r.span).padStart(3)}px   airborne ${String(r.airPct).padStart(2)}%   ` +
-        `still ${String(r.stillPct).padStart(2)}%`);
-
-    // a strip of one fight, evenly spaced, so the footwork is visible rather than only counted
-    const strip = await page.evaluate(async () => {
-      const canvas = document.querySelector('canvas'), shots = [];
-      await Promise.all(AstraBosses.list.filter(b => b.sprite).map(b => new Promise(done => {
-        const im = new Image(); im.onload = im.onerror = done; im.src = b.sprite;
-      })));
-      game.start({ stage: 'anvil-depth' });
-      const s = game.state, p = s.player, C = AstraCombat;
-      game.running = false; cancelAnimationFrame(game.raf);
-      s.enemies = []; s.bullets = []; s.particles = [];
-      p.x = C.arena.gate + 60; p.y = 270; p.vx = 0; p.vy = 0; p.invuln = 1e9;
-      const b = game._spawnBoss('gravelock');
-      b.hp = b.maxHp = 1e6;
-      for (let frame = 0; frame < 8 * 60; frame++) {
-        game._boss(1 / 60); game._bullets(1 / 60); s.time += 1 / 60;
-        s.camera.x = Math.max(0, Math.min(p.x - 230, s.worldWidth - 640));
-        if (frame % 48 === 0 && shots.length < 10) {
-          AstraRenderer.draw(canvas.getContext('2d'), s);
-          AstraRenderer.draw(canvas.getContext('2d'), s);
-          shots.push({ at: (frame / 60).toFixed(1) + 's', png: canvas.toDataURL() });
-        }
-      }
-      const W = 640, H = 360, pad = 18, cols = 2;
-      const sheet = document.createElement('canvas');
-      sheet.width = cols * W; sheet.height = Math.ceil(shots.length / cols) * (H + pad);
-      const x = sheet.getContext('2d');
-      x.fillStyle = '#06131c'; x.fillRect(0, 0, sheet.width, sheet.height);
-      for (let i = 0; i < shots.length; i++) {
-        const im = new Image(); im.src = shots[i].png; await im.decode();
-        const ox = (i % cols) * W, oy = Math.floor(i / cols) * (H + pad);
-        x.fillStyle = '#eaf6ff'; x.font = 'bold 13px monospace';
-        x.fillText('GRAVELOCK  ' + shots[i].at, ox + 10, oy + 13);
-        x.drawImage(im, ox, oy + pad);
-        x.strokeStyle = '#2b4b5c'; x.strokeRect(ox + .5, oy + pad + .5, W - 1, H - 1);
-      }
-      return sheet.toDataURL();
     });
-    fs.writeFileSync('qa/boss-motion.png', Buffer.from(strip.split(',')[1], 'base64'));
-    console.log('\nstrip written to qa/boss-motion.png');
+
+    const bad = [];
+    for (const r of rows) {
+      console.log(`${r.id.padEnd(15)} ${r.beats} beats  ${r.loop}`);
+      console.log(`${''.padEnd(15)} loop ${r.loopSeconds.toFixed(1)}s   ` +
+        `opening ${r.opening.toFixed(2)}s (shortest ${r.shortest.toFixed(2)}s)   ` +
+        `walking ${r.walking.toFixed(2)}s   planted ${Math.round(r.planted * 100)}%   ` +
+        `moves ${Math.round(r.ground)}px/s`);
+      if (!r.repeats) bad.push(`${r.id} did not repeat its loop`);
+      // a saber swing lands 0.16s in and runs 0.40s: a window under this cannot be used
+      if (r.shortest < 0.55) bad.push(`${r.id}'s shortest opening is only ${r.shortest.toFixed(2)}s`);
+      // every step it takes now has a destination, so what is left is travel time. Most of the
+      // loop should still be spent planted, or there is nothing to read.
+      if (r.planted < 0.7) bad.push(`${r.id} holds its ground only ${Math.round(r.planted * 100)}% of the time`);
+    }
+    if (bad.length) throw new Error(bad.join('\n  '));
+    console.log('\nevery boss repeats its written loop and leaves an opening after each attack');
   } finally { await br.close(); }
-})().catch(e => { console.error(e); process.exitCode = 1; });
+})().catch(e => { console.error(e.message || e); process.exitCode = 1; });

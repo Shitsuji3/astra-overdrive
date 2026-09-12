@@ -15,12 +15,13 @@ function mob(g,x=400,y=276,type='walker'){
   const e={id:99,type,x,y,w:30,h:34,hp:2,maxHp:2,facing:-1,flash:0,dead:false,baseX:x,baseY:y,phase:0,fireTimer:9};
   g.state.enemies.push(e);return e;
 }
-// A Warden already engaged, held at the given share of his armour.
+// A Warden already engaged, held at the given share of his armour. He is built the way the
+// game builds him, so these are his real body and his real routine.
 function arena(share){
   const h=harness(),a=h.api,p=h.g.state.player;
   p.x=a.arena.gate+80;p.y=270;p.vx=0;p.vy=0;p.invuln=999;
-  h.g.state.boss={x:a.arena.bossX,y:200,baseY:200,w:100,h:110,hp:72*share,maxHp:72,active:true,
-    phase:0,healthPhase:1,attack:'tell-volley',timer:.95,flash:0,facing:-1};
+  const b=h.g._spawnBoss('warden');
+  b.hp=72*share;b.maxHp=72;
   return h;
 }
 // Skip the wind-up and let one named pattern run for a while.
@@ -116,39 +117,64 @@ test('a repair cell restores one armour, a placed pack still restores two',()=>{
   g._pickups(1/60);assert.equal(p.hp,p.maxHp,'never past the armour cap');
 });
 
-test('the Warden has all six of its patterns from the opening bell',()=>{
+test('a boss runs one written loop, and nothing about it is chosen at random',()=>{
   const {api,bosses}=harness();
-  const warden=bosses.get('warden');
-  const mine=['volley','wave','dash','mortar','ring','slam'];
-  assert.deepEqual(Array.from(warden.pool),mine,'nothing is held back');
-  assert.deepEqual(Array.from(api.bossPool(warden)),mine,'the pool belongs to the entry');
-  for(const name of mine)assert.ok(api.bossPatterns[name],`${name} is described`);
-  // the catalogue is wider than any one boss
-  assert.ok(Array.from(api.bossPatternOrder).length>mine.length,'other bosses have more to draw on');
-  // the rotation walks its own list whatever shape he is in
-  let at='volley';const walked=[at];
-  for(let i=0;i<5;i++){at=api.bossNext(at,warden);walked.push(at);}
-  assert.deepEqual(walked,mine,'the cycle covers every move it owns');
-  assert.equal(api.bossNext('slam',warden),'volley','and wraps back round');
+  for(const def of Array.from(bosses.list)){
+    const routine=Array.from(def.routine);
+    assert.ok(routine.length>=4&&routine.length<=6,`${def.id} loops 4 to 6 beats, not ${routine.length}`);
+    for(const beat of routine){
+      assert.ok(api.bossPatterns[beat.move],`${def.id} names a real attack: ${beat.move}`);
+      assert.ok(api.bossBands[beat.from],`${def.id} names a real distance: ${beat.from}`);
+      assert.ok(beat.rest>=api.bossRestFloor,`${def.id} leaves an opening: ${beat.rest}s`);
+    }
+    // the pool is read off the routine, so the two can never disagree about what he does
+    const used=[];for(const beat of routine)if(used.indexOf(beat.move)<0)used.push(beat.move);
+    assert.deepEqual(Array.from(def.pool),used,`${def.id}'s pool is his routine's moves`);
+    // and the loop comes back round to where it started
+    let at=-1;const walked=[];
+    for(let i=0;i<routine.length;i++){at=api.bossBeatAfter(def,at);walked.push(routine[at].move);}
+    assert.deepEqual(walked,routine.map(x=>x.move),`${def.id} takes his beats in order`);
+    assert.equal(api.bossBeatAfter(def,routine.length-1),0,`${def.id} wraps to the first beat`);
+  }
 });
 
-test('every pattern comes out at any armour level, and each is announced first',()=>{
-  for(const [share,expected] of [[1,6],[.5,6],[.2,6]]){
-    const h=arena(share),b=h.g.state.boss;
-    // he spawns already winding up, so the log starts from that wind-up
-    const log=[{at:-Math.round(b.timer*60),from:null,to:String(b.attack)}];
-    for(let i=0;i<3600;i++){
-      const before=b.attack;h.step(1);b.hp=72*share;        // hold the health phase steady
-      if(b.attack!==before)log.push({at:i,from:before,to:String(b.attack)});
+test('the Warden takes his six beats in the written order, twice round',()=>{
+  const h=arena(1),g=h.g,b=g.state.boss,C=h.api;
+  // Array.from: the roster lives in another realm, and a plain map keeps its prototype
+  const want=Array.from(C.bossRoutine(h.bosses.get('warden')),x=>x.move);
+  const seen=[];let state=String(b.attack);
+  for(let i=0;i<60*120&&seen.length<want.length*2;i++){
+    g._boss(1/60);b.hp=72;
+    const now=String(b.attack);
+    if(now!==state){
+      // an attack is only ever reached from its own wind-up
+      if(C.bossPatterns[now]){assert.equal(state,'tell-'+now,`${now} was announced`);seen.push(now);}
+      state=now;
     }
-    const fired=log.filter(x=>x.to.indexOf('tell-')!==0);
-    const seen=new Set(fired.map(x=>x.to));
-    assert.equal(seen.size,expected,`at ${share*100}% armour: ${[...seen].join(', ')}`);
-    for(let i=0;i<log.length;i++){
-      const e=log[i];if(e.to.indexOf('tell-')===0)continue;
-      assert.equal(e.from,'tell-'+e.to,`${e.to} was announced`);
-      const started=log[i-1];
-      assert.ok(e.at-started.at>=29,`${e.to} winds up for ${((e.at-started.at)/60).toFixed(2)}s`);
+  }
+  assert.deepEqual(seen,want.concat(want),'the same six, in the same order, both times');
+});
+
+test('every attack is followed by an opening the boss stands still through',()=>{
+  for(const share of [1,.5,.2]){
+    const h=arena(share),g=h.g,b=g.state.boss,C=h.api;
+    const openings=[];let state=String(b.attack),open=null;
+    for(let i=0;i<60*45;i++){
+      g._boss(1/60);b.hp=72*share;                     // hold the armour phase steady
+      const now=String(b.attack);
+      if(now!==state){
+        if(now==='rest')open={at:i,x:b.x,after:state};
+        else if(open){openings.push({seconds:(i-open.at)/60,after:open.after});open=null;}
+        state=now;
+      } else if(open&&now==='rest'){
+        assert.equal(b.x,open.x,'he does not drift while he is open');
+        assert.equal(b.y,b.baseY,'and he is on the floor, not mid-hop');
+      }
+    }
+    assert.ok(openings.length>=5,`at ${share*100}% armour he opens up ${openings.length} times`);
+    for(const o of openings){
+      assert.ok(C.bossPatterns[o.after],`the opening follows an attack, not ${o.after}`);
+      assert.ok(o.seconds>=C.bossRestFloor-.02,`the opening lasts ${o.seconds.toFixed(2)}s`);
     }
   }
 });

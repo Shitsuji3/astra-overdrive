@@ -12,6 +12,12 @@ var BOSS_MOVE_NAMES={volley:'VOLLEY',wave:'GROUND WAVE',dash:'CHARGE',mortar:'MO
 function bossTell(c,s,b){
   if(!b||!b.active)return;
   var raw=String(b.attack||''),telling=raw.indexOf('tell-')===0,move=telling?raw.slice(5):raw,label=BOSS_MOVE_NAMES[move];
+  // The recovery after an attack is the window the fight is built around, so it is said out
+  // loud rather than left for the player to infer from a boss that has gone quiet.
+  if(raw==='rest'){
+    var beat=.55+.45*Math.abs(Math.sin((s.time||0)*7));
+    c.save();c.globalAlpha=beat;T(c,'\u25bd OPEN',490,322,8,P.cyan,'right');c.restore();
+  }
   if(label)T(c,(telling?'\u25b8 ':'')+label,490,telling?322:323,telling?8:7,telling?P.amber:P.steel,'right');
   if(!telling||!label)return;
   var pl=s.player||{},pw=pl.w||24,t=s.time||0,pulse=.32+.42*Math.abs(Math.sin(t*11)),

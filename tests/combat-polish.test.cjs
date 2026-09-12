@@ -6,6 +6,35 @@ function harness(){
  return {g,api:box.AstraCombat,rig:box.AstraRunRig,events,step(n=1){for(let i=0;i<n;i++)g._tick(1/60);}};
 }
 
+test('a press that begins and ends between two steps is still acted on',()=>{
+ // The loop does not step once per animation frame, so a tap on the on-screen pad can be over
+ // before the game looks at the input at all. Every action has to survive that.
+ for(const action of ['jump','dash','shoot','saber']){
+  const {g,step}=harness(),p=g.state.player;
+  p.x=200;p.y=270;p.vx=0;p.vy=0;p.onGround=true;p.dashCooldown=0;p.fireCooldown=0;
+  const before={vy:p.vy,dashTime:p.dashTime,shots:g.state.shots,saberTime:p.saberTime};
+  g.setInput(action,true);g.setInput(action,false);      // the whole tap, between two steps
+  // sample every step: a jump can clip a ledge overhead and be stopped a frame later
+  let rise=0;for(let i=0;i<2;i++){step(1);rise=Math.min(rise,p.vy);}
+  if(action==='jump')assert.ok(rise<before.vy-100,`a tapped jump leaves the floor: vy ${rise}`);
+  if(action==='dash')assert.ok(p.dashTime>0,'a tapped dash runs');
+  if(action==='shoot')assert.ok(g.state.shots>before.shots,'a tapped shot is fired');
+  if(action==='saber')assert.ok(p.saberTime>0,'a tapped saber swings');
+ }
+});
+
+test('holding a button is still a hold, not a single press',()=>{
+ const {g,step}=harness(),p=g.state.player;
+ p.x=200;p.y=270;p.vx=0;p.vy=0;p.onGround=true;
+ g.setInput('right',true);
+ step(30);
+ const far=p.x;
+ assert.ok(far>260,`holding right keeps him going: ${Math.round(far-200)}px`);
+ g.setInput('right',false);
+ step(30);
+ assert.ok(p.x-far<far-200,'and letting go stops him');
+});
+
 test('both running arms swing from their shoulders, with opposite elbows',()=>{
  const context={};vm.runInNewContext(fs.readFileSync(path.join(__dirname,'..','assets','run-rig-v6.js'),'utf8'),context);
  const rig=context.AstraRunRig,a=rig.armPose(0,0,false),b=rig.armPose(.5,0,false);

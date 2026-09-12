@@ -44,11 +44,14 @@ const SHOT = path.join(__dirname, 'release-check.png');
       await wait(600);
       if (!s().boss) return { error: 'no boss' };
       const seen = new Set();
+      const want = AstraBosses.get(s().boss.id).pool.length;
       const t0 = performance.now();
-      while (performance.now() - t0 < 16000) {
+      // The boss walks and rests between attacks, so only the attacks are counted, and the
+      // watch runs until the whole loop has come round once.
+      while (seen.size < want && performance.now() - t0 < 40000) {
         s().player.invuln = 1e9; s().boss.hp = s().boss.maxHp;
         const a = String(s().boss.attack || '');
-        if (a.indexOf('tell-') !== 0 && a !== 'down') seen.add(a);
+        if (AstraCombat.bossPatterns[a]) seen.add(a);
         await wait(25);
       }
       s().boss.hp = 0;
@@ -94,7 +97,7 @@ const SHOT = path.join(__dirname, 'release-check.png');
     assert.deepEqual(errors, [], 'no script errors');
     assert.ok(!played.error, 'the arena was reachable');
     assert.equal(played.dropped, 1, 'a kill can leave a repair cell');
-    assert.equal(played.moves.length, 6, `all six boss patterns ran: ${played.moves.join(', ')}`);
+    assert.equal(played.moves.length, 6, `all six of the Warden's attacks ran: ${played.moves.join(', ')}`);
     assert.equal(played.mode, 'victory', 'the boss fight can be finished');
     assert.ok(played.finale > 1.8 && played.finale < 3, `the death sequence runs ${played.finale}s`);
     assert.ok(total / 1048576 < 12, `the bundle stays well inside a 30MB first load: ${(total / 1048576).toFixed(2)}MB`);

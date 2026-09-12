@@ -58,14 +58,18 @@ const URL = process.env.GAME_URL || 'http://127.0.0.1:4173/';
         await wait(500);
         if (!s().boss) return { error: 'the boss never spawned' };
         const first = s().boss, bossHp = first.maxHp;
-        const pool = AstraBosses.get(first.id).pool;
+        const def = AstraBosses.get(first.id), pool = def.pool;
         const moves = new Set();
         const t0 = performance.now();
-        // a full rotation takes about 2.5s per attack it owns, so watch for a couple of turns
-        while (performance.now() - t0 < 2600 * pool.length) {
+        // One beat is a walk, a wind-up, the attack and its recovery: five seconds at worst.
+        // Watch until every attack has come round once, with a ceiling so a fight that stalls
+        // fails here rather than hanging.
+        const ceiling = 5200 * def.routine.length + 4000;
+        while (moves.size < pool.length && performance.now() - t0 < ceiling) {
           s().player.invuln = 1e9; s().boss.hp = bossHp;
           const a = String(s().boss.attack || '');
-          if (a.indexOf('tell-') !== 0 && a !== 'down') moves.add(a);
+          // the boss also walks and rests between attacks; only the attacks count here
+          if (AstraCombat.bossPatterns[a]) moves.add(a);
           await wait(25);
         }
         // then take down every frame the stage sends, however many that is
