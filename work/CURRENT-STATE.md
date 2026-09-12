@@ -677,3 +677,7 @@ GIFでは炎と重なって読めなかった動きが4つ見えた。
 （刃の届く位置の敵が削れない）、**ダッシュで即消えること**、**リグが5段持つこと**。
 browser-smoke 17項目・browser-mouse 12項目・saber-reach 合格。
 詳細は work/RISING-SHEET-20260912.md。
+公開サイトへ反映済み（コミット d87fe03、GitHub Desktop の Push origin から）。
+https://Shitsuji3.github.io/astra-overdrive/ で実測：combo 4、頂点89px/0.58秒、着地1.00秒、
+4回噛む、span 0.78・hold 0.46、落下の構えが13フレーム出る（stage 4と5の両方が現れる）、
+炎が後方→床→上の順に向く、例外0。live の browser-smoke 17項目も合格。
