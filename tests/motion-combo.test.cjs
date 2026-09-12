@@ -370,27 +370,89 @@ test('the rig carries five stages and the fifth resolves',()=>{
 // ways at once: the reference's fire covers only a fifth to a third of its own bounding box,
 // its temperature runs diagonally rather than in rings, and it re-forms on an eight frame
 // loop. Those three are what these hold.
-test('the plume is layered from cool to hot, the reference GIF own colour ladder',()=>{
+test('the plume runs the reference GIF own nine warm values, coolest to hottest',()=>{
   const fire=ctx.AstraSaberRig.fire;
-  assert.ok(fire.length>=8,`enough layers to grade: ${fire.length}`);
+  // straight off the GIF's colour index: nine warm values with no gradient between them
+  assert.deepEqual(fire.map(b=>b.c),
+    ['#981810','#c81810','#f01000','#f05818','#f88818','#e8c838','#f8d828','#f8f8b8','#f0f0f0']);
   const lum=c=>{const n=parseInt(c.slice(1),16);return ((n>>16)&255)+((n>>8)&255)*2+(n&255);};
-  for(let i=1;i<fire.length;i++)
-    assert.ok(lum(fire[i].c)>lum(fire[i-1].c),`layer ${i} is hotter than ${i-1}`);
-  // and each hotter layer is smaller, so the cool ones are what the silhouette is made of
   for(let i=1;i<fire.length;i++){
-    assert.ok(fire[i].l<=fire[i-1].l,`layer ${i} reaches no further`);
-    assert.ok(fire[i].w<fire[i-1].w,`layer ${i} is narrower`);
+    assert.ok(lum(fire[i].c)>lum(fire[i-1].c),`layer ${i} is hotter than ${i-1}`);
+    assert.ok(fire[i].s>fire[i-1].s,`and takes over at a higher temperature`);
   }
+  assert.equal(fire[0].s,0,'the coolest value is the floor');
 });
-test('the plume grades diagonally, not in rings',()=>{
-  const fire=ctx.AstraSaberRig.fire,cool=fire[0],hot=fire[fire.length-1];
-  // the hot end sits further along the axis than the cool end: white at the tip
-  assert.ok(hot.h>cool.h+.08,`hot head further out: ${cool.h} -> ${hot.h}`);
-  // and further across it, toward the leading edge: white on the side it is travelling
-  assert.ok(hot.y<cool.y-.15,`hot head toward the leading edge: ${cool.y} -> ${hot.y}`);
-  // nested outlines would have every layer on one centre, which is what made it a balloon
-  assert.notEqual(hot.h,cool.h);
-  assert.notEqual(hot.y,cool.y);
+test('the fire is white hot with a red edge, not a red fire',()=>{
+  // Measured off the GIF: 31% white and cream, 37% yellow and gold, 3% red. An early version
+  // came out 9% white and 28% red - a red fire with a spark in it - because the red layers were
+  // drawn full size underneath and showed through every gap above them.
+  // Colour is chosen per cell from temperature now, so the share can simply be counted.
+  const rig=ctx.AstraSaberRig,fire=rig.fire;
+  const count=new Array(fire.length).fill(0);
+  let live=0;
+  const L=72,HW=18;
+  for(let step=0;step<8;step++)
+    for(let px=0;px<L;px++){
+      const u=px/L,hw=HW*rig.fireHalf(u);
+      for(let y=-HW;y<=HW;y++){
+        const h=rig.fireHeat(px,y,u,hw,step);
+        if(h<0)continue;
+        count[rig.fireBand(h)]++;live++;
+      }
+    }
+  assert.ok(live>4000,`enough of the field is alight to judge: ${live}`);
+  const share=c=>count[fire.findIndex(b=>b.c===c)]/live;
+  const red=share('#981810')+share('#c81810')+share('#f01000');
+  const white=share('#f0f0f0')+share('#f8f8b8');
+  const yellow=share('#f8d828')+share('#e8c838');
+  assert.ok(red<.16,`a red edge, not a red fire: ${(red*100).toFixed(1)}%`);
+  assert.ok(white>.14,`white and cream toward the reference's 31%: ${(white*100).toFixed(1)}%`);
+  assert.ok(yellow>.25,`yellow and gold toward the reference's 37%: ${(yellow*100).toFixed(1)}%`);
+  assert.ok(white+yellow>.55,`white hot overall, like the reference's 68%: ${((white+yellow)*100).toFixed(1)}%`);
+});
+test('the fire has holes clean through it, which a filled shape cannot',()=>{
+  const rig=ctx.AstraSaberRig;
+  // Well inside the fire, away from its edge, some cells are still absent. That is what the
+  // reference has and what nine attempts at stacking filled shapes could never produce.
+  let inside=0,gaps=0;
+  const L=72,HW=18;
+  for(let px=8;px<L-8;px++){
+    const u=px/L,hw=HW*rig.fireHalf(u);
+    for(let y=-Math.floor(hw*.6);y<=Math.floor(hw*.6);y++){
+      inside++;
+      if(rig.fireHeat(px,y,u,hw,3)<0)gaps++;
+    }
+  }
+  assert.ok(inside>500,`a real interior to look at: ${inside}`);
+  // The reference has more of these than this does. Too many read as speckle against the
+  // factory at game size rather than as fire, so the cut is set low on purpose; what the test
+  // holds is that there are any at all, well inside the fire.
+  assert.ok(gaps/inside>.012,`and holes in it: ${(100*gaps/inside).toFixed(1)}%`);
+  assert.ok(gaps/inside<.35,`but still mostly fire: ${(100*gaps/inside).toFixed(1)}%`);
+});
+test('the plume is a broad band with no neck',()=>{
+  const rig=ctx.AstraSaberRig;
+  // Read off the reference: three eighths of full width where the fire leaves the hand, three
+  // quarters by a third of the way along, and flat from there. Earlier versions made a cone
+  // and then a comet with a narrow throat, and both read as the wrong thing entirely.
+  assert.ok(rig.fireHalf(.02)>.28&&rig.fireHalf(.02)<.46,`wide at the hand: ${rig.fireHalf(.02).toFixed(2)}`);
+  assert.ok(rig.fireHalf(.33)>.66,`three quarters by a third along: ${rig.fireHalf(.33).toFixed(2)}`);
+  assert.ok(rig.fireHalf(.70)>.74,`and still wide past the middle: ${rig.fireHalf(.70).toFixed(2)}`);
+  assert.ok(rig.fireHalf(1)<.20,'closing at the tip');
+});
+test('the fire is a pixel field with holes in it, not a stack of outlines',()=>{
+  const rig=ctx.AstraSaberRig;
+  // The noise is what breaks it up. Smooth on a coarse lattice, so the blotches are big enough
+  // to read, and different enough across the field that some cells fall below the cut and are
+  // simply absent - which is what makes the holes and the torn edge.
+  const vals=[];
+  for(let x=0;x<40;x++)for(let y=-10;y<10;y++)vals.push(rig.fireNoise(x,y,0,6.5));
+  const lo=Math.min(...vals),hi=Math.max(...vals);
+  assert.ok(lo<.25&&hi>.75,`the field spans enough to cut holes: ${lo.toFixed(2)}..${hi.toFixed(2)}`);
+  // smooth, not per-pixel hash: neighbours are close, or the fire would be static noise
+  let jump=0;
+  for(let x=0;x<40;x++)jump=Math.max(jump,Math.abs(rig.fireNoise(x,0,0,6.5)-rig.fireNoise(x+1,0,0,6.5)));
+  assert.ok(jump<.42,`neighbouring cells stay close: ${jump.toFixed(2)}`);
 });
 test('the plume re-forms as it burns instead of holding one shape',()=>{
   const rig=ctx.AstraSaberRig;
