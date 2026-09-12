@@ -468,3 +468,28 @@ head タグ（OGPカード、manifest、アイコン）は落とす。書き出�
 `npm test` 全93項目・release-check・browser-smoke 17項目・artifact-page すべて合格。
 公開用ビルドは44ファイル8.67MB、zip 8.38MB で変わらず。Playables の技術要件4つは維持
 （ZIP1個の自己完結、外部通信ゼロ、初回3.93MB、モバイル対応）。詳細は work/PUBLISH-20260912.md。
+
+最新変更（2026-09-12）：GitHub Pages へ出す準備をした。ユーザーが GitHub アカウントを持って
+いると判明したため。**Pages のURLはログイン不要で誰でも開ける普通のURLで、Playables の申請に
+出すなら Artifact のリンクよりこちらが確実。** 公開範囲は「ソース一式を公開リポジトリ」、
+リポジトリ名は `astra-overdrive` をユーザーが選択した。
+`.gitignore` を直した。`dist/` が入っておらず、**このままだとバックアップZIP 77個・1.8GBを
+丸ごとコミットするところだった。** `qa/` は丸ごと除外されていたので、3.9GBの撮って出しを
+除外しつつ検証スクリプト（qa/*.cjs と *.py）は残す形に変えた。`test-out.txt` も除外。
+最初のコミットを作った。196ファイル43.7MB、ブランチは `main`。中断された `git add` の残骸
+1.83GBが `.git/objects` に溜まっていたので、コミット後に `git gc --prune=now` で掃除した
+（1.84GB → 42.47MB）。
+`tools/build-release.cjs` に `--ci`（`npm run build:ci`）を追加。ビルドサーバーでは2つの手順が
+意味を持たない。**新しいクローンには意味のある更新時刻が無い**のでWebPの鮮度チェックは
+雑音を読むだけになるし、Pages はフォルダを配るのでZIPに固める必要が無い（PowerShellも不要）。
+`.github/workflows/pages.yml` を追加。push でテストを通してからビルドし、`release/` だけを
+公開する。リポジトリのソースではなくビルドした成果物を配る形。
+README の先頭に遊ぶリンクを足し、「ステージ3種」という古い記述を9種に直した。
+検証：コミット対象のファイルだけを別フォルダーへ写して `npm test` と `--ci` ビルドを実行し、
+**196ファイルだけで全部揃うこと**を確認。さらに全テキストをLFに変換して同じことを実行した
+（CI は Linux で LF のファイルを受け取るため）。どちらも全93項目合格、出来上がるバンドルは
+44ファイル8.67MBで手元と同一。
+残る手順はアカウントが要るので代行しない。(1) github.com で空の公開リポジトリ
+`astra-overdrive` を作る (2) remote を足して push（Git Credential Manager が入っているので
+初回はGitHub自身のサインイン画面が出る。こちらが認証情報を扱うことはない）
+(3) Settings → Pages → Source を "GitHub Actions" にする。詳細は work/PUBLISH-20260912.md。
