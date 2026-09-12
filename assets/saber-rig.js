@@ -43,15 +43,22 @@
      [.31,1,-19,.34,16,-40,-.80,19,-21],[.41,3,-18.5,.35,20,-22,.55,22,-21],
      [.51,3,-17.5,.40,17,-13,1.15,23,-22],[.92,3,-17.8,.38,17,-14,.90,23,-22],
      [1,0,-23,.025,8,-27,.70,8,-8]],
-    // Stage 4 is the rising cut, and it is the only one that is not part of the chain: it is
-    // asked for by holding up. It sinks onto the back leg with the blade hanging low behind,
-    // then drives up through the knees and carries the edge from the floor to straight
-    // overhead. The arm finishes extended above the head, which is where the reach is.
-    [[0,0,-21,.20,6,-18,1.20,10,-10],[.12,-1,-18.5,.34,-3,-12,1.55,12,-12],
-     [.24,1,-19.5,.16,10,-21,.55,14,-13],[.34,2,-21.5,-.06,19,-32,-.35,16,-14],
-     [.44,2,-23,-.22,20,-41,-1.10,17,-15],[.56,1,-24,-.30,13,-47,-1.56,16,-15],
-     [.70,1,-23.5,-.26,10,-46,-1.60,14,-13],[.86,0,-22,-.14,9,-38,-1.45,10,-10],
-     [1,0,-23,.02,7,-27,-.80,8,-8]]
+    // Stage 4, the rising cut, traced off the reference clip. It is not part of the chain and
+    // it is not a swing in place: four frames sink into a crouch with the flame gathering low
+    // and sweeping forward along the floor, then the body launches, tips over towards the
+    // flame, tucks its legs and rides a plume up two of its own heights before righting itself.
+    // The last two columns are the extra this one motion needs: spin turns the whole figure
+    // about its hip, and lift pulls the feet up off the floor of its own box.
+    // time hipX hipY lean handX handY  angle  foot+ foot-  spin  lift
+    [[0,    0, -21,  .16,  10, -14,   .55,   9,  -9,    0,   0],
+     [.07,  1, -13,  .34,  15,  -8,   .25,  13, -11,    0,   0],
+     [.13,  2, -12,  .30,  19,  -6,   .08,  15, -12,  .10,   0],
+     [.22,  3, -18,  .05,  20, -22,  -.60,   7,  -6,  .30,   7],
+     [.32,  3, -21, -.02,  19, -31,  -.95,   5,  -4,  .42,  12],
+     [.50,  3, -22, -.04,  18, -34, -1.02,   4,  -3,  .45,  14],
+     [.72,  3, -22, -.03,  18, -34, -1.00,   4,  -3,  .44,  14],
+     [.88,  2, -21,  .02,  16, -31,  -.90,   6,  -5,  .32,   9],
+     [1,    0, -22,  .04,  10, -27,  -.75,   8,  -8,  .10,   2]]
   ];
   function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
   // Thigh 12.5 plus shin 15 is all the leg there is. Keep every planted foot inside that reach, and
@@ -91,14 +98,34 @@
       rearShoulder:bodyPoint(-3+15.5*twist,-9),angle:v[6],open:open,
       viewTurn:stage===2?ease(.24,.49,t)*(1-ease(.86,1,t)):0,
       leanRate:leanRate,driveRate:driveRate,
-      frontFoot:{x:plant(v[7],-4,hip,0),y:-4},
-      rearFoot:{x:plant(v[8],-4-1.5*open,hip,lunge),y:-4-1.5*open},
+      spin:v[9]||0,lift:v[10]||0,
+      frontFoot:{x:plant(v[7],-4-(v[10]||0),hip,0),y:-4-(v[10]||0)},
+      rearFoot:{x:plant(v[8],-4-1.5*open-(v[10]||0),hip,lunge),y:-4-1.5*open-(v[10]||0)},
       frontFootAngle:-.10*open*(1-.65*twist),rearFootAngle:.26*open*(1-.65*twist)};
+  }
+  // Where a point on the figure ends up once the whole thing has turned about its hip. Only
+  // the rising cut uses this; every other motion keeps its feet under it and spins nothing.
+  function spun(p,pt){
+    if(!p.spin)return pt;
+    var c=Math.cos(p.spin),s=Math.sin(p.spin),dx=pt.x-p.hip.x,dy=pt.y-p.hip.y;
+    return{x:p.hip.x+dx*c-dy*s,y:p.hip.y+dx*s+dy*c};
   }
   function joint(a,b,l1,l2,bend){
     var dx=b.x-a.x,dy=b.y-a.y,d=Math.max(.01,Math.hypot(dx,dy)),r=clamp(d,Math.abs(l1-l2)+.01,l1+l2-.01);
     var along=(l1*l1-l2*l2+r*r)/(2*r),h=Math.sqrt(Math.max(0,l1*l1-along*along));
     return{x:a.x+dx/d*along+dy/d*h*bend,y:a.y+dy/d*along-dx/d*h*bend};
+  }
+  // The flame. Measured off the reference: it leaves the hand at about sixty degrees above
+  // the horizontal, reaches a little over a body height, and is out for the whole of the rise.
+  function plume(p){
+    if(p.stage!==4)return null;
+    var grow=ease(.13,.26,p.t),die=1-ease(.86,.99,p.t),body=grow*die;
+    // the crouch's low sweep is the same flame, just short and lying along the floor
+    var sweep=ease(.04,.11,p.t)*(1-ease(.13,.20,p.t));
+    if(body<=.01&&sweep<=.01)return null;
+    return{root:spun(p,p.hand),angle:p.angle,
+      length:13+43*body+26*sweep,width:7+21*body+8*sweep,
+      alpha:Math.min(1,body*1.25+sweep)};
   }
   function blade(p){
     var t=p.t,ignite=p.stage===3?.04:.1,visible=t>ignite&&t<.95;
@@ -109,6 +136,11 @@
     var x,y;
     if(p.stage===2){var a=p.angle;x=p.hip.x+4+Math.cos(a)*length-p.hand.x;y=p.hip.y-8+Math.sin(a)*length*.15-p.hand.y;}
     else{x=Math.cos(p.angle)*length;y=Math.sin(p.angle)*length;}
+    if(p.stage===4){
+      var f=plume(p);
+      if(!f)return{root:spun(p,p.hand),tip:spun(p,p.hand),visible:false};
+      return{root:f.root,tip:{x:f.root.x+Math.cos(f.angle)*f.length,y:f.root.y+Math.sin(f.angle)*f.length},visible:true};
+    }
     return{root:p.hand,tip:{x:p.hand.x+x,y:p.hand.y+y>-4?-4+6*Math.tanh((p.hand.y+y+4)/6):p.hand.y+y},visible:visible};
   }
   // Hand-relative contours traced from GIF 4–8 and 21–26: tip, outer controls,
@@ -145,6 +177,43 @@
     return{points:a.slice(1).map(function(n,j){return n+(b[j+1]-n)*u}),
       alpha:ease(start,start+.02,p.t)*(1-ease(from,end,p.t))};
   }
+  // The flame, drawn as nested tongues along its own axis: a dark rim, orange body, amber
+  // heart and a white core, the way the reference's plume is banded. Behind the figure it is
+  // only a glow; in front it is the whole shape, because it swallows the arm.
+  function drawPlume(ctx,p,reduced,behind){
+    var f=plume(p);if(!f)return;
+    ctx.save();ctx.translate(f.root.x,f.root.y);ctx.rotate(f.angle);
+    var base=ctx.globalAlpha;
+    // The reference's plume is a tongue: it leaves the hand narrow, swells past the middle and
+    // comes to a point that curls across its own axis.
+    function tongue(len,wide,color,alpha){
+      var curl=wide*.62;
+      ctx.beginPath();ctx.moveTo(0,-wide*.20);
+      ctx.bezierCurveTo(len*.28,-wide*.98,len*.60,-wide*1.02,len*.88,-curl*.50);
+      ctx.quadraticCurveTo(len*1.04,-curl*.02,len*.86,curl*.46);
+      ctx.bezierCurveTo(len*.56,wide*.82,len*.24,wide*.60,0,wide*.20);
+      ctx.closePath();ctx.globalAlpha=base*f.alpha*alpha;ctx.fillStyle=color;ctx.fill();
+    }
+    if(behind){
+      if(!reduced)tongue(f.length*1.22,f.width*1.5,'#ff5320',.22);
+      tongue(f.length*1.08,f.width*1.2,'#ff7a24',.30);
+    }else{
+      if(!reduced)tongue(f.length*1.05,f.width*1.14,'#e8431c',.6);
+      tongue(f.length,f.width,'#ff8a2b',.96);
+      tongue(f.length*.90,f.width*.72,'#ffc24a',1);
+      tongue(f.length*.72,f.width*.44,'#fff0b8',1);
+      tongue(f.length*.50,f.width*.20,'#fffdf2',1);
+      // embers shed off the trailing edge, placed rather than random so they do not flicker
+      if(!reduced){
+        ctx.globalAlpha=base*f.alpha*.85;ctx.fillStyle='#ffa53a';
+        for(var i=0;i<4;i++){
+          var u=.28+i*.19,r=f.width*(.44+.20*i),k=2.6-i*.4;
+          ctx.beginPath();ctx.arc(f.length*u,r,k,0,6.284);ctx.fill();
+        }
+      }
+    }
+    ctx.globalAlpha=base;ctx.restore();
+  }
   function trail(ctx,p,reduced){
     var shape=smear(p);if(!shape)return;
     var v=shape.points.slice();
@@ -180,7 +249,12 @@
     // Match the redrawn idle build so the character keeps the same proportions mid-swing.
     var build=rig.build||{x:1,y:1};
     ctx.save();ctx.translate(o.x||0,o.y||0);if(o.facing<0)ctx.scale(-1,1);ctx.scale(build.x,build.y);ctx.imageSmoothingEnabled=false;
-    if(p.stage===2)horizontalTrail(ctx,p,false);else trail(ctx,p,o.reducedMotion);
+    var spin=p.spin||0;
+    if(p.stage===4)drawPlume(ctx,p,o.reducedMotion,true);
+    else if(p.stage===2)horizontalTrail(ctx,p,false);else trail(ctx,p,o.reducedMotion);
+    // The rising cut turns the whole figure about its hip; the flame is drawn outside that turn
+    // because its angle was measured against the world, not against the body.
+    if(spin){ctx.save();ctx.translate(p.hip.x,p.hip.y);ctx.rotate(spin);ctx.translate(-p.hip.x,-p.hip.y);}
     function part(mask,a,b,c,d){rig.bonePart(ctx,img,{x:314,y:627},mask,a,b,c,d)}
     function leg(foot,angle){
       var knee=joint(p.hip,foot,12.5,15,1);
@@ -223,14 +297,17 @@
     rig.rigidPart(ctx,img,{x:0,y:0},HEAD,{x:181,y:141},p.neck,.2,p.lean*.12-.02);
     arm(p.shoulder,p.hand);
     if(p.stage===2)horizontalTrail(ctx,p,true);
+    if(spin)ctx.restore();
     var b=blade(p);
-    if(b.visible&&(!smear(p)||smear(p).alpha<.35)){
+    if(p.stage===4)drawPlume(ctx,p,o.reducedMotion,false);
+    else if(b.visible&&(!smear(p)||smear(p).alpha<.35)){
       ctx.save();ctx.lineCap='round';
       function line(width,color){ctx.beginPath();ctx.moveTo(b.root.x,b.root.y);ctx.quadraticCurveTo((b.root.x+b.tip.x)*.5+3*Math.sin(p.t*7),(b.root.y+b.tip.y)*.5-(p.stage===2?1.5:5)*Math.sin(p.t*Math.PI),b.tip.x,b.tip.y);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke();}
       line(5,'#35d77b');line(2.4,'#f3fff9');ctx.restore();
     }
     // A small grip stays attached to the wrist throughout every sweep.
-    ctx.save();ctx.translate(p.hand.x,p.hand.y);ctx.rotate(p.angle);ctx.fillStyle='#122d45';ctx.fillRect(-4,-2,6,4);ctx.fillStyle='#b8eaf1';ctx.fillRect(-3,-1,5,2);ctx.restore();
+    var grip=spin?spun(p,p.hand):p.hand;
+    ctx.save();ctx.translate(grip.x,grip.y);ctx.rotate(p.angle+spin);ctx.fillStyle='#122d45';ctx.fillRect(-4,-2,6,4);ctx.fillStyle='#b8eaf1';ctx.fillRect(-3,-1,5,2);ctx.restore();
     ctx.restore();return true;
   }
   // The blade in feet-relative game pixels, already carrying the rig's build stretch, so the

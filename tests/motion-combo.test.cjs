@@ -7,6 +7,15 @@ vm.createContext(ctx); ctx.globalThis = ctx;
 for (const f of ['assets/bosses.js','assets/stages.js','assets/run-rig-v6.js','assets/saber-rig.js','game.js'])
   vm.runInContext(fs.readFileSync(f,'utf8'), ctx);
 function game(){const g=new ctx.NeonGame(null);g.start();return g;}
+// Somewhere with floor underfoot and nothing overhead, because the rising cut leaps.
+function clearFloor(g){
+  for(let x=40;x<4000;x+=10){
+    const floor=g.state.platforms.some(q=>q.y===310&&q.x<=x&&q.x+q.w>=x+24);
+    const roof=g.state.platforms.some(q=>q.y<310&&q.y>140&&q.x<x+34&&q.x+q.w>x-8);
+    if(floor&&!roof)return x;
+  }
+  return 400;
+}
 function tick(g,n=1){for(let i=0;i<n;i++)g._tick(1/60);}
 function press(g){g.setInput('saber',true);tick(g);g.setInput('saber',false);}
 function quiet(g){g._enemies=()=>{};g._boss=()=>{};}
@@ -86,18 +95,23 @@ test('stages 1 and 2 hit once for 4.5; the finisher lands four cuts for 11.25',(
   assert.deepEqual(cuts,[2.8125,2.8125,2.8125,2.8125]);
   assert.equal(Number(e.hp.toFixed(4)),79.75);
 });
-// How far a swing's drawn edge actually travels, measured from the player's own box.
+// How far the cutting edge actually gets, measured from where the player was standing when the
+// move began. The rising cut takes its height from the leap, so this has to play the move out
+// rather than hold the body still and spin the clock.
 function reach(stage){
-  const g=game(),p=g.state.player,C=ctx.AstraCombat;
-  p.x=400;p.y=270;p.vx=0;p.vy=0;p.facing=1;p.onGround=true;
-  p.saberCombo=stage;p.saberTime=C.saberDuration;p.saberFacing=1;
+  const g=game();quiet(g);const p=g.state.player,C=ctx.AstraCombat;
+  const x0=clearFloor(g);
+  p.x=x0;p.y=270;p.vx=0;p.vy=0;p.facing=1;p.onGround=true;
+  const top=p.y,front=p.x+p.w;
+  if(stage===4){g.setInput('up',true);press(g);g.setInput('up',false);}
+  else{p.saberCombo=stage;p.saberTime=C.saberDuration;p.saberFacing=1;p.saberHit=false;p.saberHits=0;}
   let above=0,ahead=0;
-  for(let i=0;i<26;i++){
+  for(let i=0;i<Math.ceil(C.saberSpan(p)*60)+40;i++){
     for(const s of C.saberSweep(p)||[]){
-      above=Math.max(above,p.y-s.ay,p.y-s.by);
-      ahead=Math.max(ahead,s.ax-(p.x+p.w),s.bx-(p.x+p.w));
+      above=Math.max(above,top-s.ay,top-s.by);
+      ahead=Math.max(ahead,s.ax-front,s.bx-front);
     }
-    p.saberTime-=1/60;
+    tick(g);
   }
   return {above:Math.round(above),ahead:Math.round(ahead)};
 }
@@ -113,7 +127,8 @@ test('up with the saber asks for the rising cut, and nothing else does',()=>{
   // and it is not a link in the chain: pressing again during it queues nothing
   g.setInput('saber',true);tick(g,4);g.setInput('saber',false);
   assert.equal(p.saberQueued,false,'the rising cut does not chain');
-  tick(g,Math.ceil(ctx.AstraCombat.saberDuration*60)+3);
+  // it runs longer than a chained swing, so wait out its own clock
+  tick(g,Math.ceil(ctx.AstraCombat.rising.span*60)+4);
   assert.equal(p.saberCombo,0,'it ends the swing rather than handing on');
 });
 
@@ -156,26 +171,47 @@ test('the two presses do not have to land on the same frame',()=>{
   assert.equal(after(20),1,'but a swing already under way is left alone');
 });
 
-test('the rising cut trades forward reach for height',()=>{
+test('the rising cut gets its height from the leap',()=>{
   const rise=reach(4),over=reach(1),finish=reach(3);
-  assert.ok(rise.above>over.above+15,`it reaches over the overhead cut: ${rise.above} against ${over.above}`);
-  assert.ok(rise.above>finish.above,`and over the finisher: ${rise.above} against ${finish.above}`);
-  assert.ok(rise.ahead<over.ahead,`while giving up ground in front: ${rise.ahead} against ${over.ahead}`);
+  // the flame ends up far above anything a swing in place can touch
+  assert.ok(rise.above>over.above+50,`the rising cut: ${rise.above} against ${over.above}`);
+  assert.ok(rise.above>finish.above+40,`and against the finisher: ${rise.above} against ${finish.above}`);
 });
 
-test('the rising cut takes down something the level swing cannot reach',()=>{
-  // Hang a drone in the band between the two ceilings: its lowest edge sits just above
-  // everything the overhead cut can touch, and well inside what the rising cut can.
+test('the leap matches the arc traced off the reference',()=>{
+  const g=game();quiet(g);const p=g.state.player,C=ctx.AstraCombat;
+  p.x=clearFloor(g);p.y=270;p.vx=0;p.vy=0;p.facing=1;p.onGround=true;
+  const y0=p.y,x0=p.x;
+  g.setInput('up',true);press(g);g.setInput('up',false);
+  let apex=0,apexAt=0,landed=null;
+  for(let i=1;i<=140;i++){
+    tick(g);
+    const up=y0-p.y;
+    if(up>apex){apex=up;apexAt=i;}
+    if(landed===null&&i>12&&p.onGround)landed=i;
+  }
+  // the clip rises two body heights in about half a second and is back down inside a second
+  assert.ok(Math.abs(apex-C.rising.apex)<12,`apex ${apex} against the reference's ${C.rising.apex}`);
+  assert.ok(apexAt/60>.45&&apexAt/60<.70,`apex reached at ${(apexAt/60).toFixed(2)}s`);
+  assert.ok(landed/60>.85&&landed/60<1.15,`back on the floor at ${(landed/60).toFixed(2)}s`);
+  assert.ok(p.x-x0>8&&p.x-x0<34,`and it carries him forward ${Math.round(p.x-x0)}px`);
+});
+
+test('the rising cut takes down something no swing in place can reach',()=>{
+  // Hang a drone in the band between the two ceilings: its lowest edge sits clear of anything
+  // the overhead cut can touch, and well inside what the leap carries the flame to.
   const over=reach(1),rise=reach(4);
-  assert.ok(rise.above>over.above+10,'there is a band to hang it in');
+  assert.ok(rise.above>over.above+30,'there is a band to hang it in');
   const high=(stage)=>{
-    const g=game(),p=g.state.player;quiet(g);
-    p.x=400;p.y=270;p.vx=0;p.vy=0;p.facing=1;p.onGround=true;
-    // clear of the blade's own thickness as well as its measured tip
-    const bottom=p.y-over.above-ctx.AstraCombat.bladeThickness-8;
-    const e={id:7,type:'drone',x:p.x+8,y:bottom-24,w:28,h:24,hp:100,maxHp:100,facing:-1,flash:0,dead:false};
+    const g=game();quiet(g);const p=g.state.player,C=ctx.AstraCombat;
+    const x0=clearFloor(g);
+    p.x=x0;p.y=270;p.vx=0;p.vy=0;p.facing=1;p.onGround=true;
+    const bottom=p.y-over.above-C.saberPad(p)-10;
+    const e={id:7,type:'drone',x:p.x+10,y:bottom-24,w:28,h:24,hp:100,maxHp:100,facing:-1,flash:0,dead:false};
     g.state.enemies=[e];
-    swingAs(g,stage,1);
+    if(stage===4){g.setInput('up',true);press(g);g.setInput('up',false);}
+    else{p.saberCombo=stage;p.saberTime=C.saberDuration;p.saberFacing=1;p.saberHit=false;p.saberHits=0;}
+    tick(g,Math.ceil(C.saberSpan(p)*60)+20);
     return 100-e.hp;
   };
   assert.ok(high(4)>0,'the rising cut reaches it');
@@ -184,14 +220,16 @@ test('the rising cut takes down something the level swing cannot reach',()=>{
 
 test('finisher damage config is four separate cuts worth 2.5 normal swings',()=>{
   const c=ctx.AstraCombat;
-  // three chained swings, then the rising cut that up asks for
-  assert.deepEqual(c.saberHitTimes.map(t=>t.length),[1,1,4,1]);
+  // three chained swings, then the rising cut, whose flame bites four times on the way up
+  assert.deepEqual(c.saberHitTimes.map(t=>t.length),[1,1,4,4]);
+  assert.ok(c.saberHitTimes[3].every((x,i,a)=>i===0||x>a[i-1]),'the flame bites in order');
+  assert.ok(c.saberHitTimes[3][3]<c.rising.span,'and every bite lands inside the rise');
   assert.ok(c.saberHitTimes[2].every((t,i,a)=>i===0||t>a[i-1]),'finisher cut times increase');
   assert.ok(c.saberHitTimes[2][c.saberHitTimes[2].length-1]<c.saberDuration,'every cut lands inside the swing');
   const total=n=>c.saberHitTimes[n].length*c.saberPower*c.saberComboPower[n];
   assert.equal(total(0),4.5);assert.equal(total(1),4.5);assert.equal(total(2),11.25);
   assert.equal(total(2)/total(0),2.5);
-  assert.equal(total(3),4.5,'the rising cut is worth a plain swing');
+  assert.equal(total(3),6.75,'the rising cut is worth one and a half swings');
 });
 test('the finisher applies each cut to the boss as well',()=>{
   const g=game();quiet(g);const p=g.state.player;const b=bossAt(g,30,0,100);
