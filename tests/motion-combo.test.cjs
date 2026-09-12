@@ -86,14 +86,85 @@ test('stages 1 and 2 hit once for 4.5; the finisher lands four cuts for 11.25',(
   assert.deepEqual(cuts,[2.8125,2.8125,2.8125,2.8125]);
   assert.equal(Number(e.hp.toFixed(4)),79.75);
 });
+// How far a swing's drawn edge actually travels, measured from the player's own box.
+function reach(stage){
+  const g=game(),p=g.state.player,C=ctx.AstraCombat;
+  p.x=400;p.y=270;p.vx=0;p.vy=0;p.facing=1;p.onGround=true;
+  p.saberCombo=stage;p.saberTime=C.saberDuration;p.saberFacing=1;
+  let above=0,ahead=0;
+  for(let i=0;i<26;i++){
+    for(const s of C.saberSweep(p)||[]){
+      above=Math.max(above,p.y-s.ay,p.y-s.by);
+      ahead=Math.max(ahead,s.ax-(p.x+p.w),s.bx-(p.x+p.w));
+    }
+    p.saberTime-=1/60;
+  }
+  return {above:Math.round(above),ahead:Math.round(ahead)};
+}
+
+test('up with the saber asks for the rising cut, and nothing else does',()=>{
+  const g=game(),p=g.state.player;quiet(g);
+  p.x=400;p.y=270;p.vx=0;p.vy=0;p.onGround=true;
+  press(g);
+  assert.equal(p.saberCombo,1,'on its own the saber opens the chain');
+  tick(g,Math.ceil(ctx.AstraCombat.saberDuration*60)+3);
+  g.setInput('up',true);press(g);
+  assert.equal(p.saberCombo,4,'held up, it is the rising cut instead');
+  // and it is not a link in the chain: pressing again during it queues nothing
+  g.setInput('saber',true);tick(g,4);g.setInput('saber',false);
+  assert.equal(p.saberQueued,false,'the rising cut does not chain');
+  tick(g,Math.ceil(ctx.AstraCombat.saberDuration*60)+3);
+  assert.equal(p.saberCombo,0,'it ends the swing rather than handing on');
+});
+
+test('up is a direction now, not a second jump key',()=>{
+  const g=game(),p=g.state.player;quiet(g);
+  p.x=400;p.y=270;p.vx=0;p.vy=0;p.onGround=true;
+  g._mapKey('arrowup',true);tick(g,2);
+  assert.ok(p.onGround&&p.vy>=0,`arrow up leaves him on the floor: vy ${p.vy}`);
+  assert.equal(g.input.up,true,'and asks for up instead');
+  g._mapKey('arrowup',false);
+  p.y=270;p.vy=0;p.onGround=true;
+  g._mapKey(' ',true);tick(g);
+  assert.ok(p.vy<-300,'space still jumps');
+});
+
+test('the rising cut trades forward reach for height',()=>{
+  const rise=reach(4),over=reach(1),finish=reach(3);
+  assert.ok(rise.above>over.above+15,`it reaches over the overhead cut: ${rise.above} against ${over.above}`);
+  assert.ok(rise.above>finish.above,`and over the finisher: ${rise.above} against ${finish.above}`);
+  assert.ok(rise.ahead<over.ahead,`while giving up ground in front: ${rise.ahead} against ${over.ahead}`);
+});
+
+test('the rising cut takes down something the level swing cannot reach',()=>{
+  // Hang a drone in the band between the two ceilings: its lowest edge sits just above
+  // everything the overhead cut can touch, and well inside what the rising cut can.
+  const over=reach(1),rise=reach(4);
+  assert.ok(rise.above>over.above+10,'there is a band to hang it in');
+  const high=(stage)=>{
+    const g=game(),p=g.state.player;quiet(g);
+    p.x=400;p.y=270;p.vx=0;p.vy=0;p.facing=1;p.onGround=true;
+    // clear of the blade's own thickness as well as its measured tip
+    const bottom=p.y-over.above-ctx.AstraCombat.bladeThickness-8;
+    const e={id:7,type:'drone',x:p.x+8,y:bottom-24,w:28,h:24,hp:100,maxHp:100,facing:-1,flash:0,dead:false};
+    g.state.enemies=[e];
+    swingAs(g,stage,1);
+    return 100-e.hp;
+  };
+  assert.ok(high(4)>0,'the rising cut reaches it');
+  assert.equal(high(1),0,'the overhead cut does not');
+});
+
 test('finisher damage config is four separate cuts worth 2.5 normal swings',()=>{
   const c=ctx.AstraCombat;
-  assert.deepEqual(c.saberHitTimes.map(t=>t.length),[1,1,4]);
+  // three chained swings, then the rising cut that up asks for
+  assert.deepEqual(c.saberHitTimes.map(t=>t.length),[1,1,4,1]);
   assert.ok(c.saberHitTimes[2].every((t,i,a)=>i===0||t>a[i-1]),'finisher cut times increase');
   assert.ok(c.saberHitTimes[2][c.saberHitTimes[2].length-1]<c.saberDuration,'every cut lands inside the swing');
   const total=n=>c.saberHitTimes[n].length*c.saberPower*c.saberComboPower[n];
   assert.equal(total(0),4.5);assert.equal(total(1),4.5);assert.equal(total(2),11.25);
   assert.equal(total(2)/total(0),2.5);
+  assert.equal(total(3),4.5,'the rising cut is worth a plain swing');
 });
 test('the finisher applies each cut to the boss as well',()=>{
   const g=game();quiet(g);const p=g.state.player;const b=bossAt(g,30,0,100);

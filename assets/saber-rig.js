@@ -42,7 +42,16 @@
      [.16,-4,-23.5,-.34,-10,-39,-.85,11,-15],[.23,0,-21,.18,8,-43,-2.00,16,-18],
      [.31,1,-19,.34,16,-40,-.80,19,-21],[.41,3,-18.5,.35,20,-22,.55,22,-21],
      [.51,3,-17.5,.40,17,-13,1.15,23,-22],[.92,3,-17.8,.38,17,-14,.90,23,-22],
-     [1,0,-23,.025,8,-27,.70,8,-8]]
+     [1,0,-23,.025,8,-27,.70,8,-8]],
+    // Stage 4 is the rising cut, and it is the only one that is not part of the chain: it is
+    // asked for by holding up. It sinks onto the back leg with the blade hanging low behind,
+    // then drives up through the knees and carries the edge from the floor to straight
+    // overhead. The arm finishes extended above the head, which is where the reach is.
+    [[0,0,-21,.20,6,-18,1.20,10,-10],[.12,-1,-18.5,.34,-3,-12,1.55,12,-12],
+     [.24,1,-19.5,.16,10,-21,.55,14,-13],[.34,2,-21.5,-.06,19,-32,-.35,16,-14],
+     [.44,2,-23,-.22,20,-41,-1.10,17,-15],[.56,1,-24,-.30,13,-47,-1.56,16,-15],
+     [.70,1,-23.5,-.26,10,-46,-1.60,14,-13],[.86,0,-22,-.14,9,-38,-1.45,10,-10],
+     [1,0,-23,.02,7,-27,-.80,8,-8]]
   ];
   function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
   // Thigh 12.5 plus shin 15 is all the leg there is. Keep every planted foot inside that reach, and
@@ -58,7 +67,7 @@
     return hip.x+ahead*Math.min(span,Math.sqrt(Math.max(0,LEG_MAX*LEG_MAX-rise*rise)));
   }
   function pose(stage,t){
-    stage=clamp(stage|0,1,3);t=clamp(t,0,1);var list=keys[stage-1],i=0;
+    stage=clamp(stage|0,1,4);t=clamp(t,0,1);var list=keys[stage-1],i=0;
     while(i<list.length-2&&t>list[i+1][0])i++;
     var a=list[i],b=list[i+1],span=b[0]-a[0],raw=clamp((t-a[0])/span,0,1),u=raw*raw*(3-2*raw);
     var rate=6*raw*(1-raw)/span,leanRate=(b[3]-a[3])*rate,driveRate=(b[1]-a[1])*rate;
@@ -94,7 +103,7 @@
   function blade(p){
     var t=p.t,ignite=p.stage===3?.04:.1,visible=t>ignite&&t<.95;
     var growth=p.stage===2?ease(.10,.23,t):.25*ease(ignite,p.stage===3?.16:.22,t)+.75*ease(p.stage===3?.16:.22,p.stage===3?.31:.44,t);
-    var length=(p.stage===3?57:48)*growth;
+    var length=(p.stage===4?53:p.stage===3?57:48)*growth;
     // In the GIF the broad smear clears first; the narrow blade remains in the held pose.
     var fade=p.stage===2?.60:.72;length*=t>fade?Math.max(.08,1-ease(fade,.96,t)):1;
     var x,y;
@@ -116,16 +125,25 @@
      [.51,-10,-57,45,-45,55,30,37,12,35,-25],
      [.60,40,-32,64,27,22,32,37,12,56,2],
      [.68,53,0,50,26,23,26,24,13,43,16],
-     [.78,33,18,26,26,8,17,12,12,25,20]]
+     [.78,33,18,26,26,8,17,12,12,25,20]],
+    // The rising cut, which travels the arc the other way: off the floor behind the heel,
+    // forward through the waist, and up to full stretch overhead.
+    [[.18,2,26,20,22,16,2,5,9,12,19],
+     [.30,28,14,36,-4,28,-26,15,-3,28,-6],
+     [.42,36,-20,32,-42,13,-50,13,-17,28,-34],
+     [.54,15,-48,-3,-55,-17,-42,-2,-23,7,-46],
+     [.66,-5,-46,-23,-36,-24,-19,-11,-17,-15,-34]]
   ];
   function smear(p){
     if(p.stage===2)return null;
-    var list=smearKeys[p.stage===3?1:0],start=list[0][0],end=p.stage===3?.82:.84;
+    var list=smearKeys[p.stage===4?2:p.stage===3?1:0],start=list[0][0],
+        end=p.stage===4?.76:p.stage===3?.82:.84,
+        from=p.stage===4?.64:p.stage===3?.72:.73;
     if(p.t<start||p.t>=end)return null;
     var i=0;while(i<list.length-2&&p.t>list[i+1][0])i++;
     var a=list[i],b=list[i+1],u=ease(a[0],b[0],p.t);
     return{points:a.slice(1).map(function(n,j){return n+(b[j+1]-n)*u}),
-      alpha:ease(start,start+.02,p.t)*(1-ease(p.stage===3?.72:.73,end,p.t))};
+      alpha:ease(start,start+.02,p.t)*(1-ease(from,end,p.t))};
   }
   function trail(ctx,p,reduced){
     var shape=smear(p);if(!shape)return;
