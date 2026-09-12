@@ -129,6 +129,33 @@ test('up is a direction now, not a second jump key',()=>{
   assert.ok(p.vy<-300,'space still jumps');
 });
 
+test('the two presses do not have to land on the same frame',()=>{
+  const C=ctx.AstraCombat;
+  const start=(g)=>{const p=g.state.player;p.x=400;p.y=270;p.vx=0;p.vy=0;p.onGround=true;return p;};
+  // up let go a moment before the saber still asks for the rising cut
+  const before=(frames)=>{
+    const g=game();quiet(g);const p=start(g);
+    g.setInput('up',true);tick(g);g.setInput('up',false);
+    tick(g,frames);
+    press(g);
+    return p.saberCombo;
+  };
+  assert.equal(before(0),4,'let go on the same frame');
+  assert.equal(before(5),4,'let go five frames earlier');
+  assert.equal(before(40),1,'but not half a second earlier');
+  // and the saber landing first still becomes the rising cut, before the blade is out
+  const after=(frames)=>{
+    const g=game();quiet(g);const p=start(g);
+    press(g);
+    tick(g,frames);
+    g.setInput('up',true);tick(g);
+    return p.saberCombo;
+  };
+  assert.equal(after(0),4,'up one frame late');
+  assert.equal(after(2),4,'up three frames late');
+  assert.equal(after(20),1,'but a swing already under way is left alone');
+});
+
 test('the rising cut trades forward reach for height',()=>{
   const rise=reach(4),over=reach(1),finish=reach(3);
   assert.ok(rise.above>over.above+15,`it reaches over the overhead cut: ${rise.above} against ${over.above}`);
