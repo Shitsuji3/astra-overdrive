@@ -291,3 +291,75 @@ test('relaxed recovery keeps impact phase and takes longer to settle',()=>{
  assert.equal(c.saberPhase({saberTime:.08}),.875);
  assert.equal(c.saberPhase({saberTime:0}),1);
 });
+
+// --- what the eleven-frame sheet added ------------------------------------------------------
+// The sheet's first four frames are a windup: the flame goes out BEHIND the figure at chest
+// height, sweeps down through the legs, and lies forward along the floor at the deepest crouch
+// before any of it goes up. Reading the drawn flame's own direction is the only way to tell
+// that apart from a flame that simply switches on pointing upward.
+function flameAim(t){
+  const rig=ctx.AstraSaberRig,p=rig.pose(4,t),b=rig.blade(p);
+  return Math.atan2(b.tip.y-b.root.y,b.tip.x-b.root.x);
+}
+test('the flame winds out behind, passes along the floor and only then goes up',()=>{
+  const back=flameAim(.035),floor=flameAim(.085),up=flameAim(.30);
+  // behind: pointing away from the way the figure faces, within thirty degrees of level
+  assert.ok(Math.cos(back)<-.8,`the windup points behind: ${back.toFixed(2)}rad`);
+  // along the floor: forward, and no more than thirty degrees off level
+  assert.ok(Math.cos(floor)>.8,`the floor pass points forward: ${floor.toFixed(2)}rad`);
+  assert.ok(Math.abs(Math.sin(floor))<.5,`and lies flat: ${floor.toFixed(2)}rad`);
+  // and the rise carries it up and forward
+  assert.ok(Math.sin(up)<-.6&&Math.cos(up)>0,`the rise points up and forward: ${up.toFixed(2)}rad`);
+});
+test('the figure arches backward through the rise, as the sheet does',()=>{
+  // spin turns the whole figure about its hip; on the sheet the head trails the feet
+  for(const t of [.26,.46,.67,.85]){
+    const s=ctx.AstraSaberRig.pose(4,t).spin;
+    assert.ok(s<0,`arched back at ${t}: spin ${s}`);
+    assert.ok(s>-.6,`but not lying down at ${t}: spin ${s}`);
+  }
+  // and the legs hang rather than tucking: the sheet's feet sit where a standing frame's do
+  for(const t of [.26,.46,.67,.85])
+    assert.ok(ctx.AstraSaberRig.pose(4,t).lift<=4,`legs hang at ${t}`);
+});
+test('the ride down is a pose, not an attack, and ends when the ride does',()=>{
+  const g=game(),C=ctx.AstraCombat,p=g.state.player;quiet(g);
+  p.x=clearFloor(g);p.y=270;p.vx=0;p.vy=0;p.facing=1;p.onGround=true;
+  g.setInput('up',true);press(g);g.setInput('up',false);
+  // hang something in reach of where the held blade is drawn, to prove it cannot cut
+  let held=0,landed=0;
+  for(let i=1;i<=150;i++){
+    tick(g);
+    if(C.risingHeld(p)){
+      held++;
+      assert.equal(C.saberStage(p),5,'the ride down is its own set of poses');
+      assert.equal(p.saberCombo,0,'and the swing is over');
+      const e=enemyAt(g,14,-30);tick(g);
+      assert.equal(e.hp,100,'a held blade cuts nothing');
+      g.state.enemies=[];
+    }
+    if(!landed&&i>12&&p.onGround)landed=i;
+    if(landed&&p.onGround)assert.ok(!C.risingHeld(p),'and it is over once he lands');
+  }
+  assert.ok(held>4,`the pose is on screen for a while: ${held} frames`);
+});
+test('a dash out of the ride down drops the pose at once',()=>{
+  const g=game(),C=ctx.AstraCombat,p=g.state.player;quiet(g);
+  p.x=clearFloor(g);p.y=270;p.vx=0;p.vy=0;p.facing=1;p.onGround=true;
+  g.setInput('up',true);press(g);g.setInput('up',false);
+  for(let i=0;i<150&&!C.risingHeld(p);i++)tick(g);
+  assert.ok(C.risingHeld(p),'reached the ride down');
+  g.setInput('dash',true);tick(g);g.setInput('dash',false);
+  assert.ok(!C.risingHeld(p),'the dash drops it');
+});
+test('the rig carries five stages and the fifth resolves',()=>{
+  const rig=ctx.AstraSaberRig;
+  for(const t of [0,.45,.80]){
+    const p=rig.pose(5,t);
+    assert.equal(p.stage,5);
+    assert.ok(Number.isFinite(p.hip.x)&&Number.isFinite(p.hand.y));
+    assert.ok(rig.blade(p).visible,`the ride down holds a blade at ${t}`);
+  }
+  // a fall long enough to run the pose out puts the blade away rather than holding it for ever
+  assert.ok(!rig.blade(rig.pose(5,1)).visible,'and it goes out at the end of the pose');
+});

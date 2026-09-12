@@ -43,22 +43,31 @@
      [.31,1,-19,.34,16,-40,-.80,19,-21],[.41,3,-18.5,.35,20,-22,.55,22,-21],
      [.51,3,-17.5,.40,17,-13,1.15,23,-22],[.92,3,-17.8,.38,17,-14,.90,23,-22],
      [1,0,-23,.025,8,-27,.70,8,-8]],
-    // Stage 4, the rising cut, traced off the reference clip. It is not part of the chain and
-    // it is not a swing in place: four frames sink into a crouch with the flame gathering low
-    // and sweeping forward along the floor, then the body launches, tips over towards the
-    // flame, tucks its legs and rides a plume up two of its own heights before righting itself.
+    // Stage 4, the rising cut, keyed off the eleven-frame sheet. It is not part of the chain
+    // and it is not a swing in place. The blade is first thrown out behind at chest height,
+    // then swept down through the legs and forward along the floor as the body sinks, and the
+    // launch rides a plume up two body heights. Through all of that the figure arches BACKWARD,
+    // five to twenty degrees behind vertical, which is what stops the leap reading as a fall.
     // The last two columns are the extra this one motion needs: spin turns the whole figure
     // about its hip, and lift pulls the feet up off the floor of its own box.
+    // The angle column carries the flame the long way round - out behind at 3.05, down through
+    // the front, and up to a shade past vertical - so the sweep never jumps across the body.
     // time hipX hipY lean handX handY  angle  foot+ foot-  spin  lift
-    [[0,    0, -21,  .16,  10, -14,   .55,   9,  -9,    0,   0],
-     [.07,  1, -13,  .34,  15,  -8,   .25,  13, -11,    0,   0],
-     [.13,  2, -12,  .30,  19,  -6,   .08,  15, -12,  .10,   0],
-     [.22,  3, -18,  .05,  20, -22,  -.60,   7,  -6,  .30,   7],
-     [.32,  3, -21, -.02,  19, -31,  -.95,   5,  -4,  .42,  12],
-     [.50,  3, -22, -.04,  18, -34, -1.02,   4,  -3,  .45,  14],
-     [.72,  3, -22, -.03,  18, -34, -1.00,   4,  -3,  .44,  14],
-     [.88,  2, -21,  .02,  16, -31,  -.90,   6,  -5,  .32,   9],
-     [1,    0, -22,  .04,  10, -27,  -.75,   8,  -8,  .10,   2]]
+    [[0,     0, -21,  .12,   2, -22,  2.20,   9,  -9,    0,   0],
+     [.035, -1, -20, -.10, -10, -27,  3.05,  10, -10,  -.07,  0],
+     [.085,  2, -15,  .30,  17, -11,   .20,  14, -12,   .05,  0],
+     [.14,   3, -18,  .10,  20, -20,  -.72,   9,  -8,  -.08,  2],
+     [.26,   3, -21, -.02,  19, -26, -1.03,   8,  -7,  -.13,  3],
+     [.46,   3, -22, -.08,  18, -32, -1.11,   7,  -6,  -.21,  3],
+     [.67,   3, -22, -.06,  18, -34, -1.29,   7,  -6,  -.17,  2],
+     [.85,   2, -21, -.12,  16, -31,  -.44,   8,  -6,  -.24,  2],
+     [1,     0, -22,  .02,   8, -30, -1.60,   8,  -8,  -.10,  0]],
+    // Stage 5 is not an attack. It is the ride down: the sheet's last three frames snap the
+    // arms wide as the plume tears off, then hold a short blade overhead all the way to the
+    // floor. It runs on its own clock once the rising cut's own span has run out.
+    [[0,    0, -20, -.02,   2, -34, -1.71,  11, -11,  -.14,  1],
+     [.45,  0, -21, -.10,   0, -33, -2.18,   9,  -9,  -.20,  0],
+     [1,    1, -21,  .02,   3, -32, -1.36,   8,  -8,  -.08,  0]]
   ];
   function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
   // Thigh 12.5 plus shin 15 is all the leg there is. Keep every planted foot inside that reach, and
@@ -74,7 +83,7 @@
     return hip.x+ahead*Math.min(span,Math.sqrt(Math.max(0,LEG_MAX*LEG_MAX-rise*rise)));
   }
   function pose(stage,t){
-    stage=clamp(stage|0,1,4);t=clamp(t,0,1);var list=keys[stage-1],i=0;
+    stage=clamp(stage|0,1,5);t=clamp(t,0,1);var list=keys[stage-1],i=0;
     while(i<list.length-2&&t>list[i+1][0])i++;
     var a=list[i],b=list[i+1],span=b[0]-a[0],raw=clamp((t-a[0])/span,0,1),u=raw*raw*(3-2*raw);
     var rate=6*raw*(1-raw)/span,leanRate=(b[3]-a[3])*rate,driveRate=(b[1]-a[1])*rate;
@@ -115,17 +124,35 @@
     var along=(l1*l1-l2*l2+r*r)/(2*r),h=Math.sqrt(Math.max(0,l1*l1-along*along));
     return{x:a.x+dx/d*along+dy/d*h*bend,y:a.y+dy/d*along-dx/d*h*bend};
   }
-  // The flame. Measured off the reference: it leaves the hand at about sixty degrees above
-  // the horizontal, reaches a little over a body height, and is out for the whole of the rise.
+  // The flame. One axis, three lives: the crescent thrown out behind during the windup, the
+  // low pass along the floor at the bottom of the crouch, and the plume that carries the leap.
+  // The sheet's plume runs about one and a third body heights long and one and a tenth wide;
+  // the windup crescent is three quarters long and half as wide; the floor pass sits between.
   function plume(p){
+    // the ride down keeps a short blade of the same flame overhead
+    if(p.stage===5){
+      // full from the first frame: stage four hands over a blade already lit, and easing
+      // this one up from nothing put a gap between the two
+      var held=1-ease(.86,1,p.t);
+      if(held<=.02)return null;
+      return{root:spun(p,p.hand),angle:p.angle,length:26,width:8,alpha:.90*held};
+    }
     if(p.stage!==4)return null;
-    var grow=ease(.13,.26,p.t),die=1-ease(.86,.99,p.t),body=grow*die;
-    // the crouch's low sweep is the same flame, just short and lying along the floor
-    var sweep=ease(.04,.11,p.t)*(1-ease(.13,.20,p.t));
-    if(body<=.01&&sweep<=.01)return null;
-    return{root:spun(p,p.hand),angle:p.angle,
-      length:13+43*body+26*sweep,width:7+21*body+8*sweep,
-      alpha:Math.min(1,body*1.25+sweep)};
+    var grow=ease(.08,.16,p.t),die=1-ease(.86,.94,p.t),body=grow*die;
+    var sweep=ease(.045,.080,p.t)*(1-ease(.10,.145,p.t));
+    var wind=ease(.006,.028,p.t)*(1-ease(.045,.070,p.t));
+    // longest as it erupts, settling back over the rise, the way the sheet's does
+    var surge=1+.24*(1-ease(.16,.44,p.t));
+    // what the plume collapses into, which is what the ride down carries on holding
+    var held=ease(.87,.95,p.t);
+    if(body<=.01&&sweep<=.01&&wind<=.01&&held<=.01)return null;
+    // past the top it lets go of the wrist and keeps going up on its own momentum while the
+    // body begins to fall, which is what the sheet's tear-off frame shows
+    var tear=ease(.76,.94,p.t)*(1-held),root=spun(p,p.hand);
+    if(tear>.01)root={x:root.x-5*tear,y:root.y-26*tear};
+    return{root:root,angle:p.angle,
+      length:13+34*body*surge+22*sweep+25*wind+13*held,width:7+26*body+8*sweep+5*wind,
+      alpha:Math.min(1,body*1.25+sweep+wind+.90*held)};
   }
   function blade(p){
     var t=p.t,ignite=p.stage===3?.04:.1,visible=t>ignite&&t<.95;
@@ -136,7 +163,7 @@
     var x,y;
     if(p.stage===2){var a=p.angle;x=p.hip.x+4+Math.cos(a)*length-p.hand.x;y=p.hip.y-8+Math.sin(a)*length*.15-p.hand.y;}
     else{x=Math.cos(p.angle)*length;y=Math.sin(p.angle)*length;}
-    if(p.stage===4){
+    if(p.stage>=4){
       var f=plume(p);
       if(!f)return{root:spun(p,p.hand),tip:spun(p,p.hand),visible:false};
       return{root:f.root,tip:{x:f.root.x+Math.cos(f.angle)*f.length,y:f.root.y+Math.sin(f.angle)*f.length},visible:true};
@@ -184,21 +211,23 @@
     var f=plume(p);if(!f)return;
     ctx.save();ctx.translate(f.root.x,f.root.y);ctx.rotate(f.angle);
     var base=ctx.globalAlpha;
-    // The reference's plume is a tongue: it leaves the hand narrow, swells past the middle and
-    // comes to a point that curls across its own axis.
+    // The sheet's plume is a leaf, not an egg: narrow where it leaves the hand, widest a little
+    // past halfway, and closing to a real point. The old outline carried its width all the way
+    // to a blunt curl, which is what made it read as a balloon.
     function tongue(len,wide,color,alpha){
-      var curl=wide*.62;
-      ctx.beginPath();ctx.moveTo(0,-wide*.20);
-      ctx.bezierCurveTo(len*.28,-wide*.98,len*.60,-wide*1.02,len*.88,-curl*.50);
-      ctx.quadraticCurveTo(len*1.04,-curl*.02,len*.86,curl*.46);
-      ctx.bezierCurveTo(len*.56,wide*.82,len*.24,wide*.60,0,wide*.20);
+      ctx.beginPath();ctx.moveTo(0,-wide*.14);
+      ctx.bezierCurveTo(len*.20,-wide*.96,len*.50,-wide*.66,len,-wide*.10);
+      ctx.bezierCurveTo(len*.54,wide*.56,len*.22,wide*.72,0,wide*.14);
       ctx.closePath();ctx.globalAlpha=base*f.alpha*alpha;ctx.fillStyle=color;ctx.fill();
     }
     if(behind){
-      if(!reduced)tongue(f.length*1.22,f.width*1.5,'#ff5320',.22);
-      tongue(f.length*1.08,f.width*1.2,'#ff7a24',.30);
+      if(!reduced)tongue(f.length*1.10,f.width*1.24,'#e0201c',.42);
+      tongue(f.length*1.04,f.width*1.10,'#ff3a18',.48);
     }else{
-      if(!reduced)tongue(f.length*1.05,f.width*1.14,'#e8431c',.6);
+      // the sheet edges the whole plume in a red that is plainly red, so this band is almost
+      // opaque; at a quarter alpha it sank into the factory behind it and read as soot
+      if(!reduced)tongue(f.length*1.10,f.width*1.24,'#e01b18',.95);
+      tongue(f.length*1.04,f.width*1.10,'#ff3a10',1);
       tongue(f.length,f.width,'#ff8a2b',.96);
       tongue(f.length*.90,f.width*.72,'#ffc24a',1);
       tongue(f.length*.72,f.width*.44,'#fff0b8',1);
@@ -250,7 +279,7 @@
     var build=rig.build||{x:1,y:1};
     ctx.save();ctx.translate(o.x||0,o.y||0);if(o.facing<0)ctx.scale(-1,1);ctx.scale(build.x,build.y);ctx.imageSmoothingEnabled=false;
     var spin=p.spin||0;
-    if(p.stage===4)drawPlume(ctx,p,o.reducedMotion,true);
+    if(p.stage>=4)drawPlume(ctx,p,o.reducedMotion,true);
     else if(p.stage===2)horizontalTrail(ctx,p,false);else trail(ctx,p,o.reducedMotion);
     // The rising cut turns the whole figure about its hip; the flame is drawn outside that turn
     // because its angle was measured against the world, not against the body.
@@ -277,7 +306,10 @@
     // GIF 23–30 tucks the off arm in front, unlike the first cut's rearward counterbalance.
     var finishGuard=p.stage===3?ease(.23,.41,p.t)*(1-ease(.92,1,p.t)):0;
     var guard=ease(-23,-20.5,p.hip.y)*(1-p.twist)*(1-finishGuard);
-    var rearElbow={x:p.rearShoulder.x-4+7*p.twist-3*guard+8*finishGuard,y:p.rearShoulder.y+5+3*p.twist-6*guard};
+    // The sheet snaps both arms wide the instant the plume tears off, then draws them back in.
+    var fling=p.stage===5?(1-ease(0,.42,p.t)):0;
+    var rearElbow={x:p.rearShoulder.x-4+7*p.twist-3*guard+8*finishGuard-9*fling,
+                   y:p.rearShoulder.y+5+3*p.twist-6*guard-7*fling};
     rig.bonePart(ctx,img,{x:0,y:0},UPPER,{x:153,y:144},{x:139,y:164},p.rearShoulder,rearElbow);
     rig.rigidPart(ctx,img,{x:0,y:0},CANNON,{x:202,y:164},rearElbow,.18,(1.2-p.lean-1.4*p.twist)*(1-guard)+3*guard);
     leg(p.rearFoot,p.rearFootAngle);
@@ -299,7 +331,7 @@
     if(p.stage===2)horizontalTrail(ctx,p,true);
     if(spin)ctx.restore();
     var b=blade(p);
-    if(p.stage===4)drawPlume(ctx,p,o.reducedMotion,false);
+    if(p.stage>=4)drawPlume(ctx,p,o.reducedMotion,false);
     else if(b.visible&&(!smear(p)||smear(p).alpha<.35)){
       ctx.save();ctx.lineCap='round';
       function line(width,color){ctx.beginPath();ctx.moveTo(b.root.x,b.root.y);ctx.quadraticCurveTo((b.root.x+b.tip.x)*.5+3*Math.sin(p.t*7),(b.root.y+b.tip.y)*.5-(p.stage===2?1.5:5)*Math.sin(p.t*Math.PI),b.tip.x,b.tip.y);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke();}
