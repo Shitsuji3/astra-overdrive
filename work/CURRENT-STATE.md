@@ -759,3 +759,9 @@ browser-smoke 17項目・browser-mouse 12項目・saber-reach・release-check �
 下の縁が先端手前で閉じる、落下中の刃は参考の髪の読み違いの可能性。`npm test` 116件合格。
 道具：`qa/rising-fire-clean.py`、`qa/rising-fire-edges.py`、`qa/rising-plume-only.cjs`。
 詳細は work/RISING-FIRE-20260913.md。
+
+公開（2026-09-13）：上の炎の回（コミット7ac31f0）をGitHub DesktopのPush originで公開した。
+公開サイト https://shitsuji3.github.io/astra-overdrive/ が新しい `assets/saber-rig.js`（`FIRE_HEAT`、`FIRE_FULL=85`）を
+配信していることを確認。公開URLに対して `qa/rising-sheet.cjs`：頂点89px・0.58秒、着地1.00秒、4ヒット、
+span .78、hold .46、ページエラー0。`tests/browser-smoke.cjs` 合格、ブラウザエラー0。
+公開したコードは保存版 `dist/history/ASTRA-OVERDRIVE-rising-fire-clean-20260913-110202.zip` と同じ。
