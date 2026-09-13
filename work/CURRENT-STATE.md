@@ -811,3 +811,11 @@ span .78、hold .46、ページエラー0。`tests/browser-smoke.cjs` 合格、�
 - **重なる別作業：** 「斬り上げの当たる時刻」の別セッションの内容を含む。
 
 詳細は work/RISING-HIT-20260913.md。
+
+公開（2026-09-13）：斬り上げの当たり判定の変更（コミット84568a3）をGitHub DesktopのPush originで公開した。
+公開サイト https://shitsuji3.github.io/astra-overdrive/ の `game.js` に `_risingBites`（bites 4、biteEvery .13）、
+`assets/saber-rig.js` に `fireSlices` があることを確認。公開URLで `qa/rising-sheet.cjs`：頂点89px・0.58秒、着地1.00秒で変化なし、
+炎が噛める時間0.03〜0.78秒、ページエラー0。公開URLで敵を置いた確認：前・低い（炎が重なる0.067秒／最初のダメージ0.050秒）、
+頭の高さ（0.100／0.100）、炎の途中（0.133／0.133）、後ろ・低い（0.017／0.017）。
+`tests/browser-smoke.cjs` 17項目、`tests/browser-mouse.cjs` 11項目に合格、ブラウザエラー0。
+公開したコードは保存版 `dist/history/ASTRA-OVERDRIVE-rising-hit-20260913-192035.zip` と同じ。
