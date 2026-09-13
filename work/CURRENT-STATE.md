@@ -845,3 +845,12 @@ span .78、hold .46、ページエラー0。`tests/browser-smoke.cjs` 合格、�
 - **検証：** `npm test` 133件、ブラウザ起動テスト17項目、リリース用ビルドに合格。
 
 詳細は work/RISING-HIT-20260913.md の追記。
+
+公開（2026-09-14）：斬り上げの噛む間隔を半分にした変更（コミットc3f87c1）をGitHub DesktopのPush originで公開した。
+公開サイト https://shitsuji3.github.io/astra-overdrive/ の `game.js` が `biteEvery: .065` を配信していることを確認。
+公開URLで噛む時刻：頭の高さ 0.100／0.167／0.233／0.300秒、炎の途中 0.133／0.200／0.267／0.333秒、
+大きな的 0.017／0.083／0.150／0.217秒（いずれも4回、計11.25）。`qa/rising-sheet.cjs`：頂点89px・0.58秒、着地1.00秒で変化なし。
+`tests/browser-smoke.cjs` 17項目に合格、ページ・ブラウザエラー0。
+公開したコードは保存版 `dist/history/ASTRA-OVERDRIVE-rising-bite-fast-20260914-005108.zip` と同じ。
+操作メモ：GitHub Desktopは今は `githubdesktop.exe`（app-3.6.5）として許可を求める必要がある。ツールバーに
+Current worktree が増え、Push origin はPL2770H上で約(588,38)。押す直前にBraveが前面に出ることがあり、そのときは前面に戻して押し直す。
