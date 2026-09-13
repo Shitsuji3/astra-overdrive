@@ -794,3 +794,10 @@ span .78、hold .46、ページエラー0。`tests/browser-smoke.cjs` 合格、�
 - **未実施の提案：** 発射を押した瞬間にする案。以前の決定（離した時に発射）を維持している。
 
 詳細は work/BUSTER-SUPPORT-20260913.md。
+
+公開（2026-09-13）：チャージショットの廃止（コミット8e09ed1）をGitHub DesktopのPush originで公開した。
+公開サイト https://shitsuji3.github.io/astra-overdrive/ の `game.js` に `chargedPower` が無く `combat.saberPower = 4.5;`、
+`render.js` に `chargeEffects` が無く、`ui.js` の操作ガイドに溜め突きの行があることを確認。公開URLで射撃を1秒押し続けると
+弾0発・溜め無し・メーター0、離すと威力1の通常弾1発、セイバーを1秒押すと溜め0.85、ページエラー0。
+`tests/browser-smoke.cjs` 17項目、`tests/browser-mouse.cjs` 11項目に合格、ブラウザエラー0。
+公開したコードは保存版 `dist/history/ASTRA-OVERDRIVE-buster-support-20260913-182701.zip` と同じ。
