@@ -1,4 +1,4 @@
-// Plays the rising cut on whatever GAME_URL points at and reports the arc, the bites, and
+// Plays the rising cut on whatever GAME_URL points at and reports the arc, when its flame can bite, and
 // whether the ride-down pose actually appears - the things the eleven-frame sheet changed.
 const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE);
 
@@ -32,11 +32,14 @@ const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE);
       game.setInput('saber', false); game.setInput('up', false);
       const combo = p.saberCombo;
       let apex = 0, apexAt = 0, land = null, held = 0, stages = new Set(), t = 1 / 60;
+      // the flame bites on contact now, so what matters is how long its hit shape is out
+      let fireFrom = null, fireTo = null;
       // the flame has to reach behind, then along the floor, then up
       const aim = [];
       for (let i = 1; i <= 150; i++) {
         if (p.saberTime > 0 || C.risingHeld(p)) stages.add(C.saberStage(p));
         if (C.risingHeld(p)) held++;
+        if (C.risingFire && C.risingFire(p)) { if (fireFrom === null) fireFrom = t; fireTo = t; }
         if (p.saberTime > 0) {
           const segs = C.saberSweep(p) || [];
           if (segs.length) {
@@ -54,7 +57,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE);
       const floorward = aim.find(a => a.dx > 8 && Math.abs(a.dy) < .7 * Math.abs(a.dx));
       const upward = aim.find(a => a.dy < -14 && a.dx > 0);
       return { combo, apex, apexAt: +(apexAt / 60).toFixed(2), land: +(land / 60).toFixed(2),
-               hits: p.saberHits, span: C.rising.span, hold: C.rising.hold,
+               fire: [fireFrom === null ? null : +fireFrom.toFixed(2), fireTo === null ? null : +fireTo.toFixed(2)],
+               span: C.rising.span, hold: C.rising.hold,
                heldFrames: held, stages: Array.from(stages).sort(),
                aimBack: !!back, aimFloor: !!floorward, aimUp: !!upward };
     });

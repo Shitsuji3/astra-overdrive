@@ -9,9 +9,10 @@
   combat.saberRange = 72;
   // Four and a half plain shots. It used to be written as the charged shot's power times one and a half.
   combat.saberPower = 4.5;
-  // The rising cut is a full swing, so it is worth what the first two are worth.
-  // Four bites up the flame come to one and a half of a plain swing.
-  combat.saberComboPower = [1, 1, .625, .375];
+  // Each of the rising cut's four bites is worth one of the finisher's cuts, so the four come to two and
+  // a half plain swings. That is what it has dealt in play all along: the hit loop read the finisher's
+  // row for it.
+  combat.saberComboPower = [1, 1, .625, .625];
   combat.saberComboWindowStart = .12;
   combat.saberDuration = .40;
   // The rising cut is not a swing in place, it is a launch. Measured off the reference clip
@@ -22,7 +23,10 @@
   // hold is the ride down, which is a pose and not an attack: the sheet keeps a short blade
   // overhead from the moment the plume tears off until the feet touch the floor.
   combat.rising = { span: .78, crouch: .08, lift: 354, gravity: 680, drift: 34, apex: 92,
-                    hold: .46 };
+                    hold: .46, bites: 4, biteEvery: .13 };
+  // The flame bites whatever it is drawn over, the moment it is drawn over it, then again every biteEvery
+  // seconds while the target stays in the flame, bites times at most. Its hit shape is the flame's own
+  // outline (combat.risingFire), so what it reaches is what is on screen.
   // The charged thrust, keyed off the user's thirty-frame sheet. Holding the saber charges it; the charge
   // meter, the charge hum and the ready flash are its alone, since the buster no longer charges. Letting
   // go at ready runs it. The sheet in order: the light
@@ -83,10 +87,8 @@
   // Each entry is the elapsed second at which that stage lands a cut. They sit where the blade
   // has swung out, not where the input was pressed: stage 1 goes overhead first, stage 2 thrusts
   // straight away, and the finisher lands four cuts down its arc.
-  // The rising cut lands a little later than the first swing, because the edge has to come up
-  // off the floor before it is anywhere.
-  // The flame is out for the whole of the rise, so it bites four times on the way up.
-  combat.saberHitTimes = [[.16], [.08], [.13, .17, .21, .25], [.18, .31, .44, .57]];
+  // The rising cut is not on this table: its flame bites on contact (combat.rising, NeonGame._risingBites).
+  combat.saberHitTimes = [[.16], [.08], [.13, .17, .21, .25]];
   // Up and the saber are meant as one input, and nobody presses two keys on the same frame.
   // A recent up still counts when the saber arrives, and an up that arrives just after the
   // saber turns the swing that has barely started into the rising cut. Either order works.
@@ -109,6 +111,23 @@
                bx: ox + facing * seg.tip.x,  by: oy + seg.tip.y };
     });
   };
+  // The rising cut hits with its flame's drawn outline rather than the blade's sweep: slices across the
+  // flame from its leading to its trailing edge and along both edges, at this moment of the rise, in world
+  // coordinates. Null when no flame is out or the rig is absent. The pad is a sliver, because the outline
+  // already is the flame.
+  combat.risingFirePad = 3;
+  combat.risingFire = function (p) {
+    var rig = global.AstraSaberRig;
+    if (!p || p.saberCombo !== 4 || !(p.saberTime > 0) || !rig || !rig.fireSlices) return null;
+    var build = global.AstraRunRig && global.AstraRunRig.build;
+    var facing = p.saberFacing === undefined ? (p.facing || 1) : p.saberFacing;
+    var ox = p.x + p.w / 2, oy = p.y + p.h;
+    var slices = rig.fireSlices(4, combat.saberPhase(p), build);
+    if (!slices.length) return null;
+    return slices.map(function (s) {
+      return { ax: ox + facing * s.a.x, ay: oy + s.a.y, bx: ox + facing * s.b.x, by: oy + s.b.y };
+    });
+  };
   // Liang-Barsky clip of one blade segment against a padded box.
   function segmentInBox(seg, x0, y0, x1, y1) {
     var dx = seg.bx - seg.ax, dy = seg.by - seg.ay, t0 = 0, t1 = 1;
@@ -123,11 +142,11 @@
     return true;
   }
   combat.bladeThickness = 7;
-  // How far from the drawn edge a hit still counts. A sword is thin; the rising cut's flame is
-  // not, and pretending otherwise would make it miss things it visibly engulfs.
+  // How far from the drawn edge a hit still counts. A sword is thin. The rising cut hits with its
+  // flame's whole outline, so it needs no more than a sliver either.
   combat.saberPad = function (p) {
     if (p && p.saberCombo === 6) return combat.thrust.pad;
-    return (p && p.saberCombo === 4) ? 16 : combat.bladeThickness;
+    return (p && p.saberCombo === 4) ? combat.risingFirePad : combat.bladeThickness;
   };
   combat.bladeTouches = function (segs, box, pad) {
     if (!segs) return false;
@@ -362,11 +381,11 @@
     var dir=(right?1:0)-(left?1:0); if(p.wallLock>0)dir=0;var thrusting=p.saberCombo===6&&p.saberTime>0;if(thrusting)dir=0;if(dir){p.facing=dir;p.vx+=(dir*1500)*dt;}else if(!p.risingUp)p.vx*=Math.pow(.0008,dt);if(p.dashTime<=0)p.vx=clamp(p.vx,-190,190);else p.vx=p.facing*560;if(thrusting){var TL=global.AstraCombat.thrust,thrustStep=TL.span-p.saberTime;if(thrustStep>=TL.lungeFrom&&thrustStep<TL.lungeTo&&p.dashTime<=0)p.vx=p.saberFacing*TL.lunge;}
     if(p.jumpBuffer>0&&(p.onGround||p.coyote>0)){p.vy=-430;p.onGround=false;p.coyote=0;p.jumpBuffer=0;this._emit('sound',{name:'jump'});} if(!jump&&!p.risingUp&&p.vy<-150)p.vy+=900*dt;
     if(dash&&!this._dashHeld&&p.dashCooldown<=0){p.risingHold=0;p.dashTime=.16;p.dashCooldown=.65;p.vx=p.facing*560;p.vy=0;this._emit('sound',{name:'dash'});}this._dashHeld=dash;
-    shoot=shoot||this.input.shoot;p.fireCooldown=Math.max(0,p.fireCooldown-dt);p.shootPoseTime=Math.max(0,(p.shootPoseTime||0)-dt);var fireNormal=false;if(shoot)this._shootHeld=true; if(!shoot&&this._shootHeld){fireNormal=p.fireCooldown<=0;if(fireNormal)p.fireCooldown=.18;this._shootHeld=false;} this._emit('charge-state',{level:global.AstraCombat.saberChargeShown(p)}); var saberElapsed=global.AstraCombat.saberSpan(p)-p.saberTime;if(p.saberTime<=0&&p.saberCombo>0){if(p.saberQueued&&p.saberCombo<3){p.saberCombo++;p.saberTime=global.AstraCombat.saberDuration;p.saberHit=false;p.saberHits=0;p.saberQueued=false;p.saberFacing=p.facing;this._emit('sound',{name:'saber',combo:p.saberCombo});}else{if(p.saberCombo===4&&!p.onGround)p.risingHold=global.AstraCombat.rising.hold;p.saberCombo=0;p.saberQueued=false;}}if(saber&&!this._saberHeld){if(p.saberTime>0){if(p.saberCombo<3&&saberElapsed>=global.AstraCombat.saberComboWindowStart&&saberElapsed<global.AstraCombat.saberDuration)p.saberQueued=true;}else{p.risingHold=0;p.saberCombo=wantsRising?4:1;p.saberTime=global.AstraCombat.saberSpan(p);if(p.saberCombo===4&&p.onGround)p.risingWind=global.AstraCombat.rising.crouch;p.saberHit=false;p.saberHits=0;p.saberQueued=false;p.saberFacing=p.facing;this._emit('sound',{name:'saber',combo:p.saberCombo});}}
+    shoot=shoot||this.input.shoot;p.fireCooldown=Math.max(0,p.fireCooldown-dt);p.shootPoseTime=Math.max(0,(p.shootPoseTime||0)-dt);var fireNormal=false;if(shoot)this._shootHeld=true; if(!shoot&&this._shootHeld){fireNormal=p.fireCooldown<=0;if(fireNormal)p.fireCooldown=.18;this._shootHeld=false;} this._emit('charge-state',{level:global.AstraCombat.saberChargeShown(p)}); var saberElapsed=global.AstraCombat.saberSpan(p)-p.saberTime;if(p.saberTime<=0&&p.saberCombo>0){if(p.saberQueued&&p.saberCombo<3){p.saberCombo++;p.saberTime=global.AstraCombat.saberDuration;p.saberHit=false;p.saberHits=0;p.saberQueued=false;p.saberFacing=p.facing;this._emit('sound',{name:'saber',combo:p.saberCombo});}else{if(p.saberCombo===4&&!p.onGround)p.risingHold=global.AstraCombat.rising.hold;p.saberCombo=0;p.saberQueued=false;}}if(saber&&!this._saberHeld){if(p.saberTime>0){if(p.saberCombo<3&&saberElapsed>=global.AstraCombat.saberComboWindowStart&&saberElapsed<global.AstraCombat.saberDuration)p.saberQueued=true;}else{p.risingHold=0;p.saberCombo=wantsRising?4:1;if(p.saberCombo===4)p.risingSerial=(p.risingSerial||0)+1;p.saberTime=global.AstraCombat.saberSpan(p);if(p.saberCombo===4&&p.onGround)p.risingWind=global.AstraCombat.rising.crouch;p.saberHit=false;p.saberHits=0;p.saberQueued=false;p.saberFacing=p.facing;this._emit('sound',{name:'saber',combo:p.saberCombo});}}
     // the saber landed a frame or two before up did, and the blade has not left the hand yet
     if(up&&p.saberCombo===1&&p.saberTime>0&&!p.saberHits&&
        saberElapsed<global.AstraCombat.risingConvert){
-      p.saberCombo=4;p.saberQueued=false;p.saberTime=global.AstraCombat.rising.span-saberElapsed;
+      p.saberCombo=4;p.risingSerial=(p.risingSerial||0)+1;p.saberQueued=false;p.saberTime=global.AstraCombat.rising.span-saberElapsed;
       if(p.onGround)p.risingWind=Math.max(0,global.AstraCombat.rising.crouch-saberElapsed);
     }
     // Holding the saber charges the thrust. The press has already swung, so a tap is still a tap and a
@@ -391,15 +410,33 @@
     if(p.vy>=0)p.risingUp=false;
     if(p.dashTime>0)p.dashTime-=dt;var oldY=p.y;p.x+=p.vx*dt;p.y+=p.vy*dt;p.onGround=false;p.wallDir=0;
     this._resolve(p,oldY); if(p.onGround)p.risingHold=0; if(global.AstraCombat.runPose(p))p.runTime=((p.runTime||0)+dt*Math.abs(p.vx)/190)%global.AstraCombat.runDuration;else p.runTime=0; if(fireNormal){p.shootPoseTime=.12;var fm=global.AstraCombat.muzzle(p);this._spawn(fm.x,fm.y,p.facing*500,0,'player',false,global.AstraCombat.normalPower);s.shots++;this._emit('sound',{name:'shot'});} if(!p.onGround&&p.wallDir&&p.vy>180)p.vy=180;if(p.wallDir&&jumpPressed){p.vy=-390;p.vx=-p.wallDir*260;p.wallLock=.12;} if(p.wallLock>0)p.wallLock-=dt;if(p.y>420){this._die();return;} var marks=global.AstraCombat.checkpoints,reached=null;for(var ci=0;ci<marks.length;ci++)if(p.x>marks[ci].at)reached=marks[ci]; if(reached&&(!s.checkpoint.active||s.checkpoint.x!==reached.x)){s.checkpoint.active=true;s.checkpoint.x=reached.x;if(reached.heal)p.hp=p.maxHp;s.message='CHECKPOINT // ONLINE';s.messageTimer=2;this._emit('checkpoint',this.snapshot());this._emit('sound',{name:'checkpoint'});} if(p.x>global.AstraCombat.arena.gate)p.x=Math.max(p.x,global.AstraCombat.arena.gate); if(p.x>global.AstraCombat.arena.spawn&&!s.boss){s.bossIndex=0;this._spawnBoss(global.AstraCombat.stage.bosses[0]);}
-    saberElapsed=global.AstraCombat.saberDuration-p.saberTime;if(p.saberCombo===6&&p.saberTime>0){var TB=global.AstraCombat.thrust,thrustAt=TB.span-p.saberTime,bite=0;while(bite<TB.hits.length&&thrustAt>=TB.hits[bite])bite++;if(bite>(p.saberHits||0)){for(var tb=p.saberHits||0;tb<bite;tb++)this._damageNearby(TB.reach,TB.power,p.saberFacing);p.saberHits=bite;p.saberHit=true;}}else if(p.saberTime>0){var stageIndex=Math.max(0,Math.min(2,(p.saberCombo||1)-1)),hitTimes=global.AstraCombat.saberHitTimes[stageIndex],landed=0;while(landed<hitTimes.length&&saberElapsed>=hitTimes[landed])landed++;if(landed>(p.saberHits||0)){var cut=global.AstraCombat.saberPower*global.AstraCombat.saberComboPower[stageIndex];for(var hitIndex=p.saberHits||0;hitIndex<landed;hitIndex++)this._damageNearby(global.AstraCombat.saberRange,cut,p.saberFacing);p.saberHits=landed;p.saberHit=true;}} 
+    saberElapsed=global.AstraCombat.saberDuration-p.saberTime;if(p.saberCombo===6&&p.saberTime>0){var TB=global.AstraCombat.thrust,thrustAt=TB.span-p.saberTime,bite=0;while(bite<TB.hits.length&&thrustAt>=TB.hits[bite])bite++;if(bite>(p.saberHits||0)){for(var tb=p.saberHits||0;tb<bite;tb++)this._damageNearby(TB.reach,TB.power,p.saberFacing);p.saberHits=bite;p.saberHit=true;}}else if(p.saberCombo===4&&p.saberTime>0){this._risingBites();}else if(p.saberTime>0){var stageIndex=Math.max(0,Math.min(2,(p.saberCombo||1)-1)),hitTimes=global.AstraCombat.saberHitTimes[stageIndex],landed=0;while(landed<hitTimes.length&&saberElapsed>=hitTimes[landed])landed++;if(landed>(p.saberHits||0)){var cut=global.AstraCombat.saberPower*global.AstraCombat.saberComboPower[stageIndex];for(var hitIndex=p.saberHits||0;hitIndex<landed;hitIndex++)this._damageNearby(global.AstraCombat.saberRange,cut,p.saberFacing);p.saberHits=landed;p.saberHit=true;}} 
     var stage=global.AstraCombat.stage;s.message=global.AstraStages.hintAt(stage.hints,p.x);s.section=global.AstraStages.bandAt(stage.sections,p.x).name;
     this._enemies(dt);this._bullets(dt);this._pickups(dt);this._boss(dt);if(s.boss&&s.boss.active)p.x=clamp(p.x,global.AstraCombat.arena.gate,this.worldWidth-p.w);s.camera.x=clamp(p.x-230,0,this.worldWidth-640);s.camera.y=0;s.shake=Math.max(0,s.shake-dt*3);if(s.reducedMotion)s.shake=0;s.flash=Math.max(0,s.flash-dt*3);for(var i=s.particles.length-1;i>=0;i--){var q=s.particles[i];q.life-=dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.vy+=(q.gravity===undefined?200:q.gravity)*dt;if(q.drag){var qf=Math.pow(q.drag,dt);q.vx*=qf;q.vy*=qf;}if(q.grow)q.size=Math.max(0,(q.size||0)+q.grow*dt);if(q.life<=0)s.particles.splice(i,1);}
+  };
+  // The rising cut's flame bites whatever it is drawn over, the moment it is drawn over it, and again every
+  // biteEvery seconds while the target stays in it, up to rising.bites times each. It used to bite on a
+  // fixed clock that ran about a third of a second late, with a band sixteen pixels either side of the
+  // flame's axis that matched neither the flame's width nor its lopsided shape.
+  NeonGame.prototype._risingBites=function(){
+    var s=this.state,p=s.player,C=global.AstraCombat,R=C.rising,segs=C.risingFire(p);
+    if(!segs)return;
+    var now=R.span-p.saberTime,cut=C.saberPower*C.saberComboPower[3];
+    function bites(t){
+      if(t.risingSerial!==p.risingSerial){t.risingSerial=p.risingSerial;t.risingBites=0;t.risingBiteAt=-1;}
+      if(t.risingBites>=R.bites||(t.risingBites>0&&now-t.risingBiteAt<R.biteEvery-1e-9))return false;
+      if(!C.bladeTouches(segs,t,C.risingFirePad))return false;
+      t.risingBites++;t.risingBiteAt=now;p.saberHits=(p.saberHits||0)+1;p.saberHit=true;return true;
+    }
+    for(var i=0;i<s.enemies.length;i++){var e=s.enemies[i];if(e.dead||!bites(e))continue;
+      e.hp-=cut;e.flash=.12;this._particle(e.x,e.y,'#ffb52e','burst');if(e.hp<=0)this._killEnemy(e);}
+    var b=s.boss;if(b&&b.active&&!b.down&&bites(b)){b.hp=Math.max(0,b.hp-cut);b.flash=.12;}
   };
   NeonGame.prototype._resolve=function(o,oldY){var s=this.state;for(var i=0;i<s.platforms.length;i++){var q=s.platforms[i];if(!hit(o,q))continue;if(oldY+o.h<=q.y&&o.vy>=0){o.y=q.y-o.h;o.vy=0;o.onGround=true;o.coyote=.1;}else if(oldY>=q.y+q.h&&o.vy<0){o.y=q.y+q.h;o.vy=20;}else if(o.x+o.w/2<q.x+q.w/2){o.x=q.x-o.w;o.vx=0;o.wallDir=1;}else{o.x=q.x+q.w;o.vx=0;o.wallDir=-1;}}o.x=clamp(o.x,0,this.worldWidth-o.w);};
   NeonGame.prototype._damageNearby=function(range,dmg,facing){var s=this.state,p=s.player,attackFacing=facing===undefined?p.facing:facing;var segs=global.AstraCombat.saberSweep(p);function reaches(box,cx,cy,wide){if(segs)return global.AstraCombat.bladeTouches(segs,box,global.AstraCombat.saberPad(p));var dx=cx-p.x;return Math.abs(dx)<range+(wide||0)&&((dx>0?1:-1)===attackFacing)&&Math.abs(cy-(p.y+p.h/2))<(wide?75:55);}for(var i=0;i<s.enemies.length;i++){var e=s.enemies[i];if(!e.dead&&reaches(e,e.x,e.y+e.h/2,0)){e.hp-=dmg;e.flash=.12;this._particle(e.x,e.y,'#ffb52e','burst');if(e.hp<=0)this._killEnemy(e);}}if(s.boss&&s.boss.active&&!s.boss.down&&reaches(s.boss,s.boss.x,s.boss.y+s.boss.h/2,s.boss.w*.4)){s.boss.hp=Math.max(0,s.boss.hp-dmg);s.boss.flash=.12;}}
   NeonGame.prototype._enemies=function(dt){var s=this.state,p=s.player;for(var i=0;i<s.enemies.length;i++){var e=s.enemies[i];if(e.dead)continue;e.flash=Math.max(0,e.flash-dt);if(Math.abs(e.x-p.x)>550)continue;e.fireTimer-=dt;if(e.type==='walker'){e.x=e.baseX+Math.sin(s.time*2+e.phase)*45;e.x=clamp(e.x,e.baseX-45,e.baseX+45);}if(e.type==='drone'){e.y=e.baseY+Math.sin(s.time*2+e.phase)*16;if(e.fireTimer<=0){var dx=p.x-e.x,dy=p.y-e.y,len=Math.sqrt(dx*dx+dy*dy)||1;this._spawn(e.x,e.y,dx/len*180,dy/len*180,'enemy',false,1);e.fireTimer=2.2;}}if(e.type==='turret'&&e.fireTimer<=0){this._spawn(e.x,e.y+10,(p.x<e.x?-1:1)*170,0,'enemy',false,1);e.fireTimer=1.6;}if(hit(p,e)&&p.invuln<=0){p.hp--;p.invuln=.9;s.shake=.2;this._emit('sound',{name:'hurt'});if(p.hp<=0)this._die();}}};
   // The blade clears hostile projectiles only during the visible strike, before player damage.
-  NeonGame.prototype._saberDeflects=function(b){var p=this.state.player,c=global.AstraCombat;if(b.team==='player'||p.saberTime<=0)return false;var segs=c.saberSweep(p);if(segs)return c.bladeTouches(segs,{x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},c.saberPad(p));if(p.saberCombo===6)return false;var elapsed=c.saberDuration-p.saberTime;if(elapsed<c.saberHitAt||elapsed>=c.saberDeflectEnd)return false;var facing=p.saberFacing,dx=(b.x-p.x)*facing;return dx>=0&&dx<c.saberRange+b.r&&Math.abs(b.y-(p.y+p.h/2))<55+b.r;};
+  NeonGame.prototype._saberDeflects=function(b){var p=this.state.player,c=global.AstraCombat;if(b.team==='player'||p.saberTime<=0)return false;var segs=p.saberCombo===4?c.risingFire(p):c.saberSweep(p);if(segs)return c.bladeTouches(segs,{x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},c.saberPad(p));if(p.saberCombo===6||p.saberCombo===4)return false;var elapsed=c.saberDuration-p.saberTime;if(elapsed<c.saberHitAt||elapsed>=c.saberDeflectEnd)return false;var facing=p.saberFacing,dx=(b.x-p.x)*facing;return dx>=0&&dx<c.saberRange+b.r&&Math.abs(b.y-(p.y+p.h/2))<55+b.r;};
   // A shell with gravity bursts on whatever it lands on.
   NeonGame.prototype._shellLands=function(b){var s=this.state;for(var i=0;i<s.platforms.length;i++){var q=s.platforms[i];if(b.x>q.x&&b.x<q.x+q.w&&b.y+b.r>=q.y&&b.y-b.r<=q.y+q.h){
     if(b.mine){this._spawn(b.x,q.y-8,0,0,'enemy',false,1,{r:7,kind:'mine',fuse:b.fuse||1.2,burst:b.burst||5,life:b.fuse||1.2});this._explode(b.x,q.y-4,'#ffb04a',.3);return true;}

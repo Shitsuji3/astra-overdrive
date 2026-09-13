@@ -362,32 +362,88 @@
   var fireCache={key:'',canvas:null,ox:0,oy:0};
   // Bakes one churn step of the fire into an offscreen canvas, in the plume's own frame: x runs
   // along the axis from the hand, y across it, negative toward the leading edge.
+  // The size of the offscreen field one churn step of the fire is baked into.
+  function fireField(len,wide){
+    var half=Math.ceil(wide*.5*2.60)+7;
+    return{half:half,W:Math.ceil(len)+12,H:half*2+2};
+  }
+  // Every lit cell of one churn step. fn gets the cell's column and row in the field, its top-left corner
+  // in the plume's own frame (x along the axis from the hand, y across it, negative toward the leading
+  // edge) and its heat. The bake paints exactly these cells and the hit shape is measured against exactly
+  // these cells, so the picture and the reach cannot drift apart.
+  function forEachFireCell(len,wide,step,fn){
+    var size=Math.sqrt(Math.max(.3,Math.min(1,len/FIRE_FULL))),F=fireField(len,wide);
+    for(var px=0;px<F.W;px++){
+      var u=(px-4)/Math.max(1,len);
+      if(u<-.05||u>1.06)continue;
+      var hw=wide*.5*fireHalf(Math.max(0,Math.min(1,u)));
+      if(hw<.6)continue;
+      for(var py=0;py<F.H;py++){
+        var y=py-F.half-1,heat=fireHeat(px,y,u,hw,step,size);
+        if(heat<0)continue;
+        fn(px,py,px-4,y,heat);
+      }
+    }
+  }
   function bakeFire(len,wide,step,reduced){
     var key=len+'x'+wide+'@'+step+(reduced?'r':'');
     if(fireCache.key===key)return fireCache;
-    var size=Math.sqrt(Math.max(.3,Math.min(1,len/FIRE_FULL)));
-    var half=Math.ceil(wide*.5*2.60)+7,W=Math.ceil(len)+12,H=half*2+2;
+    var F=fireField(len,wide),W=F.W,H=F.H;
     var cv=(typeof document!=='undefined')?document.createElement('canvas'):null;
     if(!cv)return null;
     cv.width=W;cv.height=H;
     var c=cv.getContext('2d'),img=c.createImageData(W,H),d=img.data;
     var rgb=FIRE.map(function(b){var n=parseInt(b.c.slice(1),16);
       return [(n>>16)&255,(n>>8)&255,n&255];});
-    for(var px=0;px<W;px++){
-      var u=(px-4)/Math.max(1,len);
-      if(u<-.05||u>1.06)continue;
-      var hw=wide*.5*fireHalf(Math.max(0,Math.min(1,u)));
-      if(hw<.6)continue;
-      for(var py=0;py<H;py++){
-        var y=py-half-1,heat=fireHeat(px,y,u,hw,step,size);
-        if(heat<0)continue;
-        var k=fireBand(heat),o=(py*W+px)*4;
-        d[o]=rgb[k][0];d[o+1]=rgb[k][1];d[o+2]=rgb[k][2];d[o+3]=255;
-      }
-    }
+    forEachFireCell(len,wide,step,function(px,py,x,y,heat){
+      var k=fireBand(heat),o=(py*W+px)*4;
+      d[o]=rgb[k][0];d[o+1]=rgb[k][1];d[o+2]=rgb[k][2];d[o+3]=255;
+    });
     c.putImageData(img,0,0);
-    fireCache={key:key,canvas:cv,ox:-4,oy:-(half+1)};
+    fireCache={key:key,canvas:cv,ox:-4,oy:-(F.half+1)};
     return fireCache;
+  }
+  // The rising cut's flame counts as out, for hitting, once it is this opaque. Below it the flame is only
+  // fading in or out.
+  var FIRE_BITES_FROM=.35;
+  // How far out the lit cells reach, as a multiple of the edge tables: fireHeat keeps cells to a quarter
+  // past each table edge, and the torn edges swing either side of that.
+  var FIRE_REACH=1.25;
+  // How many slices across the flame make up its hit shape.
+  var FIRE_SLICES=16;
+  // The flame's lit cells as drawn at this moment of a stage: cell centres in feet-relative game pixels
+  // with the build stretch applied, facing right. For checking the hit shape against the picture.
+  function fireCells(stage,phase,build,reduced){
+    var q=pose(stage,phase),f=(stage===4||stage===5)?plume(q):null,out=[];
+    if(!f||f.alpha<FIRE_BITES_FROM)return out;
+    var len=Math.round(f.length),wide=Math.round(f.width),step=reduced?0:Math.floor(q.t*34)%8;
+    var bx=(build&&build.x)||1,by=(build&&build.y)||1,c=Math.cos(f.angle),s=Math.sin(f.angle);
+    forEachFireCell(len,wide,step,function(px,py,x,y){
+      var cx=x+.5,cy=y+.5;
+      out.push({x:(f.root.x+cx*c-cy*s)*bx,y:(f.root.y+cx*s+cy*c)*by});
+    });
+    return out;
+  }
+  // The flame's outline as hit segments: slices across it from the leading edge to the trailing edge, both
+  // edges joined up, and the axis, all read off the same edge tables the bake draws from. Feet-relative
+  // game pixels with the build stretch applied, facing right, like segment(). The torn edges, holes and
+  // drips are left out: they re-form every few frames, and a hit shape that flickered with them would miss
+  // things the flame plainly covers. reach overrides FIRE_REACH, for measuring.
+  function fireSlices(stage,phase,build,reach){
+    var q=pose(stage,phase),f=(stage===4||stage===5)?plume(q):null,out=[];
+    if(!f||f.alpha<FIRE_BITES_FROM)return out;
+    var r=reach===undefined?FIRE_REACH:reach,len=Math.round(f.length),w=Math.round(f.width)*.5*r;
+    var bx=(build&&build.x)||1,by=(build&&build.y)||1,c=Math.cos(f.angle),s=Math.sin(f.angle);
+    function at(x,y){return{x:(f.root.x+x*c-y*s)*bx,y:(f.root.y+x*s+y*c)*by};}
+    function lead(u){return at(u*len,-w*fireSide(u,-1));}
+    function trail(u){return at(u*len,w*fireSide(u,1));}
+    out.push({a:at(0,0),b:at(len,0)});
+    for(var k=0;k<=FIRE_SLICES;k++){
+      var u=k/FIRE_SLICES;
+      out.push({a:lead(u),b:trail(u)});
+      if(k<FIRE_SLICES){var v=(k+1)/FIRE_SLICES;out.push({a:lead(u),b:lead(v)});out.push({a:trail(u),b:trail(v)});}
+    }
+    return out;
   }
   function drawPlume(ctx,p,reduced){
     var f=plume(p);if(!f)return;
@@ -637,5 +693,6 @@
   g.AstraSaberRig={pose:pose,blade:blade,draw:draw,segment:segment,sweep:sweep,
     fire:FIRE,fireHash:fireHash,fireHalf:fireHalf,fireSide:fireSide,fireNoise:fireNoise,
     fireHeat:fireHeat,fireBand:fireBand,fireTune:FIRE_HEAT,thrust:thrustFx,
+    plume:plume,fireCells:fireCells,fireSlices:fireSlices,
     get turnReady(){return turnReady}};
 })(typeof window!=='undefined'?window:globalThis);

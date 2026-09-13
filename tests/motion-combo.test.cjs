@@ -220,16 +220,15 @@ test('the rising cut takes down something no swing in place can reach',()=>{
 
 test('finisher damage config is four separate cuts worth 2.5 normal swings',()=>{
   const c=ctx.AstraCombat;
-  // three chained swings, then the rising cut, whose flame bites four times on the way up
-  assert.deepEqual(c.saberHitTimes.map(t=>t.length),[1,1,4,4]);
-  assert.ok(c.saberHitTimes[3].every((x,i,a)=>i===0||x>a[i-1]),'the flame bites in order');
-  assert.ok(c.saberHitTimes[3][3]<c.rising.span,'and every bite lands inside the rise');
+  // three chained swings on a clock; the rising cut bites on contact instead, four times at most
+  assert.deepEqual(c.saberHitTimes.map(t=>t.length),[1,1,4]);
   assert.ok(c.saberHitTimes[2].every((t,i,a)=>i===0||t>a[i-1]),'finisher cut times increase');
   assert.ok(c.saberHitTimes[2][c.saberHitTimes[2].length-1]<c.saberDuration,'every cut lands inside the swing');
   const total=n=>c.saberHitTimes[n].length*c.saberPower*c.saberComboPower[n];
   assert.equal(total(0),4.5);assert.equal(total(1),4.5);assert.equal(total(2),11.25);
   assert.equal(total(2)/total(0),2.5);
-  assert.equal(total(3),6.75,'the rising cut is worth one and a half swings');
+  assert.equal(c.rising.bites*c.saberPower*c.saberComboPower[3],11.25,'the rising cut deals what it always has in play');
+  assert.ok(c.rising.bites*c.rising.biteEvery<c.rising.span,'and all four bites fit inside the rise');
 });
 test('the finisher applies each cut to the boss as well',()=>{
   const g=game();quiet(g);const p=g.state.player;const b=bossAt(g,30,0,100);
@@ -603,4 +602,74 @@ test('charged thrust: starts and ends on the standing pose',()=>{
   const r=ctx.AstraSaberRig,s=r.pose(1,0);
   for(const q of [r.pose(6,0),r.pose(6,1)])
     assert.deepEqual([q.hip.x,q.hip.y,q.hand.x,q.hand.y],[s.hip.x,s.hip.y,s.hand.x,s.hand.y]);
+});
+
+// The rising cut's flame bites with the outline it draws, when it draws it.
+function flameWorld(p){
+  const C=ctx.AstraCombat,R=ctx.AstraSaberRig,build=ctx.AstraRunRig.build;
+  if(p.saberCombo!==4||!(p.saberTime>0))return [];
+  const ox=p.x+p.w/2,oy=p.y+p.h,f=p.saberFacing;
+  return R.fireCells(4,C.saberPhase(p),build).map(c=>({x:ox+f*c.x,y:oy+c.y}));
+}
+function risingAt(g){const p=g.state.player;p.x=clearFloor(g);p.y=270;p.vx=0;p.vy=0;p.facing=1;p.onGround=true;return p;}
+for(const [name,dx,dy,w,h] of [['in front, low',18,-34,30,34],['in front, head high',24,-84,28,24],['up the flame',30,-130,28,24]]){
+  test(`the rising cut bites the moment its flame reaches a target: ${name}`,()=>{
+    const g=game();quiet(g);const p=risingAt(g),x0=p.x+p.w/2,y0=p.y+p.h;
+    const e={id:5,type:'drone',x:x0+dx,y:y0+dy,w,h,hp:100,maxHp:100,facing:-1,flash:0,dead:false};
+    g.state.enemies=[e];
+    g.setInput('up',true);press(g);g.setInput('up',false);
+    let touched=-1,bitten=-1;
+    for(let i=0;i<=70;i++){
+      if(i>0)tick(g);
+      if(touched<0&&flameWorld(p).some(c=>c.x>=e.x&&c.x<=e.x+e.w&&c.y>=e.y&&c.y<=e.y+e.h))touched=i;
+      if(bitten<0&&e.hp<100)bitten=i;
+    }
+    assert.ok(touched>=0,'the flame is drawn over it');
+    assert.ok(bitten>=0&&Math.abs(bitten-touched)<=1,`drawn over it on frame ${touched}, bitten on frame ${bitten}`);
+  });
+}
+test('a target that stays in the flame is bitten four times, a bite apart, from the first moment',()=>{
+  const g=game();quiet(g);const p=risingAt(g),C=ctx.AstraCombat,x0=p.x+p.w/2,y0=p.y+p.h;
+  const e={id:6,type:'drone',x:x0-70,y:y0-230,w:180,h:230,hp:100,maxHp:100,facing:-1,flash:0,dead:false};
+  g.state.enemies=[e];
+  g.setInput('up',true);press(g);g.setInput('up',false);
+  const at=[];let last=100;
+  for(let i=1;i<=80;i++){tick(g);if(e.hp!==last){at.push(i/60);last=e.hp;}}
+  assert.equal(at.length,C.rising.bites,`bites at ${at.map(x=>x.toFixed(2)).join(', ')}`);
+  assert.ok(Math.abs((100-e.hp)-C.rising.bites*C.saberPower*C.saberComboPower[3])<1e-9);
+  assert.ok(at[0]<=.1,`the first bite lands as the flame comes out, at ${at[0].toFixed(2)}s`);
+  for(let k=1;k<at.length;k++)assert.ok(at[k]-at[k-1]>=C.rising.biteEvery-1e-9,`bites ${at.join(', ')}`);
+});
+test('the rising cut leaves alone what its flame is not drawn over',()=>{
+  const g=game();quiet(g);const p=risingAt(g),x0=p.x+p.w/2,y0=p.y+p.h;
+  // well behind and below where any of the flame goes, but inside the old sixteen-pixel band's sweep
+  const e={id:8,type:'drone',x:x0-95,y:y0-150,w:24,h:24,hp:100,maxHp:100,facing:-1,flash:0,dead:false};
+  g.state.enemies=[e];
+  g.setInput('up',true);press(g);g.setInput('up',false);
+  let touched=false;
+  for(let i=1;i<=70;i++){tick(g);if(flameWorld(p).some(c=>c.x>=e.x-3&&c.x<=e.x+e.w+3&&c.y>=e.y-3&&c.y<=e.y+e.h+3))touched=true;}
+  assert.equal(touched,false,'the flame never comes near it');
+  assert.equal(e.hp,100,'so it is not bitten');
+});
+test('the rising cut hit shape is the flame it draws: nearly all of it, and little else',()=>{
+  // Measured through the body of the rise. The old hit - the blade's sweep padded sixteen pixels - covered
+  // the flame too, but a third to a half of it was empty air, and it bit a third of a second late.
+  const C=ctx.AstraCombat,R=ctx.AstraSaberRig,build=ctx.AstraRunRig.build,pad=C.risingFirePad;
+  for(const t of [.12,.2,.3,.45,.6,.75,.85]){
+    const lit=R.fireCells(4,t,build);assert.ok(lit.length>1000,`the flame is out at ${t}`);
+    const segs=R.fireSlices(4,t,build).map(s=>({ax:s.a.x,ay:s.a.y,bx:s.b.x,by:s.b.y}));
+    const covered=lit.filter(c=>C.bladeTouches(segs,{x:c.x-.5,y:c.y-.5,w:1,h:1},pad)).length/lit.length;
+    const keys=new Set(lit.map(c=>Math.round(c.x)+','+Math.round(c.y)));
+    const xs=segs.flatMap(s=>[s.ax,s.bx]),ys=segs.flatMap(s=>[s.ay,s.by]);
+    let inside=0,stray=0;
+    for(let x=Math.floor(Math.min(...xs)-pad-1);x<=Math.ceil(Math.max(...xs)+pad+1);x++)
+      for(let y=Math.floor(Math.min(...ys)-pad-1);y<=Math.ceil(Math.max(...ys)+pad+1);y++){
+        if(!C.bladeTouches(segs,{x,y,w:0,h:0},pad))continue;inside++;
+        let near=false;
+        for(let dx=-1;dx<=1&&!near;dx++)for(let dy=-1;dy<=1&&!near;dy++)if(keys.has((x+dx)+','+(y+dy)))near=true;
+        if(!near)stray++;
+      }
+    assert.ok(covered>=.98,`at ${t} the hit shape covers ${(covered*100).toFixed(1)}% of the drawn flame`);
+    assert.ok(stray/inside<=.15,`at ${t} ${(stray/inside*100).toFixed(1)}% of the hit shape is not flame`);
+  }
 });
