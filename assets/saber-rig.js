@@ -220,29 +220,46 @@
   // fire is generated in the same medium: a pixel field, thresholded and quantised, blitted
   // with smoothing off.
   //
-  // Its half width along the axis, base to tip: three eighths of full width where it leaves
-  // the hand, three quarters by a third of the way along, flat from there, closing at the tip.
-  var FIRE_W=[[0,.34],[.10,.52],[.24,.74],[.38,.86],[.52,.88],[.68,.84],[.82,.74],[.93,.56],[1,.06]];
-  function fireHalf(u){
-    for(var i=0;i<FIRE_W.length-1;i++){
-      var a=FIRE_W[i],b=FIRE_W[i+1];
+  // Its outline is lopsided, and it took three tries to measure it cleanly. Warm-pixel masks counted
+  // the reference hero's red armour and gold hair as fire - they share nothing with the fire's own
+  // palette but are just as warm - which moved both the shape and the colour far enough to fit this to
+  // the wrong target, including a bulge on the trailing edge a third of the way along that the
+  // reference does not have. Measured on the fire's own colours along its own axis: the trailing edge
+  // is at its widest right at the hand, where dark red fire hangs below it, and tapers from there;
+  // the leading edge starts narrow, is near full width within a fifth of the length, and eases off
+  // toward a rounded tip. One symmetric profile drew a smooth leaf.
+  // Half widths from the axis, base to tip.
+  var FIRE_UP=[[0,.27],[.05,.31],[.15,.91],[.25,.94],[.35,.82],[.45,.84],[.55,.73],[.65,.65],[.75,.63],[.85,.61],[.95,.44],[.985,.36],[1,.10]];
+  var FIRE_DN=[[0,.53],[.05,.61],[.15,1.00],[.25,.60],[.35,.84],[.45,.68],[.55,.70],[.65,.64],[.75,.71],[.85,.74],[.95,.76],[.985,.60],[1,.20]];
+  function fireLerp(tab,u){
+    for(var i=0;i<tab.length-1;i++){
+      var a=tab[i],b=tab[i+1];
       if(u<=b[0])return a[1]+(b[1]-a[1])*((u-a[0])/(b[0]-a[0]||1));
     }
-    return FIRE_W[FIRE_W.length-1][1];
+    return tab[tab.length-1][1];
   }
-  // The GIF's own nine warm values, coolest first, with nothing between them. s is the
-  // temperature at which each one takes over, chosen so the areas land on the measured colour
-  // share: sixty eight per cent white and yellow, three per cent red.
+  // One side's half width: a negative side is the leading edge, a positive one the trailing.
+  function fireSide(u,side){return fireLerp(side<0?FIRE_UP:FIRE_DN,u);}
+  // The mean of the two sides, which is what sizes the field.
+  function fireHalf(u){return .5*(fireLerp(FIRE_UP,u)+fireLerp(FIRE_DN,u));}
+  // The fire's own nine colours, coolest first, with nothing between them. An earlier ladder was
+  // read off every warm pixel in the GIF, and so took three of the hero's colours for fire: his
+  // white armour #f0f0f0, his gold hair #e8c838 and his red armour #f01000. The fire uses none of
+  // them. Its real hottest value is a lavender white, #f8f0f8, and that is the most common colour
+  // in the whole plume - a quarter of it. Read this time as the colours that turn up in the rising
+  // frames but never on the hero standing still.
+  // s is the temperature at which each one takes over, set at the quantiles of the fitted heat so each
+  // colour covers its measured share of the plume.
   var FIRE=[
-    {c:'#981810',s:.00},
-    {c:'#c81810',s:.10},
-    {c:'#f01000',s:.16},
-    {c:'#f05818',s:.24},
-    {c:'#f88818',s:.38},
-    {c:'#e8c838',s:.54},
-    {c:'#f8d828',s:.68},
-    {c:'#f8f8b8',s:.82},
-    {c:'#f0f0f0',s:.94}
+    {c:'#981810',s:0},
+    {c:'#c81810',s:.097},
+    {c:'#e82810',s:.385},
+    {c:'#f05818',s:.637},
+    {c:'#f88818',s:.932},
+    {c:'#f8d828',s:1.382},
+    {c:'#f8f040',s:1.7},
+    {c:'#f8f8b8',s:1.828},
+    {c:'#f8f0f8',s:2.178}
   ];
   // Deterministic, so the field holds still for as long as the churn step lasts. Random per
   // draw call would strobe at sixty frames a second.
@@ -256,26 +273,62 @@
         c=fireHash(ix*1.7+(iy+1)*97.3,step),d=fireHash((ix+1)*1.7+(iy+1)*97.3,step);
     return (a+(b-a)*fx)*(1-fy)+(c+(d-c)*fx)*fy;
   }
+  // Every number that shapes the fire's temperature, in one place, so it can be fitted against the
+  // reference without touching the code that draws it.
+  //   base, gain, reach, curve  along the axis: base + gain * min(1, u*reach)^curve
+  //   lead, edge                hotter toward the leading edge, cooler out at either edge
+  //   rim, rimPow               how the outermost sliver cools
+  //   grain                     how far the noise swings the heat either way
+  //   cut                       the floor: anything colder is drawn in the coldest red
+  // Fitted, not tuned by eye: a small search drove these against the reference's colour placement in
+  // each fifth of its length and on each side of its far half, holding every fifth's lit area within
+  // a tenth of what it was so the outline did not shift underneath. The old curve rose from .52 at the
+  // hand to .94 at the tip, far too gently, and the fire came out yellow at the hand where the
+  // reference is two thirds red and dark red. It now starts cold and climbs steeply.
+  var FIRE_HEAT={base:.222,gain:2.007,reach:3.158,curve:1.878,lead:.701,edge:.044,rim:.34,rimPow:5,grain:.436,cut:.095};
   // How hot one cell of the fire is, or -1 where there is no fire at all. Pulled out of the
   // bake so the colour share it produces can be counted without a canvas.
   //   px,y  cell position in the plume's frame, y negative toward the leading edge
   //   u     how far along the axis, 0 at the hand
   //   hw    the fire's half width at that u
-  function fireHeat(px,y,u,hw,step){
+  // The full plume's length, which a flame's size is measured against.
+  var FIRE_FULL=85;
+  //   size  how big this flame is against the full plume, 1 when omitted. A short flame gets less of
+  //         the heat ramp, so it stays yellow and orange instead of cramming the whole ramp into a few
+  //         pixels and coming out white.
+  function fireHeat(px,y,u,hw,step,size){
     if(hw<.6)return -1;
-    var v=y/hw;
+    // Each side is measured against its own edge, so the leading side billows and the trailing
+    // side tears. hw is the mean half width, so this rescales it to the side the cell is on.
+    var uc=Math.max(0,Math.min(1,u)),mean=Math.max(.05,fireHalf(uc)),
+        side=hw*fireSide(uc,y)/mean;
+    // Both edges tear, the trailing one far harder. Measured at fine resolution against the
+    // reference, at 1.10 the lower tongues stood half as tall again as its tongues - spiky rather
+    // than ragged - while the upper edge, with no tear of its own at all, was two and a half times
+    // too smooth: a ruled line where the reference has small broken bumps.
+    if(y>0)side*=1+.85*(fireNoise(px*.9+300,uc*40,step+13,4.5)-.5);
+    else side*=1+.34*(fireNoise(px*1.3+700,uc*40,step+29,3.2)-.5);
+    if(side<.6)return -1;
+    var v=y/side;
     if(v<-1.25||v>1.25)return -1;
+    var H=FIRE_HEAT;
     // hot toward the tip and the leading edge, cold at the root and the trailing edge
-    var heat=.52+.54*Math.min(1,Math.max(0,u*1.30))-.30*v-.10*Math.abs(v);
+    var heat=H.base+H.gain*(size===undefined?1:size)*Math.pow(Math.min(1,Math.max(0,uc*H.reach)),H.curve)-H.lead*v-H.edge*Math.abs(v);
     // only the outermost sliver is cooled, so the red reads as an outline and not a band
-    heat*=1-.34*Math.pow(Math.min(1.25,Math.abs(v)),5);
+    heat*=1-H.rim*Math.pow(Math.min(1.25,Math.abs(v)),H.rimPow);
     // two octaves: big blotches, then a fine grain that tears the edge
     var n=.62*fireNoise(px,y,step,6.5)+.38*fireNoise(px*1.7+40,y*1.7,step+31,2.6);
-    heat=heat*(.74+.52*n);
-    if(heat<=.055)return -1;                        // the cold cells are simply absent
+    heat=heat*(1-H.grain+2*H.grain*n);
+    // Too cold to glow is not the same as no fire. Cutting these cells away let the heat decide the
+    // outline as well as the colour, so every colour fit moved the silhouette, and the dark red that
+    // hangs below the reference's hand could never be drawn: that side runs coldest and was removed.
+    // The outline now comes from the edge tables and their tears alone.
+    if(heat<=H.cut)heat=H.cut;
     // a few holes punched clean through. At game size too many of these read as speckle
     // against the factory rather than as fire, so the cut sits low.
-    if(fireNoise(px*2.6+11,y*2.6,step+77,3.2)<.105)return -1;
+    // They stay out of the cream and lavender cells: peppered through the palest part they show the
+    // factory behind and read as dirt at game size, and the reference's holes sit in its cooler body.
+    if(heat<FIRE[7].s&&fireNoise(px*2.6+11,y*2.6,step+77,3.2)<.16)return -1;
     return heat;
   }
   // Which of the nine values a heat lands on.
@@ -289,7 +342,8 @@
   function bakeFire(len,wide,step,reduced){
     var key=len+'x'+wide+'@'+step+(reduced?'r':'');
     if(fireCache.key===key)return fireCache;
-    var half=Math.ceil(wide*.5*.92)+7,W=Math.ceil(len)+12,H=half*2+2;
+    var size=Math.sqrt(Math.max(.3,Math.min(1,len/FIRE_FULL)));
+    var half=Math.ceil(wide*.5*2.60)+7,W=Math.ceil(len)+12,H=half*2+2;
     var cv=(typeof document!=='undefined')?document.createElement('canvas'):null;
     if(!cv)return null;
     cv.width=W;cv.height=H;
@@ -302,7 +356,7 @@
       var hw=wide*.5*fireHalf(Math.max(0,Math.min(1,u)));
       if(hw<.6)continue;
       for(var py=0;py<H;py++){
-        var y=py-half-1,heat=fireHeat(px,y,u,hw,step);
+        var y=py-half-1,heat=fireHeat(px,y,u,hw,step,size);
         if(heat<0)continue;
         var k=fireBand(heat),o=(py*W+px)*4;
         d[o]=rgb[k][0];d[o+1]=rgb[k][1];d[o+2]=rgb[k][2];d[o+3]=255;
@@ -321,13 +375,18 @@
     ctx.globalAlpha=Math.min(1,ctx.globalAlpha*f.alpha);
     ctx.imageSmoothingEnabled=false;
     ctx.drawImage(baked.canvas,baked.ox,baked.oy);
-    // embers that have left the fire altogether
+    // Loose drips and embers. The reference sheds about twelve per frame, most of them off its
+    // trailing edge; seven scattered evenly on both sides read as sparks, not as fire falling apart.
     if(!reduced){
-      ctx.fillStyle='#f88818';
-      for(var e=0;e<7;e++){
-        var e1=fireHash(e*13.1,churn),e2=fireHash(e*17.7+80,churn),k2=1+Math.round(2*e2);
-        ctx.fillRect(Math.round(f.length*(.34+.72*e1)),
-                     Math.round(f.width*(.30+.62*e2)*(e%2?1:-.55)),k2,k2);
+      var DRIP=['#c81810','#e82810','#f05818','#f88818'];
+      for(var e=0;e<12;e++){
+        var e1=fireHash(e*13.1,churn),e2=fireHash(e*17.7+80,churn),e3=fireHash(e*5.3+160,churn);
+        var trailing=e%4!==3,uu=.18+.74*e1,
+            edge=f.width*.5*fireSide(uu,trailing?1:-1);
+        ctx.fillStyle=DRIP[Math.floor(e3*DRIP.length)];
+        ctx.fillRect(Math.round(f.length*uu),
+                     Math.round(trailing?edge*(1.05+.55*e2):-edge*(1.05+.35*e2)),
+                     1+Math.round(e3),1+Math.round(2*e2));
       }
     }
     ctx.restore();
@@ -449,7 +508,7 @@
     return out;
   }
   g.AstraSaberRig={pose:pose,blade:blade,draw:draw,segment:segment,sweep:sweep,
-    fire:FIRE,fireHash:fireHash,fireHalf:fireHalf,fireNoise:fireNoise,
-    fireHeat:fireHeat,fireBand:fireBand,
+    fire:FIRE,fireHash:fireHash,fireHalf:fireHalf,fireSide:fireSide,fireNoise:fireNoise,
+    fireHeat:fireHeat,fireBand:fireBand,fireTune:FIRE_HEAT,
     get turnReady(){return turnReady}};
 })(typeof window!=='undefined'?window:globalThis);

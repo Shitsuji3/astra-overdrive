@@ -370,11 +370,13 @@ test('the rig carries five stages and the fifth resolves',()=>{
 // ways at once: the reference's fire covers only a fifth to a third of its own bounding box,
 // its temperature runs diagonally rather than in rings, and it re-forms on an eight frame
 // loop. Those three are what these hold.
-test('the plume runs the reference GIF own nine warm values, coolest to hottest',()=>{
+test('the plume runs the nine colours of the fire itself, coolest to hottest',()=>{
   const fire=ctx.AstraSaberRig.fire;
-  // straight off the GIF's colour index: nine warm values with no gradient between them
-  assert.deepEqual(fire.map(b=>b.c),
-    ['#981810','#c81810','#f01000','#f05818','#f88818','#e8c838','#f8d828','#f8f8b8','#f0f0f0']);
+  // The colours that turn up in the reference's rising frames but never on the hero standing
+  // still. An earlier list took three of the hero's for fire - his white armour #f0f0f0, gold hair
+  // #e8c838 and red armour #f01000 - and missed the fire's real hottest value, a lavender white.
+  assert.deepEqual(Array.from(fire.map(b=>b.c)),
+    ['#981810','#c81810','#e82810','#f05818','#f88818','#f8d828','#f8f040','#f8f8b8','#f8f0f8']);
   const lum=c=>{const n=parseInt(c.slice(1),16);return ((n>>16)&255)+((n>>8)&255)*2+(n&255);};
   for(let i=1;i<fire.length;i++){
     assert.ok(lum(fire[i].c)>lum(fire[i-1].c),`layer ${i} is hotter than ${i-1}`);
@@ -382,33 +384,40 @@ test('the plume runs the reference GIF own nine warm values, coolest to hottest'
   }
   assert.equal(fire[0].s,0,'the coolest value is the floor');
 });
-test('the fire is white hot with a red edge, not a red fire',()=>{
-  // Measured off the GIF: 31% white and cream, 37% yellow and gold, 3% red. An early version
-  // came out 9% white and 28% red - a red fire with a spark in it - because the red layers were
-  // drawn full size underneath and showed through every gap above them.
-  // Colour is chosen per cell from temperature now, so the share can simply be counted.
-  const rig=ctx.AstraSaberRig,fire=rig.fire;
-  const count=new Array(fire.length).fill(0);
-  let live=0;
+test('the fire leaves the hand dark red and is white by the tip, in the reference proportions',()=>{
+  // Measured on the fire's own colours only, the ones the hero never wears. Across the whole plume
+  // the reference is 40% white, 17% yellow, 23% orange, 12% red and 8% dark red; its first fifth
+  // is two thirds red and dark red, and its far half is mostly white. An earlier ladder took the
+  // hero's armour and hair for fire, read the reference as mostly white and yellow, and the fire
+  // built to that came out yellow at the hand with no dark red in it at all.
+  const rig=ctx.AstraSaberRig;
+  // the nine colours sort into five bands, coldest first: dark red, red, orange, yellow, white
+  const bandOf=[0,1,1,2,2,3,3,4,4];
+  const whole=[0,0,0,0,0],root=[0,0,0,0,0],tip=[0,0,0,0,0];
+  let live=0,nRoot=0,nTip=0;
   const L=72,HW=18;
   for(let step=0;step<8;step++)
     for(let px=0;px<L;px++){
       const u=px/L,hw=HW*rig.fireHalf(u);
-      for(let y=-HW;y<=HW;y++){
+      for(let y=-2*HW;y<=2*HW;y++){
         const h=rig.fireHeat(px,y,u,hw,step);
         if(h<0)continue;
-        count[rig.fireBand(h)]++;live++;
+        const b=bandOf[rig.fireBand(h)];
+        whole[b]++;live++;
+        if(u<.2){root[b]++;nRoot++;}
+        if(u>=.6){tip[b]++;nTip++;}
       }
     }
   assert.ok(live>4000,`enough of the field is alight to judge: ${live}`);
-  const share=c=>count[fire.findIndex(b=>b.c===c)]/live;
-  const red=share('#981810')+share('#c81810')+share('#f01000');
-  const white=share('#f0f0f0')+share('#f8f8b8');
-  const yellow=share('#f8d828')+share('#e8c838');
-  assert.ok(red<.16,`a red edge, not a red fire: ${(red*100).toFixed(1)}%`);
-  assert.ok(white>.14,`white and cream toward the reference's 31%: ${(white*100).toFixed(1)}%`);
-  assert.ok(yellow>.25,`yellow and gold toward the reference's 37%: ${(yellow*100).toFixed(1)}%`);
-  assert.ok(white+yellow>.55,`white hot overall, like the reference's 68%: ${((white+yellow)*100).toFixed(1)}%`);
+  const pc=(arr,n,b)=>100*arr[b]/n;
+  const dark=pc(whole,live,0),red=pc(whole,live,1),yellow=pc(whole,live,3),white=pc(whole,live,4);
+  assert.ok(white>30&&white<52,`white near the reference's 40%: ${white.toFixed(1)}%`);
+  assert.ok(yellow<28,`yellow nowhere near dominant, against the reference's 17%: ${yellow.toFixed(1)}%`);
+  assert.ok(red+dark>12&&red+dark<34,`red and dark red near the reference's 20%: ${(red+dark).toFixed(1)}%`);
+  assert.ok(dark>2,`dark red is actually reachable: ${dark.toFixed(1)}%`);
+  const rootRed=pc(root,nRoot,0)+pc(root,nRoot,1);
+  assert.ok(rootRed>35,`the first fifth is mostly red, like the reference's two thirds: ${rootRed.toFixed(1)}%`);
+  assert.ok(pc(tip,nTip,4)>42,`and the far part is mostly white: ${pc(tip,nTip,4).toFixed(1)}%`);
 });
 test('the fire has holes clean through it, which a filled shape cannot',()=>{
   const rig=ctx.AstraSaberRig;
@@ -435,10 +444,13 @@ test('the plume is a broad band with no neck',()=>{
   // Read off the reference: three eighths of full width where the fire leaves the hand, three
   // quarters by a third of the way along, and flat from there. Earlier versions made a cone
   // and then a comet with a narrow throat, and both read as the wrong thing entirely.
-  assert.ok(rig.fireHalf(.02)>.28&&rig.fireHalf(.02)<.46,`wide at the hand: ${rig.fireHalf(.02).toFixed(2)}`);
-  assert.ok(rig.fireHalf(.33)>.66,`three quarters by a third along: ${rig.fireHalf(.33).toFixed(2)}`);
-  assert.ok(rig.fireHalf(.70)>.74,`and still wide past the middle: ${rig.fireHalf(.70).toFixed(2)}`);
-  assert.ok(rig.fireHalf(1)<.20,'closing at the tip');
+  // Relative to the widest point, so the check survives the edge tables being refitted in scale.
+  const peak=Math.max(...Array.from({length:101},(_,i)=>rig.fireHalf(i/100)));
+  const rel=u=>rig.fireHalf(u)/peak;
+  assert.ok(rel(.02)>.25&&rel(.02)<.50,`already wide at the hand: ${rel(.02).toFixed(2)} of the peak`);
+  assert.ok(rel(.33)>.70,`most of its width a third along: ${rel(.33).toFixed(2)} of the peak`);
+  assert.ok(rel(.70)>.68,`and still wide past the middle: ${rel(.70).toFixed(2)} of the peak`);
+  assert.ok(rel(1)<.20,'closing at the tip');
 });
 test('the fire is a pixel field with holes in it, not a stack of outlines',()=>{
   const rig=ctx.AstraSaberRig;
@@ -479,4 +491,37 @@ test('the plume is a jet, longer than it is wide, and lies well off vertical',()
     const off=Math.abs(Math.atan2(b.tip.x-b.root.x,b.root.y-b.tip.y))*180/Math.PI;
     assert.ok(off>28&&off<58,`and lies off vertical at ${t}: ${off.toFixed(0)} degrees`);
   }
+});
+
+test('the outline is lopsided: the leading edge billows, the trailing edge tears',()=>{
+  const rig=ctx.AstraSaberRig;
+  // Measured on the fire's own colours, which the hero never wears. The reference's trailing edge is
+  // at its widest right at the hand, where dark red fire hangs below it, and tapers from there; its
+  // leading edge starts narrow, is near full width within a fifth of the length, and eases off toward
+  // the tip. An earlier reading counted the hero's red armour and gold hair as fire and put a bulge on
+  // the trailing edge a third of the way along that the reference does not have.
+  // Near the hand the trailing table is also the larger for a second reason: that side runs cooler
+  // and loses more cells to the cut, so it needs more table to draw the same edge.
+  assert.ok(rig.fireSide(.05,1)>rig.fireSide(.05,-1),'wider on the trailing side at the hand');
+  assert.ok(rig.fireSide(.15,1)>rig.fireSide(.15,-1),'and still a fifth of the way along');
+  assert.ok(rig.fireSide(.15,-1)>rig.fireSide(.05,-1)*1.6,'the leading edge widens fast off the hand');
+  assert.ok(rig.fireSide(.55,-1)>rig.fireSide(.05,-1)*1.8,'and is well past its starting width by the middle');
+  const peakOf=side=>Math.max(...Array.from({length:21},(_,i)=>rig.fireSide(i/20,side)));
+  assert.ok(rig.fireSide(.95,-1)<peakOf(-1)*.6,'the leading edge eases off toward the tip');
+  assert.ok(rig.fireSide(.95,1)<peakOf(1)*.8,'and so does the trailing one');
+  // The trailing edge is the ragged one in the drawn field: its tear is two and a half times the
+  // leading edge's, which is what the reference's measured edge roughness asks for.
+  const L=72,HW=18;let rTop=0,rBot=0;
+  for(let step=0;step<8;step++){
+    let pTop=null,pBot=null;
+    for(let px=10;px<L-6;px++){
+      const u=px/L,hw=HW*rig.fireHalf(u);
+      let top=0,bot=0;
+      for(let y=-40;y<0;y++)if(rig.fireHeat(px,y,u,hw,step)>=0){top=-y;break;}
+      for(let y=40;y>0;y--)if(rig.fireHeat(px,y,u,hw,step)>=0){bot=y;break;}
+      if(pTop!==null){rTop+=Math.abs(top-pTop);rBot+=Math.abs(bot-pBot);}
+      pTop=top;pBot=bot;
+    }
+  }
+  assert.ok(rBot>rTop,`the trailing edge is ragged in the field: ${rBot} against ${rTop}`);
 });
