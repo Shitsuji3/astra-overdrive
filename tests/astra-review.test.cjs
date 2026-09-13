@@ -124,3 +124,16 @@ test('buster release, actual pit death, retry and second start remain functional
   g.toTitle(); frame(20); g.start(); frame(40); frame(60);
   assert.ok(g.state.time > 0);
 });
+
+test('gamepad Start leaves a paused game alone while a menu owns the pad', () => {
+  const { g, frame, pad } = harness(); g.start();
+  const buttons = Array.from({ length: 16 }, () => ({ pressed: false, value: 0 }));
+  pad.current = [{ axes: [0, 0], buttons }];
+  buttons[9].pressed = true; frame(20); assert.equal(g.state.mode, 'paused');
+  buttons[9].pressed = false; frame(40);
+  g.menuOwnsPad = true;
+  buttons[9].pressed = true; frame(60); assert.equal(g.state.mode, 'paused', 'an open menu keeps Start');
+  buttons[9].pressed = false; frame(80);
+  g.menuOwnsPad = false;
+  buttons[9].pressed = true; frame(100); assert.equal(g.state.mode, 'playing', 'and gives it back when it closes');
+});

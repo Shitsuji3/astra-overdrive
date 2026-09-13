@@ -102,3 +102,6 @@
 .select-board{grid-template-columns:repeat(3,1fr)}
 .node-name{font-size:9px}
 }
+/* The gamepad's cursor on panel buttons and settings, which have no active state of their own. */
+#overlay-actions button.pad-focus,#modal .pad-focus{outline:2px solid var(--cyan);outline-offset:3px;box-shadow:0 0 0 6px #5ee7f033}
+.settings-row:has(.pad-focus){background:#5ee7f014}
