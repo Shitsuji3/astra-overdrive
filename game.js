@@ -23,7 +23,7 @@
   // hold is the ride down, which is a pose and not an attack: the sheet keeps a short blade
   // overhead from the moment the plume tears off until the feet touch the floor.
   combat.rising = { span: .78, crouch: .08, lift: 354, gravity: 680, drift: 34, apex: 92,
-                    hold: .46, bites: 4, biteEvery: .13 };
+                    hold: .46, bites: 4, biteEvery: .065 };
   // The flame bites whatever it is drawn over, the moment it is drawn over it, then again every biteEvery
   // seconds while the target stays in the flame, bites times at most. Its hit shape is the flame's own
   // outline (combat.risingFire), so what it reaches is what is on screen.

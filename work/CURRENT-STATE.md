@@ -837,3 +837,11 @@ span .78、hold .46、ページエラー0。`tests/browser-smoke.cjs` 合格、�
 公開URLに対して `tests/browser-gamepad.cjs`（偽パッド）34項目、`tests/browser-smoke.cjs` 17項目、
 `tests/browser-mouse.cjs` 11項目に合格、ブラウザエラー0。
 公開したコードは保存版 `dist/history/ASTRA-OVERDRIVE-gamepad-menu-20260913-195514.zip` と同じ。
+
+最新変更（2026-09-14）：**斬り上げの噛む間隔を半分にした**。
+- **変更：** `combat.rising.biteEvery` を0.13秒から0.065秒にした（8フレーム間隔が4フレーム間隔になる）。
+- **変えていないもの：** 最大4回、1回2.8125、計11.25。
+- **結果：** 炎に包まれ続ける敵には約0.2秒で4回入る。炎をかすめるだけの位置でも、以前の3回が4回になった。
+- **検証：** `npm test` 133件、ブラウザ起動テスト17項目、リリース用ビルドに合格。
+
+詳細は work/RISING-HIT-20260913.md の追記。

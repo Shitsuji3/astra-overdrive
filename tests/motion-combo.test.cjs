@@ -673,3 +673,17 @@ test('the rising cut hit shape is the flame it draws: nearly all of it, and litt
     assert.ok(stray/inside<=.15,`at ${t} ${(stray/inside*100).toFixed(1)}% of the hit shape is not flame`);
   }
 });
+test('the rising cut lands its four bites in quick succession, four frames apart',()=>{
+  // The user asked for half the old interval: .13s became .065s, which at sixty steps a second is four
+  // frames between bites instead of eight.
+  const g=game();quiet(g);const p=risingAt(g),C=ctx.AstraCombat,x0=p.x+p.w/2,y0=p.y+p.h;
+  assert.equal(C.rising.biteEvery,.065);
+  const e={id:9,type:'drone',x:x0-70,y:y0-230,w:180,h:230,hp:100,maxHp:100,facing:-1,flash:0,dead:false};
+  g.state.enemies=[e];
+  g.setInput('up',true);press(g);g.setInput('up',false);
+  const at=[];let last=100;
+  for(let i=1;i<=80;i++){tick(g);if(e.hp!==last){at.push(i);last=e.hp;}}
+  assert.equal(at.length,4,`bites on frames ${at.join(', ')}`);
+  for(let k=1;k<at.length;k++)assert.equal(at[k]-at[k-1],4,`bites on frames ${at.join(', ')}`);
+  assert.ok((at[3]-at[0])/60<=.21,'all four inside about a fifth of a second');
+});
