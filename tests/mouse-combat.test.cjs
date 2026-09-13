@@ -1,13 +1,15 @@
 const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 function make(){const ev={},frames=[];const s={console,performance:{now:()=>0},requestAnimationFrame:f=>{frames.push(f);return frames.length},cancelAnimationFrame:()=>{},addEventListener:(k,f)=>ev[k]=f,removeEventListener:()=>{},navigator:{getGamepads:()=>[]}};vm.createContext(s);for(const f of ['assets/bosses.js','assets/stages.js','assets/run-rig-v6.js','assets/saber-rig.js','game.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'..',f),'utf8'),s);const ce={addEventListener:(k,f)=>ev['c'+k]=f,removeEventListener:()=>{},getContext:()=>({})};const g=new s.NeonGame(ce,{});g.start();g.state.enemies=[];g.state.pickups=[];return {g,ev,ce,api:s.AstraCombat,arena:s.AstraCombat.arena,step:n=>{for(let i=0;i<n;i++)g._tick(1/60)}};}
-test('mouse buster fires and releases charged shot',()=>{const {g,ev}=make();g.state.player.x=100;ev.cmousedown({button:0});for(let i=0;i<50;i++)g._tick(1/60);ev.cmouseup({button:0});g._tick(1/60);assert.ok(g.state.bullets.some(b=>b.charged));});
-test('holding through full charge emits no bullets or firing sounds; release emits one charged shot',()=>{
- const {g,ev,step}=make(),sounds=[];g.onEvent=(type,p)=>{if(type==='sound')sounds.push(p.name)};
- ev.cmousedown({button:0});step(180);assert.equal(g.state.shots,0);assert.equal(g.state.bullets.length,0);assert.equal(g.state.player.charge,1);assert.deepEqual(sounds,[]);
- ev.cmouseup({button:0});step(1);assert.equal(g.state.shots,1);assert.equal(g.state.bullets[0].power,3);assert.equal(g.state.bullets[0].charged,true);assert.deepEqual(sounds,['charge']);step(30);assert.equal(g.state.shots,1);
+// The buster backs the saber up and no longer charges: every release is one plain shot.
+test('mouse buster fires one plain shot on release',()=>{const {g,ev}=make();g.state.player.x=100;ev.cmousedown({button:0});for(let i=0;i<50;i++)g._tick(1/60);ev.cmouseup({button:0});g._tick(1/60);assert.equal(g.state.shots,1);assert.equal(g.state.bullets.filter(b=>b.team==='player').length,1);assert.ok(g.state.bullets.every(b=>!b.charged));});
+test('holding the buster for three seconds fires and charges nothing; release fires one plain shot',()=>{
+ const {g,ev,step,api}=make(),sounds=[];g.onEvent=(type,p)=>{if(type==='sound')sounds.push(p.name)};
+ ev.cmousedown({button:0});step(180);assert.equal(g.state.shots,0);assert.equal(g.state.bullets.length,0);assert.ok(!(g.state.player.charge>0));assert.deepEqual(sounds,[]);
+ ev.cmouseup({button:0});step(1);assert.equal(g.state.shots,1);assert.equal(g.state.bullets[0].power,api.normalPower);assert.equal(g.state.bullets[0].charged,false);assert.deepEqual(sounds,['shot']);step(30);assert.equal(g.state.shots,1);
+ assert.equal(api.chargedPower,undefined,'there is no charged shot any more');
 });
-test('short and partially charged clicks each release one normal shot; sub-frame tap survives',()=>{
- for(const frames of [0,1,15,30]){const {g,ev,step}=make();ev.cmousedown({button:0});step(frames);assert.equal(g.state.shots,0);ev.cmouseup({button:0});step(2);assert.equal(g.state.shots,1);assert.equal(g.state.bullets[0].power,1);assert.equal(g.state.bullets[0].charged,false);step(20);assert.equal(g.state.shots,1);}
+test('short and long clicks each release one plain shot; sub-frame tap survives',()=>{
+ for(const frames of [0,1,15,30,120]){const {g,ev,step}=make();ev.cmousedown({button:0});step(frames);assert.equal(g.state.shots,0);ev.cmouseup({button:0});step(2);assert.equal(g.state.shots,1);assert.equal(g.state.bullets[0].power,1);assert.equal(g.state.bullets[0].charged,false);step(20);assert.equal(g.state.shots,1);}
 });
 test('mouse saber lands one cut of 4.5 when the blade swings out',()=>{
  const {g,ev,step,api,arena}=make();const p=g.state.player;p.x=arena.gate+30;p.y=270;p.facing=1;

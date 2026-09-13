@@ -92,15 +92,16 @@ test('neutral connected gamepad does not erase keyboard movement', () => {
   assert.ok(g.state.player.vx > 70, `keyboard vx=${g.state.player.vx}`);
 });
 
-test('gamepad movement and charge release when controls return to neutral', () => {
+test('gamepad movement and the buster release when controls return to neutral', () => {
   const { g, frame, pad } = harness(); g.start();
   const buttons = Array.from({ length: 16 }, () => ({ pressed: false }));
   pad.current = [{ axes: [1, 0], buttons }]; buttons[2].pressed = true;
   for (let i = 1; i <= 65; i++) frame(i * 20);
-  assert.ok(g.state.player.charge > .8);
+  // the buster backs the saber up and no longer charges: holding fires nothing
+  assert.equal(g.state.shots, 0, 'holding the buster fires nothing');
   pad.current[0].axes[0] = 0; buttons[2].pressed = false;
   for (let i = 66; i <= 100; i++) frame(i * 20);
-  assert.equal(g.state.player.charge, 0, 'charge must release with button');
+  assert.equal(g.state.shots, 1, 'letting go fires one shot');
   assert.ok(Math.abs(g.state.player.vx) < 5, 'movement must stop with stick');
 });
 
@@ -113,10 +114,10 @@ test('disconnecting a gamepad releases its movement input', () => {
   assert.ok(Math.abs(g.state.player.vx) < 5);
 });
 
-test('charged shot release, actual pit death, retry and second start remain functional', () => {
+test('buster release, actual pit death, retry and second start remain functional', () => {
   const { g, frame, clean, step, events } = harness(); clean();
   g.setInput('shoot', true); step(75); g.setInput('shoot', false); step(1);
-  assert.ok(g.state.bullets.some(b => b.charged));
+  assert.equal(g.state.shots, 1); assert.ok(g.state.bullets.length > 0 && g.state.bullets.every(b => !b.charged));
   Object.assign(g.state.player, { x: 800, y: 300, vy: 200, vx: 0 }); step(90);
   assert.equal(g.state.mode, 'dead'); assert.ok(events.some(e => e.type === 'death'));
   g.retry(); step(60); assert.equal(g.state.mode, 'playing');

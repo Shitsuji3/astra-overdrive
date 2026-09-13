@@ -47,30 +47,29 @@ const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE || 'playwright');
 
     await fresh(); await page.mouse.move(mx, my); await page.mouse.down();
     await page.waitForTimeout(1300);
-    check('left hold fills charge', await page.evaluate(() => game.state.player.charge >= .99));
-    check('charging emits no automatic normal shots', await page.evaluate(() => game.state.shots === 0 && game.state.bullets.length === 0));
+    check('left hold fires nothing and charges nothing', await page.evaluate(() => game.state.shots === 0 && game.state.bullets.length === 0 && !(game.state.player.charge > 0)));
     await page.evaluate(() => { game.state.bullets = []; }); await target(160);
     await page.mouse.up(); await page.waitForTimeout(500);
-    check('charged mouse release deals 3 damage', await page.evaluate(() => game.state.enemies[0].hp === 7 && game.state.player.charge === 0));
-    check('release emits exactly one charged shot', await page.evaluate(() => game.state.shots === 1));
+    check('long mouse release deals 1 normal damage', await page.evaluate(() => game.state.enemies[0].hp === 9));
+    check('release emits exactly one plain shot', await page.evaluate(() => game.state.shots === 1));
 
     await fresh(); await page.mouse.move(mx, my); await page.mouse.down();
     await page.waitForTimeout(900);
     await page.mouse.move(2, 895); await page.mouse.up(); await page.waitForTimeout(50);
-    check('release outside canvas ends charge', await page.evaluate(() => !game.mouseInput.shoot && game.state.player.charge === 0));
+    check('release outside canvas ends the held button', await page.evaluate(() => !game.mouseInput.shoot));
 
     await fresh(); await target(); await page.mouse.move(mx, my); await page.mouse.down();
     await page.waitForTimeout(500);
     await page.mouse.down({ button: 'right' }); await page.waitForTimeout(50);
     await page.mouse.up({ button: 'right' });
-    check('right click while charging preserves held left button', await page.evaluate(() => game.mouseInput.shoot && game.state.player.charge > .4));
+    check('right click while holding left preserves the held left button', await page.evaluate(() => game.mouseInput.shoot));
     await page.mouse.up();
 
     await fresh(); await page.mouse.move(mx, my); await page.mouse.down();
     await page.waitForTimeout(700); await page.keyboard.press('Escape'); await page.mouse.up();
     const pausedShots = await page.evaluate(() => game.state.shots);
     await page.keyboard.press('Escape'); await page.waitForTimeout(100);
-    check('pause cancels pending mouse charge without phantom shots', await page.evaluate(n => game.state.shots === n && game.state.player.charge === 0 && !game.mouseInput.shoot, pausedShots));
+    check('pause cancels a held mouse button without phantom shots', await page.evaluate(n => game.state.shots === n && !game.mouseInput.shoot, pausedShots));
 
     await fresh();
     await page.evaluate(() => {
