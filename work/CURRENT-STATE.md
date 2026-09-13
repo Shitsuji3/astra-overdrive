@@ -830,3 +830,10 @@ span .78、hold .46、ページエラー0。`tests/browser-smoke.cjs` 合格、�
 - **未確認：** 実機のパッドでは試していない。ゲームパッドだけで始めると、ブラウザの規則でBGMやFULLSCREENが最初のクリックかキー入力まで効かない場合がある。
 
 詳細は work/GAMEPAD-MENU-20260913.md。
+
+公開（2026-09-13）：メニューのゲームパッド操作（コミットd8fcf08）をGitHub DesktopのPush originで公開した。
+公開サイト https://shitsuji3.github.io/astra-overdrive/ の `ui.js` に `padFrame`、`game.js` に `menuOwnsPad`、
+`style.css` に `.pad-focus`、`index.html` に `[ ENTER / A ] SELECT` があることを確認。
+公開URLに対して `tests/browser-gamepad.cjs`（偽パッド）34項目、`tests/browser-smoke.cjs` 17項目、
+`tests/browser-mouse.cjs` 11項目に合格、ブラウザエラー0。
+公開したコードは保存版 `dist/history/ASTRA-OVERDRIVE-gamepad-menu-20260913-195514.zip` と同じ。
