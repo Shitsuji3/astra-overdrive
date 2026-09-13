@@ -780,6 +780,6 @@ span .78、hold .46、ページエラー0。`tests/browser-smoke.cjs` 合格、�
 公開（2026-09-13）：溜め突き（コミット05e3f38）をGitHub DesktopのPush originで公開した。
 公開サイト https://shitsuji3.github.io/astra-overdrive/ が新しい `game.js`（`combat.thrust`）、`assets/saber-rig.js`、
 `render.js`、`index.html`（HOLD K THRUST）を配信していることを確認。公開URLに対して `qa/thrust-sheet-shoot.cjs`：
-離すと段6・0.900秒、踏み込み26.8px、ページエラー0、30コマは差24581画素。`qa/rising-sheet.cjs`：頂点89px・0.58秒、
+離すと段6・0.900秒、踏み込み26.8px、ページエラー0、30コマは光球・槍・稲妻の色の画素が手元と1画素も違わない。違いは主人公の体と、背景と混ざる槍の縁だけ（24,581画素、平均2.5/255、9割は1〜2）で、リリース版が主人公の画像と工場の背景をWebPに再圧縮して配っているため。`qa/rising-sheet.cjs`：頂点89px・0.58秒、
 着地1.00秒、4ヒットで変化なし。`tests/browser-smoke.cjs` 合格、ブラウザエラー0。
 公開したコードは保存版 `dist/history/ASTRA-OVERDRIVE-charged-thrust-20260913-130719.zip` と同じ。
