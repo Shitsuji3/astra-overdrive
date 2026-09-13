@@ -525,3 +525,82 @@ test('the outline is lopsided: the leading edge billows, the trailing edge tears
   }
   assert.ok(rBot>rTop,`the trailing edge is ragged in the field: ${rBot} against ${rTop}`);
 });
+
+// The charged thrust: hold the saber, let go at ready.
+function holdSaber(g,frames){g.setInput('saber',true);tick(g,frames);}
+function letGo(g){g.setInput('saber',false);tick(g);}
+function framesToReady(){const T=ctx.AstraCombat.thrust;return Math.ceil(T.ready/T.rate*60)+2;}
+// Open floor with nothing in the way for a lunge's length either side.
+function openGround(g){
+  for(let x=60;x<4000;x+=10){
+    const floor=g.state.platforms.some(q=>q.y===310&&q.x<=x-40&&q.x+q.w>=x+110);
+    const wall=g.state.platforms.some(q=>q.y<310&&q.x<x+110&&q.x+q.w>x-40);
+    if(floor&&!wall)return x;
+  }
+  return 400;
+}
+function thrustAs(g,facing){const p=g.state.player,T=ctx.AstraCombat.thrust;p.facing=facing;p.saberCombo=6;p.saberTime=T.span;
+ p.saberHit=false;p.saberHits=0;p.saberFacing=facing;tick(g,Math.ceil(T.span*60)+2);}
+test('charged thrust: a held saber charges it and letting go at ready runs it',()=>{
+  const g=game(),p=g.state.player,T=ctx.AstraCombat.thrust;quiet(g);
+  holdSaber(g,1);assert.equal(p.saberCombo,1,'the press still swings');
+  holdSaber(g,framesToReady());assert.ok(p.saberCharge>=T.ready,`charged to ${p.saberCharge}`);
+  letGo(g);assert.equal(p.saberCombo,6);assert.equal(p.saberTime,T.span);assert.equal(p.saberCharge,0);
+  assert.equal(ctx.AstraCombat.saberStage(p),6);
+  tick(g,Math.ceil(T.span*60)+2);assert.equal(p.saberCombo,0,'and it ends');
+});
+test('charged thrust: a hold let go short of ready is only the swing it already was',()=>{
+  const g=game(),p=g.state.player;quiet(g);
+  holdSaber(g,Math.floor(framesToReady()*.6));letGo(g);
+  assert.notEqual(p.saberCombo,6);assert.equal(p.saberCharge,0);
+});
+test('charged thrust: the rising cut does not charge it, and chained swings still chain',()=>{
+  const g=game(),p=g.state.player;quiet(g);
+  g.setInput('up',true);holdSaber(g,1);g.setInput('up',false);assert.equal(p.saberCombo,4);
+  tick(g,20);assert.equal(p.saberCharge,0);letGo(g);assert.notEqual(p.saberCombo,6);
+  const h=game(),q=h.state.player;quiet(h);press(h);tick(h,8);press(h);waitStage(h,2);tick(h,8);press(h);waitStage(h,3);
+  assert.ok(!(q.saberCharge>=ctx.AstraCombat.thrust.ready),'taps never charge');
+});
+test('charged thrust: the charge is not shown while the pressed swing is still out',()=>{
+  const g=game(),p=g.state.player,c=ctx.AstraCombat;quiet(g);
+  holdSaber(g,10);assert.ok(p.saberTime>0&&p.saberCharge>0);assert.equal(c.saberChargeShown(p),0);
+  holdSaber(g,30);assert.equal(p.saberTime,0);assert.ok(c.saberChargeShown(p)>0);
+  g.setInput('saber',false);
+});
+for(const facing of [-1,1]){
+  test(`charged thrust: reaches far past every swing and bites four times up close, facing ${facing}`,()=>{
+    const T=ctx.AstraCombat.thrust;
+    let g=game();quiet(g);g.state.player.facing=facing;let e=enemyAt(g,facing*40);thrustAs(g,facing);
+    assert.equal(e.hp,100-T.hits.length*T.power,'four bites up close');
+    g=game();quiet(g);g.state.player.facing=facing;e=enemyAt(g,facing*125);thrustAs(g,facing);
+    assert.ok(e.hp<100,'the lance reaches 125px, where no swing does');
+    g=game();quiet(g);g.state.player.facing=facing;e=enemyAt(g,facing*180);thrustAs(g,facing);
+    assert.equal(e.hp,100,'but not 180px');
+    g=game();quiet(g);g.state.player.facing=facing;e=enemyAt(g,-facing*50);thrustAs(g,facing);
+    assert.equal(e.hp,100,'and nothing behind');
+  });
+}
+test('charged thrust: plants the body, steps forward once, and turning does not steer it',()=>{
+  const g=game(),p=g.state.player,T=ctx.AstraCombat.thrust;quiet(g);
+  p.x=openGround(g);p.y=270;p.vx=0;p.vy=0;p.onGround=true;p.facing=1;const x0=p.x;
+  p.saberCombo=6;p.saberTime=T.span;p.saberHits=0;p.saberFacing=1;
+  g.setInput('left',true);tick(g,Math.floor(T.span*60)-2);g.setInput('left',false);
+  assert.equal(p.saberFacing,1);assert.equal(p.facing,1,'walking input waits for the thrust');
+  const moved=p.x-x0;assert.ok(moved>8&&moved<40,`one lunge forward, moved ${moved.toFixed(1)}px`);
+});
+test('charged thrust: the light follows the sheet - orb, flight, hollow flash, lance, dashes, gone',()=>{
+  const r=ctx.AstraSaberRig,at=t=>r.thrust(r.pose(6,t));
+  const forming=at(.06),swelling=at(.16),flying=at(.23),ring=at(.27),lance=at(.50),going=at(.76),after=at(.9);
+  assert.ok(forming.orb&&!forming.lance&&forming.orb.rx<5,'a small light forms in the fist');
+  assert.ok(swelling.orb.rx>forming.orb.rx,'it swells');
+  assert.ok(flying.orb.x>swelling.orb.x,'it is driven out ahead');
+  assert.ok(ring.orb.ring,'it flashes hollow');
+  assert.ok(lance.lance&&!lance.orb&&lance.lance.len>80&&lance.lance.broken===0,'then a long lance');
+  assert.ok(going.lance&&going.lance.broken>0,'which breaks into dashes where it stands');
+  assert.ok(!after.orb&&!after.lance,'and is gone before the body straightens');
+});
+test('charged thrust: starts and ends on the standing pose',()=>{
+  const r=ctx.AstraSaberRig,s=r.pose(1,0);
+  for(const q of [r.pose(6,0),r.pose(6,1)])
+    assert.deepEqual([q.hip.x,q.hip.y,q.hand.x,q.hand.y],[s.hip.x,s.hip.y,s.hand.x,s.hand.y]);
+});

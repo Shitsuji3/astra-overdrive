@@ -67,7 +67,23 @@
     // floor. It runs on its own clock once the rising cut's own span has run out.
     [[0,    0, -20, -.02,   2, -34, -1.71,  11, -11,  -.14,  1],
      [.45,  0, -21, -.10,   0, -33, -2.18,   9,  -9,  -.20,  0],
-     [1,    1, -21,  .02,   3, -32, -1.36,   8,  -8,  -.08,  0]]
+     [1,    1, -21,  .02,   3, -32, -1.36,   8,  -8,  -.08,  0]],
+    // Stage 6 is the charged thrust, keyed off the thirty-frame sheet. It is let go from a hold, not
+    // chained, so it starts and ends on the standing pose. The body leans in and the arm comes forward
+    // while the light forms ahead of the fist (row one, last two frames), then it steps into a long low
+    // lunge and drives the arm out level (row two), holds that lunge while the lance is out and while it
+    // breaks up (rows three and four), then straightens (row five). The angle column only turns the
+    // grip: the light always runs level, straight ahead of the fist.
+    // time hipX  hipY  lean handX handY angle foot+ foot-
+    [[0,     0, -23,   .02,   7, -27,  -.80,   8,  -8],
+     [.08,   1, -21.5,  .14,  13, -25,   0,    12, -11],
+     [.14,   2, -20,   .22,  17, -24,   0,    15, -15],
+     [.22,   3, -18.5, .30,  20, -22,   0,    19, -19],
+     [.36,   4, -17,   .38,  25, -21,   0,    22, -22],
+     [.62,   4, -17,   .38,  25, -21,   0,    22, -22],
+     [.80,   3, -18,   .32,  22, -22,   0,    21, -21],
+     [.90,   1, -21,   .12,  12, -25,  -.40,  13, -13],
+     [1,     0, -23,   .02,   7, -27,  -.80,   8,  -8]]
   ];
   function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
   // Thigh 12.5 plus shin 15 is all the leg there is. Keep every planted foot inside that reach, and
@@ -83,7 +99,7 @@
     return hip.x+ahead*Math.min(span,Math.sqrt(Math.max(0,LEG_MAX*LEG_MAX-rise*rise)));
   }
   function pose(stage,t){
-    stage=clamp(stage|0,1,5);t=clamp(t,0,1);var list=keys[stage-1],i=0;
+    stage=clamp(stage|0,1,6);t=clamp(t,0,1);var list=keys[stage-1],i=0;
     while(i<list.length-2&&t>list[i+1][0])i++;
     var a=list[i],b=list[i+1],span=b[0]-a[0],raw=clamp((t-a[0])/span,0,1),u=raw*raw*(3-2*raw);
     var rate=6*raw*(1-raw)/span,leanRate=(b[3]-a[3])*rate,driveRate=(b[1]-a[1])*rate;
@@ -166,6 +182,13 @@
     var x,y;
     if(p.stage===2){var a=p.angle;x=p.hip.x+4+Math.cos(a)*length-p.hand.x;y=p.hip.y-8+Math.sin(a)*length*.15-p.hand.y;}
     else{x=Math.cos(p.angle)*length;y=Math.sin(p.angle)*length;}
+    if(p.stage===6){
+      var fx=thrustFx(p),grip={x:p.hand.x,y:p.hand.y};
+      if(fx.orb)return{root:grip,tip:{x:fx.orb.x+fx.orb.rx,y:p.hand.y},visible:true};
+      // the lance only cuts while it is whole; its dashes are a picture of it going
+      if(fx.lance&&fx.lance.broken<.5)return{root:grip,tip:{x:fx.lance.x+fx.lance.len,y:p.hand.y},visible:true};
+      return{root:grip,tip:grip,visible:false};
+    }
     if(p.stage>=4){
       var f=plume(p);
       if(!f)return{root:spun(p,p.hand),tip:spun(p,p.hand),visible:false};
@@ -197,7 +220,7 @@
      [.66,-5,-46,-23,-36,-24,-19,-11,-17,-15,-34]]
   ];
   function smear(p){
-    if(p.stage===2)return null;
+    if(p.stage===2||p.stage===6)return null;
     var list=smearKeys[p.stage===4?2:p.stage===3?1:0],start=list[0][0],
         end=p.stage===4?.76:p.stage===3?.82:.84,
         from=p.stage===4?.64:p.stage===3?.72:.73;
@@ -420,6 +443,104 @@
     }
     var alpha=ctx.globalAlpha;ribbon(11,'#30bc70',.8);ctx.globalAlpha=alpha;ribbon(8,'#9cfcc5',.95);ctx.globalAlpha=alpha;ribbon(5.5,'#f1fff7',1);ctx.restore();
   }
+  // The thrust's light, read off the sheet frame by frame. Row one ends with a small light forming in
+  // the drawn-back fist. Row two: it swells into an egg at the fist, is driven out ahead as a round orb,
+  // flashes hollow, then forms again at the fist and stretches. Row three is the lance - a little over
+  // two body heights, a white core in blue, thickest in a bulge that runs out along it, a bright knot at
+  // the fist and a sharp point. Row four thins it and breaks it into dashes where it stands, nearest the
+  // fist first. Row five has no light at all. Positions are in the rig's own pixels.
+  var THRUST_LANCE=90;
+  // the scarf's angle while the lunge streams it straight back, the way the sheet's hair flies out behind
+  var THRUST_SCARF=-.16;
+  // dark rim, blue, pale blue, white
+  var THRUST_INK=['#2058d8','#40a0f8','#a8d8f8','#f8f8f8'];
+  function thrustFx(p){
+    var t=p.t,h=p.hand,out={orb:null,lance:null,arcs:0};
+    if(t<.12){
+      var r=1.5+3.5*ease(0,.10,t);
+      out.orb={x:h.x+r*.9,y:h.y,rx:r,ry:r,ring:false};out.arcs=ease(.05,.12,t);
+    }else if(t<.19){
+      var g1=ease(.12,.19,t),ex=5+4*g1;
+      out.orb={x:h.x+ex*.8,y:h.y,rx:ex,ry:5+1.5*g1,ring:false};out.arcs=1;
+    }else if(t<.25){
+      out.orb={x:h.x+9+8*ease(.19,.25,t),y:h.y,rx:8,ry:8,ring:false};out.arcs=.6;
+    }else if(t<.29){
+      out.orb={x:h.x+20,y:h.y,rx:8.5,ry:8.5,ring:true};out.arcs=.3;
+    }else if(t<.36){
+      var g3=ease(.32,.36,t),sx=6+8*g3;
+      out.orb={x:h.x+sx*.85,y:h.y,rx:sx,ry:4-1.5*g3,ring:false};out.arcs=1-g3;
+    }else if(t<.80){
+      var grow=ease(.36,.41,t),thin=ease(.62,.70,t);
+      out.lance={x:h.x+2,len:THRUST_LANCE*(.3+.7*grow),thick:2.2-1.1*thin,
+        pulse:.10+.75*ease(.37,.62,t),broken:ease(.66,.80,t)};
+      out.arcs=.5*(1-ease(.36,.46,t));
+    }
+    return out;
+  }
+  // A pixel ellipse built from columns, the way the sheet's orb is drawn: dark rim, blue, pale band,
+  // white heart. The hollow frame keeps a white ring round a pale inside.
+  function pixelOrb(ctx,o,hollow){
+    var layers=hollow?[[1,THRUST_INK[0]],[0,THRUST_INK[3]],[-1.6,THRUST_INK[2]]]
+                     :[[1,THRUST_INK[0]],[0,THRUST_INK[1]],[-1,THRUST_INK[2]],[-2.2,THRUST_INK[3]]];
+    var cx=Math.round(o.x),cy=Math.round(o.y);
+    for(var L=0;L<layers.length;L++){
+      var rx=o.rx+layers[L][0],ry=o.ry+layers[L][0];if(rx<.5||ry<.5)continue;
+      ctx.fillStyle=layers[L][1];
+      for(var dx=-Math.ceil(rx);dx<=Math.ceil(rx);dx++){
+        var q=1-(dx/rx)*(dx/rx);if(q<=0)continue;
+        var hy=Math.round(ry*Math.sqrt(q));ctx.fillRect(cx+dx,cy-hy,1,hy*2+1);
+      }
+    }
+  }
+  // The lance, one column at a time, as nested bands about the axis. It is bright, as the sheet's is: a
+  // one-pixel dark rim, blue only where it bulges, a pale band, and everything inside that white.
+  function pixelLance(ctx,l,y,reduced){
+    var x0=Math.round(l.x),n=Math.round(l.len),yc=Math.round(y),pulse=reduced?.3:l.pulse;
+    for(var i=0;i<=n;i++){
+      var u=i/Math.max(1,n);
+      if(l.broken>0){
+        if(u<l.broken*.5)continue;
+        if(i%9>=9*(1-.8*l.broken))continue;
+      }
+      var half=l.thick*Math.min(1,.45+u*14)*(u>.72?Math.max(.18,1-(u-.72)/.28):1)
+              +1.5*Math.exp(-Math.pow((u-pulse)/.07,2))*(1-l.broken);
+      var hh=Math.round(half),x=x0+i;
+      if(hh<=0){ctx.fillStyle=THRUST_INK[1];ctx.fillRect(x,yc,1,1);continue;}
+      ctx.fillStyle=THRUST_INK[0];ctx.fillRect(x,yc-hh,1,hh*2+1);
+      var e=hh-1;
+      if(hh>=3){ctx.fillStyle=THRUST_INK[1];ctx.fillRect(x,yc-e,1,e*2+1);e--;}
+      if(e>=0){ctx.fillStyle=THRUST_INK[2];ctx.fillRect(x,yc-e,1,e*2+1);e--;}
+      if(e>=0){ctx.fillStyle=THRUST_INK[3];ctx.fillRect(x,yc-e,1,e*2+1);}
+    }
+  }
+  // Lightning, one pixel at a time: a few short zigzags off the light, back along the arm toward the
+  // shoulder and out around the orb, re-drawn every few frames.
+  function thrustArcs(ctx,p,fx){
+    var step=Math.floor(p.t*45),h=p.hand,s=p.shoulder,n=Math.max(1,Math.round(4*Math.min(1,fx.arcs)));
+    for(var k=0;k<n;k++){
+      var a=fireHash(k*7.1,step),b=fireHash(k*3.3+50,step);
+      var x0=fx.orb?fx.orb.x+fx.orb.rx*(.2*a-.4):h.x+3,y0=h.y+(b-.5)*(fx.orb?fx.orb.ry*1.8:5);
+      var x1=k<2?s.x-1+5*b:x0-7-9*a,y1=k<2?s.y+(a-.5)*8:y0+(b-.5)*13;
+      var px=x0,py=y0;ctx.fillStyle=k%2?THRUST_INK[2]:THRUST_INK[1];
+      for(var j=1;j<=4;j++){
+        var u=j/4,off=j===4?0:(fireHash(k*11+j,step)-.5)*5,qx=x0+(x1-x0)*u,qy=y0+(y1-y0)*u+off,
+            m=Math.max(1,Math.round(Math.hypot(qx-px,qy-py)));
+        for(var e=0;e<=m;e++)ctx.fillRect(Math.round(px+(qx-px)*e/m),Math.round(py+(qy-py)*e/m),1,1);
+        px=qx;py=qy;
+      }
+    }
+  }
+  function drawThrust(ctx,p,reduced){
+    var fx=thrustFx(p);
+    ctx.save();ctx.imageSmoothingEnabled=false;
+    if(!reduced&&fx.arcs>.02)thrustArcs(ctx,p,fx);
+    if(fx.orb)pixelOrb(ctx,fx.orb,fx.orb.ring);
+    if(fx.lance){
+      pixelLance(ctx,fx.lance,p.hand.y,reduced);
+      if(fx.lance.broken<.35)pixelOrb(ctx,{x:p.hand.x+2,y:p.hand.y,rx:2.6,ry:2.6},false);
+    }
+    ctx.restore();
+  }
   function draw(ctx,o){
     var rig=g.AstraRunRig;if(!rig||!o.image||!o.image.complete||!o.image.naturalWidth)return false;
     loadTurn();var p=pose(o.stage,o.phase),img=o.image;
@@ -427,8 +548,8 @@
     var build=rig.build||{x:1,y:1};
     ctx.save();ctx.translate(o.x||0,o.y||0);if(o.facing<0)ctx.scale(-1,1);ctx.scale(build.x,build.y);ctx.imageSmoothingEnabled=false;
     var spin=p.spin||0;
-    if(p.stage>=4)drawPlume(ctx,p,o.reducedMotion);
-    else if(p.stage===2)horizontalTrail(ctx,p,false);else trail(ctx,p,o.reducedMotion);
+    if(p.stage===4||p.stage===5)drawPlume(ctx,p,o.reducedMotion);
+    else if(p.stage===2)horizontalTrail(ctx,p,false);else if(p.stage!==6)trail(ctx,p,o.reducedMotion);
     // The rising cut turns the whole figure about its hip; the flame is drawn outside that turn
     // because its angle was measured against the world, not against the body.
     if(spin){ctx.save();ctx.translate(p.hip.x,p.hip.y);ctx.rotate(spin);ctx.translate(-p.hip.x,-p.hip.y);}
@@ -463,6 +584,10 @@
     leg(p.rearFoot,p.rearFootAngle);
     // Scarf follows the cut's acceleration, then settles during the held follow-through.
     var scarfAngle=-.06+clamp(.17*p.leanRate+.05*p.driveRate,-1.15,1.15);
+    // The thrust's lunge is one long drive forward, and reading the scarf off its rates flicked it bolt
+    // upright, at the start and again on the way back up. The sheet's hair streams straight back for as
+    // long as the arm is out, so the thrust never reads the rates: it eases from rest to streaming and home.
+    if(p.stage===6){var streaming=ease(0,.20,p.t)*(1-ease(.80,.97,p.t));scarfAngle=-.06*(1-streaming)+THRUST_SCARF*streaming;}
     rig.rigidPart(ctx,img,{x:0,y:0},SCARF,{x:165,y:123},{x:p.neck.x-3,y:p.neck.y-3.5},.2,scarfAngle);
     if(turnReady&&p.stage===2&&p.viewTurn>.20){
       // Reference: the torso opens during the horizontal sweep, but the face keeps looking at the target.
@@ -477,6 +602,8 @@
     rig.rigidPart(ctx,img,{x:0,y:0},HEAD,{x:181,y:141},p.neck,.2,p.lean*.12-.02);
     arm(p.shoulder,p.hand);
     if(p.stage===2)horizontalTrail(ctx,p,true);
+    // the thrust's light is in front of the fist and the arm, as it is on the sheet
+    if(p.stage===6)drawThrust(ctx,p,o.reducedMotion);
     if(spin)ctx.restore();
     var b=blade(p);
     // The rising cut and the ride down carry fire, already drawn behind the figure; only the
@@ -509,6 +636,6 @@
   }
   g.AstraSaberRig={pose:pose,blade:blade,draw:draw,segment:segment,sweep:sweep,
     fire:FIRE,fireHash:fireHash,fireHalf:fireHalf,fireSide:fireSide,fireNoise:fireNoise,
-    fireHeat:fireHeat,fireBand:fireBand,fireTune:FIRE_HEAT,
+    fireHeat:fireHeat,fireBand:fireBand,fireTune:FIRE_HEAT,thrust:thrustFx,
     get turnReady(){return turnReady}};
 })(typeof window!=='undefined'?window:globalThis);
