@@ -39,7 +39,7 @@
   //   pad             how far from the drawn light a hit still counts
   //   reach           the old rectangle's range, only used if the rig is missing
   combat.thrust = { rate: .85, ready: combat.chargeThreshold, span: .90, hits: [.20, .34, .43, .52],
-                    power: combat.saberPower, pad: 13.5, lunge: 90, lungeFrom: .10, lungeTo: .26, reach: 165 };
+                    power: combat.saberPower * 1.5, pad: 13.5, lunge: 90, lungeFrom: .10, lungeTo: .26, reach: 165 };
   // How much of the thrust's charge is on show. The hold is counted from the press, but the press has
   // already swung, and the hum, the meter and the lightning wait for that blade to come back.
   combat.saberChargeShown = function (p) {
