@@ -85,6 +85,8 @@
      [.90,   1, -21,   .12,  12, -25,  -.40,  13, -13],
      [1,     0, -23,   .02,   7, -27,  -.80,   8,  -8]]
   ];
+  // Reference eight cells: rise, dome expansion, contraction, low release, recovery.
+  keys.push([[0,0,-23,.02,7,-27,-.8,8,-8],[.12,0,-24,-.08,0,-45,-1.6,8,-8],[.22,0,-25,-.08,0,-49,-1.6,9,-9],[.40,0,-24,-.04,1,-48,-1.6,10,-10],[.55,0,-21,.14,7,-34,-1.2,13,-13],[.68,2,-16,.4,17,-13,-.3,20,-19],[.78,2,-16,.4,18,-13,-.3,20,-19],[1,0,-23,.02,7,-27,-.8,8,-8]]);
   function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
   // Thigh 12.5 plus shin 15 is all the leg there is. Keep every planted foot inside that reach, and
   // once the hips sink into a lunge push the trailing foot out until the leg is extended rather than
@@ -99,7 +101,7 @@
     return hip.x+ahead*Math.min(span,Math.sqrt(Math.max(0,LEG_MAX*LEG_MAX-rise*rise)));
   }
   function pose(stage,t){
-    stage=clamp(stage|0,1,6);t=clamp(t,0,1);var list=keys[stage-1],i=0;
+    stage=clamp(stage|0,1,7);t=clamp(t,0,1);var list=keys[stage-1],i=0;
     while(i<list.length-2&&t>list[i+1][0])i++;
     var a=list[i],b=list[i+1],span=b[0]-a[0],raw=clamp((t-a[0])/span,0,1),u=raw*raw*(3-2*raw);
     var rate=6*raw*(1-raw)/span,leanRate=(b[3]-a[3])*rate,driveRate=(b[1]-a[1])*rate;
@@ -174,6 +176,7 @@
       alpha:Math.min(1,body*1.25+sweep+wind+.90*held)};
   }
   function blade(p){
+    if(p.stage===7)return{root:p.hand,tip:p.hand,visible:false};
     var t=p.t,ignite=p.stage===3?.04:.1,visible=t>ignite&&t<.95;
     var growth=p.stage===2?ease(.10,.23,t):.25*ease(ignite,p.stage===3?.16:.22,t)+.75*ease(p.stage===3?.16:.22,p.stage===3?.31:.44,t);
     var length=(p.stage===4?53:p.stage===3?57:48)*growth;
@@ -601,6 +604,16 @@
     }
     ctx.restore();
   }
+  function drawFanCharge(ctx,p,reduced){
+    var t=p.t,expand=ease(.10,.42,t),fade=1-ease(.53,.70,t);if(t<.10||fade<=0)return;
+    var rx=8+29*expand,ry=5+24*expand;ctx.save();ctx.globalAlpha=fade;
+    // Nested pixel-column dome. The flat bottom stays on the floor beneath the raised arm.
+    var cols=['#2454a4','#528de0','#a8d9ff','#f0faff'];
+    for(var l=0;l<4;l++){ctx.fillStyle=cols[l];var r=rx-l*1.7,h=ry-l*1.5;for(var x=-Math.ceil(r);x<=r;x++){var y=Math.sqrt(Math.max(0,1-x*x/(r*r)))*h;ctx.fillRect(x,-Math.round(y),1,Math.round(y));}}
+    ctx.globalAlpha=fade*.8;ctx.strokeStyle='#b4e8ff';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(0,-1,rx,4,0,0,Math.PI*2);ctx.stroke();
+    if(!reduced)for(var i=0;i<5;i++){var a=Math.PI*(i/4),rr=rx*(.55+((t*2+i*.2)%1)*.35);ctx.fillStyle='#477dcc';ctx.fillRect(Math.round(Math.cos(a)*rr),-Math.round(Math.sin(a)*ry*.85),2,4);}
+    ctx.restore();
+  }
   function draw(ctx,o){
     var rig=g.AstraRunRig;if(!rig||!o.image||!o.image.complete||!o.image.naturalWidth)return false;
     loadTurn();var p=pose(o.stage,o.phase),img=o.image;
@@ -609,7 +622,7 @@
     ctx.save();ctx.translate(o.x||0,o.y||0);if(o.facing<0)ctx.scale(-1,1);ctx.scale(build.x,build.y);ctx.imageSmoothingEnabled=false;
     var spin=p.spin||0;
     if(p.stage===4||p.stage===5)drawPlume(ctx,p,o.reducedMotion);
-    else if(p.stage===2)horizontalTrail(ctx,p,false);else if(p.stage!==6)trail(ctx,p,o.reducedMotion);
+    else if(p.stage===2)horizontalTrail(ctx,p,false);else if(p.stage!==6&&p.stage!==7)trail(ctx,p,o.reducedMotion);
     // The rising cut turns the whole figure about its hip; the flame is drawn outside that turn
     // because its angle was measured against the world, not against the body.
     if(spin){ctx.save();ctx.translate(p.hip.x,p.hip.y);ctx.rotate(spin);ctx.translate(-p.hip.x,-p.hip.y);}
@@ -664,6 +677,7 @@
     if(p.stage===2)horizontalTrail(ctx,p,true);
     // the thrust's light is in front of the fist and the arm, as it is on the sheet
     if(p.stage===6)drawThrust(ctx,p,o.reducedMotion);
+    if(p.stage===7)drawFanCharge(ctx,p,o.reducedMotion);
     if(spin)ctx.restore();
     var b=blade(p);
     // The rising cut and the ride down carry fire, already drawn behind the figure; only the

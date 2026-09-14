@@ -526,6 +526,37 @@ test('the outline is lopsided: the leading edge billows, the trailing edge tears
 });
 
 // The charged thrust: hold the saber, let go at ready.
+test('down+saber builds a dome before exactly one seven-shot fan, with no melee hit',()=>{
+  const g=game();quiet(g);const p=g.state.player;p.x=openGround(g);p.y=270;p.onGround=true;
+  const shots=[],spawn=g._spawn.bind(g);g._spawn=(...args)=>{const b=spawn(...args);shots.push(b);return b;};
+  let melee=0;g._damageNearby=()=>melee++;
+  g.setInput('down',true);g.setInput('saber',true);tick(g);
+  assert.equal(p.saberCombo,7);tick(g,35);assert.equal(shots.length,0,'windup does not fire');
+  tick(g,14);assert.equal(shots.length,7);assert.ok(shots.every(b=>b.kind==='fan-orb'&&b.power===4.5&&b.vy<0));
+  assert.ok(shots.some(b=>b.vx<0)&&shots.some(b=>b.vx>0),'fan spreads across both sides');
+  assert.equal(new Set(shots.map(b=>Math.atan2(b.vy,b.vx))).size,7);
+  tick(g,90);assert.equal(shots.length,7,'holding cannot repeat or launch a charged thrust');assert.equal(melee,0);
+});
+test('down after saber converts only the initial ground swing; death cancels the fan',()=>{
+  const g=game();quiet(g);const p=g.state.player;p.x=openGround(g);p.y=270;p.onGround=true;
+  g.setInput('saber',true);tick(g);g.setInput('down',true);tick(g);assert.equal(p.saberCombo,7);
+  g._die();tick(g,90);assert.equal(g.state.bullets.filter(b=>b.kind==='fan-orb').length,0);
+});
+test('fan orbs damage an enemy once and disappear on contact',()=>{
+  const g=game();quiet(g);const p=g.state.player;p.x=openGround(g);p.y=270;
+  const e=enemyAt(g,40);e.hp=20;
+  g._spawn(e.x+e.w/2,e.y+e.h/2,0,0,'player',false,4.5,{kind:'fan-orb',r:6});
+  g._bullets(1/60);assert.equal(e.hp,15.5);assert.equal(g.state.bullets.length,0);
+});
+test('S+K and gamepad down+Y both select the fan, while up+saber still rises',()=>{
+  let g=game();quiet(g);let p=g.state.player;p.x=openGround(g);p.y=270;p.onGround=true;
+  g._mapKey('s',true);g._mapKey('k',true);tick(g);assert.equal(p.saberCombo,7);
+  g=game();quiet(g);p=g.state.player;p.x=openGround(g);p.y=270;p.onGround=true;
+  const buttons=Array.from({length:16},(_,i)=>({pressed:i===13||i===3}));
+  ctx.navigator={getGamepads:()=>[{axes:[0,1],buttons}]};g._pollGamepad();tick(g);assert.equal(p.saberCombo,7);delete ctx.navigator;
+  g=game();quiet(g);p=g.state.player;p.x=openGround(g);p.y=270;p.onGround=true;
+  g.setInput('up',true);g.setInput('saber',true);tick(g);assert.equal(p.saberCombo,4);
+});
 function holdSaber(g,frames){g.setInput('saber',true);tick(g,frames);}
 function letGo(g){g.setInput('saber',false);tick(g);}
 function framesToReady(){const T=ctx.AstraCombat.thrust;return Math.ceil(T.ready/T.rate*60)+2;}
