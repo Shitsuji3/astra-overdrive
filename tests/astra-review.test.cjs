@@ -4,6 +4,19 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 
+test('player breakup finishes once, freezes combat, and retry discards its pending result', () => {
+  const {g,events}=harness();g.start();g.state.player.hp=0;g._die();
+  const effect=g.state.deathFx,worldTime=g.state.time;
+  g._die();assert.equal(g.state.deathFx,effect);
+  g._tick(.2);assert.equal(g.state.time,worldTime,'dead simulation cannot attack or move');
+  g._deathTick(.5);assert.ok(!events.some(e=>e.type==='death-ready'));
+  g._deathTick(.7);g._deathTick(.7);
+  assert.equal(events.filter(e=>e.type==='death-ready').length,1);
+  g.retry();assert.equal(g.state.mode,'playing');assert.ok(!g.state.deathFx);
+  g._die();g.retry();g._deathTick(2);
+  assert.equal(events.filter(e=>e.type==='death-ready').length,1,'no stale result after early retry');
+});
+
 function harness() {
   let next = 0;
   const frames = new Map(), handlers = {}, events = [], pad = { current: [] };

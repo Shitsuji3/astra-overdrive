@@ -574,7 +574,9 @@ for(const facing of [-1,1]){
     g=game();quiet(g);g.state.player.facing=facing;e=enemyAt(g,facing*125);thrustAs(g,facing);
     assert.ok(e.hp<100,'the lance reaches 125px, where no swing does');
     g=game();quiet(g);g.state.player.facing=facing;e=enemyAt(g,facing*180);thrustAs(g,facing);
-    assert.equal(e.hp,100,'but not 180px');
+    assert.ok(e.hp<100,'extended lance now reaches 180px');
+    g=game();quiet(g);g.state.player.facing=facing;e=enemyAt(g,facing*260);thrustAs(g,facing);
+    assert.equal(e.hp,100,'260px remains outside');
     g=game();quiet(g);g.state.player.facing=facing;e=enemyAt(g,-facing*50);thrustAs(g,facing);
     assert.equal(e.hp,100,'and nothing behind');
   });
@@ -590,7 +592,7 @@ test('charged thrust: plants the body, steps forward once, and turning does not 
 test('charged thrust: the light follows the sheet - orb, flight, hollow flash, lance, dashes, gone',()=>{
   const r=ctx.AstraSaberRig,at=t=>r.thrust(r.pose(6,t));
   const forming=at(.06),swelling=at(.16),flying=at(.23),ring=at(.27),lance=at(.50),going=at(.76),after=at(.9);
-  assert.ok(forming.orb&&!forming.lance&&forming.orb.rx<5,'a small light forms in the fist');
+  assert.ok(forming.orb&&!forming.lance&&forming.orb.rx<7.5,'a small light forms in the fist');
   assert.ok(swelling.orb.rx>forming.orb.rx,'it swells');
   assert.ok(flying.orb.x>swelling.orb.x,'it is driven out ahead');
   assert.ok(ring.orb.ring,'it flashes hollow');

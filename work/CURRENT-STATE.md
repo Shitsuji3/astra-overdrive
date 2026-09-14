@@ -880,3 +880,5 @@ Current worktree が増え、Push origin はPL2770H上で約(588,38)。押す直
 公開URLで `tests/browser-smoke.cjs` 18項目、`tests/browser-mouse.cjs` 11項目に合格。`tests/browser-gamepad.cjs` は1回目、テスト内の5秒上限で最初のページ読み込み（page.goto）が時間切れになった。
 そのまま再実行すると35項目合格。ゲームの不具合ではなく、ネットワーク越しの読み込み時間による失敗。
 公開したコードは保存版 `dist/history/ASTRA-OVERDRIVE-title-stage-select-only-20260914-211149.zip` と同じ。
+
+最新変更（2026-09-14）：プレイヤー死亡時に実装甲画像の12片が飛散する1.15秒の破壊演出を追加し、演出後にリトライ画面。死亡後の戦闘停止・早期リトライ時の演出破棄、演出軽減対応。溜め突きの光を手元から縦横1.5倍（槍90→135）、上下判定pad9→13.5、代替判定も1.5倍。威力・4ヒット時刻・踏み込み・SEは維持。Opus5のSTART MISSION削除は維持。npm test135件、browser-smoke18項目、形状73姿勢の1.5倍比較とブラウザー境界確認、build:ci合格。詳細work/PLAYER-BREAK-THRUST-20260914.md。公開push未実施。サブエージェント不使用。

@@ -531,6 +531,10 @@
         pulse:.10+.75*ease(.37,.62,t),broken:ease(.66,.80,t)};
       out.arcs=.5*(1-ease(.36,.46,t));
     }
+    // Scale the light about the saber hand; blade() reads this same geometry for collision.
+    var scale=1.5;
+    if(out.orb){out.orb.x=h.x+(out.orb.x-h.x)*scale;out.orb.rx*=scale;out.orb.ry*=scale;}
+    if(out.lance){out.lance.x=h.x+(out.lance.x-h.x)*scale;out.lance.len*=scale;out.lance.thick*=scale;out.lance.scale=scale;}
     return out;
   }
   // A pixel ellipse built from columns, the way the sheet's orb is drawn: dark rim, blue, pale band,
@@ -559,7 +563,7 @@
         if(i%9>=9*(1-.8*l.broken))continue;
       }
       var half=l.thick*Math.min(1,.45+u*14)*(u>.72?Math.max(.18,1-(u-.72)/.28):1)
-              +1.5*Math.exp(-Math.pow((u-pulse)/.07,2))*(1-l.broken);
+              +1.5*(l.scale||1)*Math.exp(-Math.pow((u-pulse)/.07,2))*(1-l.broken);
       var hh=Math.round(half),x=x0+i;
       if(hh<=0){ctx.fillStyle=THRUST_INK[1];ctx.fillRect(x,yc,1,1);continue;}
       ctx.fillStyle=THRUST_INK[0];ctx.fillRect(x,yc-hh,1,hh*2+1);
