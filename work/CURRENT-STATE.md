@@ -854,3 +854,5 @@ span .78、hold .46、ページエラー0。`tests/browser-smoke.cjs` 合格、�
 公開したコードは保存版 `dist/history/ASTRA-OVERDRIVE-rising-bite-fast-20260914-005108.zip` と同じ。
 操作メモ：GitHub Desktopは今は `githubdesktop.exe`（app-3.6.5）として許可を求める必要がある。ツールバーに
 Current worktree が増え、Push origin はPL2770H上で約(588,38)。押す直前にBraveが前面に出ることがあり、そのときは前面に戻して押し直す。
+
+引き継ぎ（2026-09-14）：ユーザーが別のエージェント「Astra」に作業を渡すため、`work/HANDOFF-20260914.md` を作成。ゲームのコードは変更なし（公開済みコミット c3f87c1、最新保存版 rising-bite-fast-20260914-005108 のSHA-256一致を再確認、`npm test` 133件合格、ログ `work/handoff-20260914-tests.log`）。コードを変えていないため新しい保存版は作っていない。
