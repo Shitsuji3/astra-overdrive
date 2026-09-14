@@ -560,6 +560,13 @@
   // Everything he had in the air comes off the board with him, and the arena goes quiet.
   NeonGame.prototype._bossDown=function(b){
     var s=this.state;
+    if(b.down)return;
+    if(global.AstraCombat.stage.kind==='gauntlet'){
+      s.player.hp=Math.min(s.player.maxHp,s.player.hp+4);
+      var next=global.AstraCombat.stage.bosses[s.bossIndex+1];
+      if(next){var incoming=global.AstraBosses.get(next);s.nextBossMarker={id:next,name:incoming.name,x:global.AstraCombat.arena.bossX+incoming.w/2,y:310,w:incoming.w,h:incoming.h};}
+      this._emit('sound',{name:'pickup'});
+    }
     b.hp=0;b.down=true;b.downTime=0;b.deathBursts=0;b.blasted=false;
     b.dashTime=0;b.attack='down';b.timer=999;
     for(var i=s.bullets.length-1;i>=0;i--)if(s.bullets[i].team==='enemy')s.bullets.splice(i,1);
@@ -600,6 +607,7 @@
   // Builds the boss a stage asks for. Size, armour and look all come from the roster.
   NeonGame.prototype._spawnBoss=function(id){
     var s=this.state,def=global.AstraBosses.get(id),arena=global.AstraCombat.arena;
+    s.nextBossMarker=null;
     var hp=this.difficulty==='easy'?def.easyHp:def.hp,bottom=310;
     s.boss={id:def.id,name:def.name,title:def.title,look:def.look||'',sprite:def.sprite||'',
       x:arena.bossX,y:bottom-def.h,baseY:bottom-def.h,w:def.w,h:def.h,
@@ -614,7 +622,6 @@
     var s=this.state,order=global.AstraCombat.stage.bosses;
     if(!order||s.bossIndex+1>=order.length)return false;
     s.bossIndex++;
-    var p=s.player;p.hp=Math.min(p.maxHp,p.hp+2);
     this._spawnBoss(order[s.bossIndex]);
     s.message='NEXT FRAME // '+s.boss.name;s.messageTimer=2.2;
     this._emit('sound',{name:'boss'});

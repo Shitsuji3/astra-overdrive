@@ -214,6 +214,7 @@ test('a gauntlet sends the next frame in instead of ending the run', () => {
   const g = new h.NeonGame(null);
   g.start({ stage: 'gauntlet' });
   const order = Array.from(h.api.stage.bosses);
+  assert.equal(g.state.enemies.length, 0, 'boss rush has no regular enemies');
   const p = g.state.player;
   p.x = h.api.arena.spawn + 40; p.y = 270; p.invuln = 1e9;
   g._tick(1 / 60);
@@ -223,13 +224,32 @@ test('a gauntlet sends the next frame in instead of ending the run', () => {
     met.push(g.state.boss.id);
     p.hp = 1;                                   // the heal between frames must be worth something
     g.state.boss.hp = 0;
+    g._boss(1 / 60);
+    assert.equal(p.hp, 5, 'each defeat immediately heals four, including the final boss');
+    if(n<order.length-1){
+      const marker=g.state.nextBossMarker, next=h.bosses.get(order[n+1]);
+      assert.equal(marker.id,next.id);
+      assert.equal(marker.x,h.api.arena.bossX+next.w/2);
+      assert.equal(marker.y,310);
+    }else assert.equal(g.state.nextBossMarker,null,'no ninth boss marker');
     for (let i = 0; i < 200 && g.state.mode === 'playing' && g.state.boss.id === met[met.length - 1]; i++) {
       p.invuln = 1e9; g._boss(1 / 60);
     }
-    if (g.state.mode === 'playing') assert.equal(p.hp, 3, 'two armour back between frames');
+    assert.equal(p.hp, 5, 'healing is applied once, not again at spawn');
+    assert.equal(g.state.nextBossMarker,null,'marker clears when the next boss arrives');
   }
   assert.deepEqual(met, order, `all eight in order: ${met.join(', ')}`);
   assert.equal(g.state.mode, 'victory', 'the last one ends the run');
+});
+
+test('boss-rush recovery is capped, idempotent and does not affect ordinary stages', () => {
+  const h=harness(),g=new h.NeonGame(null);
+  g.start({stage:'gauntlet'});let b=g._spawnBoss('warden');
+  g.state.player.hp=7;g._bossDown(b);assert.equal(g.state.player.hp,8);
+  g.state.player.hp=2;g._bossDown(b);assert.equal(g.state.player.hp,2,'repeated down cannot heal again');
+  g.start({stage:'signal-yard'});b=g._spawnBoss('warden');g.state.player.hp=2;
+  g._bossDown(b);assert.equal(g.state.player.hp,2);assert.equal(g.state.nextBossMarker,null);
+  g.start({stage:'gauntlet'});assert.equal(g.state.enemies.length,0);assert.ok(!g.state.nextBossMarker,'restart clears preview');
 });
 
 test('a run stage still ends when its single boss goes down', () => {
