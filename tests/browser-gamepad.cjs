@@ -31,11 +31,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE || 'playwright');
     check('title is up', await shown('#title'));
 
     await tap('down');
-    check('pad down walks the title menu past the hidden item', await focused() === 'stage-select');
+    check('pad down walks the title menu past the hidden item', await focused() === 'guide');
     await tap('up');
-    check('pad up walks back', await focused() === 'start');
+    check('pad up walks back', await focused() === 'stage-select');
 
-    await tap('down'); await tap('a');
+    await tap('a');
     check('pad A opens stage select', await shown('#stage-select'));
     const before = await page.evaluate(() => document.activeElement.dataset.stage);
     await tap('right');
@@ -45,7 +45,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE || 'playwright');
     check('pad B backs out of stage select', await shown('#title') && !await shown('#stage-select'));
     check('and the stage it was on is kept', (await saved()).stage === after);
 
-    await tap('down'); await tap('down');
+    await tap('down');
     check('pad reaches the guide', await focused() === 'guide');
     await tap('a');
     check('pad A opens the guide', await shown('#modal'));
@@ -75,10 +75,12 @@ const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE || 'playwright');
     await tap('b');
     check('pad B closes settings and returns to the menu', !await shown('#modal') && await focused() === 'settings');
 
-    await tap('up'); await tap('up'); await tap('up');
-    check('pad walks back up to START MISSION', await focused() === 'start');
+    await tap('up'); await tap('up');
+    check('pad walks back up to STAGE SELECT', await focused() === 'stage-select');
+    await tap('a');
+    check('stage select precedes launch', await shown('#stage-select'));
     await hold('a', true); await page.waitForTimeout(120);
-    check('nothing starts while A is still down', await shown('#title'));
+    check('nothing starts while A is still down', await shown('#stage-select'));
     await hold('a', false); await page.waitForTimeout(300);
     check('pad A starts the mission when let go', await page.evaluate(() => !!window.game && game.state.mode === 'playing' && document.querySelector('#title').hidden));
     await page.evaluate(() => { game.state.enemies = []; });
@@ -105,7 +107,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE || 'playwright');
     await tap('start'); await tap('up');
     check('pad up from nothing lands on ABORT, the last button', await focused() === 'title');
     await tap('a');
-    check('pad A on ABORT returns to the title', await shown('#title') && await focused() === 'start');
+    check('pad A on ABORT returns to the title', await shown('#title') && await focused() === 'stage-select');
 
     assert.deepEqual(errors, []);
     checks.push('no browser errors');

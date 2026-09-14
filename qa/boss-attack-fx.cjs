@@ -11,7 +11,7 @@ for(const def of now.AstraBosses.list)for(const move of moves){
 }
 (async()=>{const br=await chromium.launch({headless:true,executablePath:process.env.CHROME_EXECUTABLE||'C:/Program Files/Google/Chrome/Application/chrome.exe'});try{
   const page=await br.newPage({viewport:{width:1280,height:720}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(process.env.GAME_URL||'http://127.0.0.1:4173/');await page.locator('[data-action=start]').click();await page.waitForTimeout(1000);
+  await page.goto(process.env.GAME_URL||'http://127.0.0.1:4173/');await page.locator('[data-action=stage-select]').click();await page.locator('.stage-node.active').click();await page.waitForTimeout(1000);
   const report=await page.evaluate(async moves=>{
     game.running=false;cancelAnimationFrame(game.raf);
     const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;const ctx=canvas.getContext('2d');

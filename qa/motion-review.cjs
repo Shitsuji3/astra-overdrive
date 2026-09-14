@@ -5,7 +5,7 @@ const out=path.join(__dirname,'motion-preview');fs.mkdirSync(out,{recursive:true
  const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
  try{
   const page=await browser.newPage({viewport:{width:1280,height:800}}),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&!m.text().includes('favicon')&&!m.text().startsWith('Failed to load resource'))errors.push(m.text())});
-  await page.goto('http://127.0.0.1:4173/');await page.locator('[data-action=start]').click();await page.waitForTimeout(2000);
+  await page.goto('http://127.0.0.1:4173/');await page.locator('[data-action=stage-select]').click();await page.locator('.stage-node.active').click();await page.waitForTimeout(2000);
   await page.evaluate(()=>{
    game.running=false;cancelAnimationFrame(game.raf);game.raf=0;AstraAudio.stop();
    window.reviewDraws=[];const original=CanvasRenderingContext2D.prototype.drawImage;

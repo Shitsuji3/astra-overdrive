@@ -2,7 +2,7 @@ const fs=require('fs'),{chromium}=require('C:/Users/situz/.cache/codex-runtimes/
 (async()=>{const br=await chromium.launch({headless:true,executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
 try{const page=await br.newPage({viewport:{width:1440,height:900}});page.setDefaultTimeout(9000);
 const errors=[];page.on('pageerror',e=>errors.push(e.message));
-await page.goto('http://127.0.0.1:4173/');await page.locator('[data-action=start]').click();await page.waitForTimeout(1000);
+await page.goto('http://127.0.0.1:4173/');await page.locator('[data-action=stage-select]').click();await page.locator('.stage-node.active').click();await page.waitForTimeout(1000);
 fs.mkdirSync('qa/stage/live',{recursive:true});
 const spots=[['conveyor',5000],['slag',5800],['catwalk',7300],['gate-approach',8600]];
 const shots=[];

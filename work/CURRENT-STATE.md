@@ -862,3 +862,13 @@ Current worktree が増え、Push origin はPL2770H上で約(588,38)。押す直
 最新変更（2026-09-14）：BOSS RUSH全域の雑魚3体を削除。ボス撃破時にライフ4回復（最大値まで、最終ボス含む、一度だけ）。次ボス出現時の旧2回復は廃止。撃破演出の2.2秒間、次のボスの実出現位置に枠・床リング・名前・残り秒数を表示し、画面外では方向矢印。出現時にマーカーを消去。通常ステージの回復は変更なし。ステージ紹介文更新。npm test 134件成功、実ブラウザーで雑魚0・HP2→6・次ボスへの遷移とマーカー消去・左右画面外と演出軽減を確認、エラー0。build:ci成功。検証qa/boss-rush-preview.cjs、画像qa/boss-rush-preview/preview.png。公開push未実施。
 
 公開（2026-09-14）：ユーザーの『GitHubにも保存』依頼でGitHub Desktopから最新8b59b7eまでpush。origin/mainと一致をfetchで確認。Pages run 34836834661成功、公開game.jsの4回復、render.jsの次ボスマーカーとボス専用エフェクトを確認。公開URLでbrowser-smoke 17項目成功、ブラウザーエラー0。記録のみのコミットは次回push対象。
+
+最新変更（2026-09-14 夜）：**タイトルからSTART MISSIONを削除し、出撃はSTAGE SELECTからだけにした**（ユーザー依頼）。
+- **メニュー：** STAGE SELECT／操作ガイド／システム設定。
+- **引き継いだ途中の変更：** Astraの引き継ぎ後に作られた未コミットの変更（index.html、ui.js、ブラウザテスト3本）がこの依頼そのものだったので、それを出発点にした。
+- **直した不具合：** 起動時に隠れたCONTINUEへフォーカスしようとして、何も選ばれない状態だった。`active(0)` にしてSTAGE SELECTにフォーカスを置く。
+- **QAスクリプト：** 66本の「START MISSIONを押す」を「STAGE SELECT→選択中のステージ」にした。
+- **検証：** `npm test` 134件、起動テスト18、マウステスト11、ゲームパッドテスト35、`qa/release-check.cjs` 合格、build:ci成功。
+- **公開：** 未実施。
+
+詳細は work/TITLE-STAGE-SELECT-20260914.md。

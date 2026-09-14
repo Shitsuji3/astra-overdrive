@@ -7,7 +7,7 @@ fs.mkdirSync(out,{recursive:true});
  try{
   const page=await browser.newPage({viewport:{width:1280,height:800}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('http://127.0.0.1:4173/');await page.locator('[data-action=start]').click();
+  await page.goto('http://127.0.0.1:4173/');await page.locator('[data-action=stage-select]').click();await page.locator('.stage-node.active').click();
   await page.waitForTimeout(400);
   await page.evaluate(()=>{game.running=false;cancelAnimationFrame(game.raf);game.raf=0;});
   const cases=[

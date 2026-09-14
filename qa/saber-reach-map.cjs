@@ -34,7 +34,7 @@ const br = await chromium.launch({headless:true,executablePath:'C:/Program Files
 try{
   const page = await br.newPage();
   await page.goto('http://127.0.0.1:4173/');
-  await page.locator('[data-action=start]').click();
+  await page.locator('[data-action=stage-select]').click();await page.locator('.stage-node.active').click();
   await page.waitForTimeout(800);
   const png = await page.evaluate(async ({data, legacy, STEP}) => {
     game.running=false; cancelAnimationFrame(game.raf); AstraAudio.stop();

@@ -2,7 +2,7 @@ const fs=require('fs'),{chromium}=require('C:/Users/situz/.cache/codex-runtimes/
 const OUT=process.argv[2]||'all-states';
 (async()=>{const br=await chromium.launch({headless:true,executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
 try{const page=await br.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
-await page.goto('http://127.0.0.1:4173/');await page.locator('[data-action=start]').click();await page.waitForTimeout(900);
+await page.goto('http://127.0.0.1:4173/');await page.locator('[data-action=stage-select]').click();await page.locator('.stage-node.active').click();await page.waitForTimeout(900);
 const out=await page.evaluate(async()=>{
   game.running=false;cancelAnimationFrame(game.raf);AstraAudio.stop();
   const img=new Image();img.src='assets/player-run-v4.svg';await img.decode();

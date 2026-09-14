@@ -23,7 +23,8 @@ const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE || 'playwright');
   }, distance);
   try {
     await page.goto(process.env.GAME_URL || 'http://127.0.0.1:4173/');
-    await page.locator('[data-action=start]').click();
+    await page.locator('[data-action=stage-select]').click();
+    await page.locator('[data-action=launch-stage]').first().click();
     const bounds = await page.locator('canvas').boundingBox();
     const mx = bounds.x + bounds.width / 2, my = bounds.y + bounds.height / 2;
     await fresh(); await target();

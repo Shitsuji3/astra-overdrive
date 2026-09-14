@@ -24,7 +24,7 @@ const SIZES = [
       await page.goto(URL);
       await page.waitForTimeout(900);
       shots.push({ label: label + '  title', width, height, png: await page.screenshot() });
-      await page.locator('[data-action=start]').click();
+      await page.locator('[data-action=stage-select]').click();await page.locator('.stage-node.active').click();
       await page.waitForTimeout(1400);
       shots.push({ label: label + '  in play', width, height, png: await page.screenshot() });
       await page.close();

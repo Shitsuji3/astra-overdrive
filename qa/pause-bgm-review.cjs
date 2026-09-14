@@ -16,7 +16,7 @@ const {chromium}=require('C:/Users/situz/.cache/codex-runtimes/codex-primary-run
    });
    const read=()=>page.evaluate(()=>{const a=window.__qaMedia[0];return {time:a.currentTime,paused:a.paused,volume:a.volume,muted:a.muted,...a.__calls};});
    const check=(name,ok)=>{assert.ok(ok,url+': '+name);checks.push(name);};
-   await page.goto(url);await page.locator('[data-action=start]').click();
+   await page.goto(url);await page.locator('[data-action=stage-select]').click();await page.locator('.stage-node.active').click();
    await page.waitForFunction(()=>window.__qaMedia[0]?.currentTime>.3);
    await page.evaluate(()=>{AstraAudio.setMusic(.4);AstraAudio.setMaster(.8);});
    const beforeDeath=await read();
@@ -57,7 +57,7 @@ const {chromium}=require('C:/Users/situz/.cache/codex-runtimes/codex-primary-run
    check('retry button restores full configured volume',Math.abs((await read()).volume-.4)<1e-8);
    await page.evaluate(()=>game._die());await page.locator('#overlay [data-action=title]').click();
    const title=await read();check('title still stops and rewinds',title.paused&&title.time===0);
-   await page.locator('[data-action=start]').click();await page.waitForTimeout(120);
+   await page.locator('[data-action=stage-select]').click();await page.locator('.stage-node.active').click();await page.waitForTimeout(120);
    check('new stage starts at normal volume with one audio player',Math.abs((await read()).volume-.4)<1e-8&&await page.evaluate(()=>window.__qaMedia.length===1));
    check('no playback errors',errors.length===0);results.push({url,checks,errors});await page.close();
   }

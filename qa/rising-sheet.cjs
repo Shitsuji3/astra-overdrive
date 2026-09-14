@@ -10,7 +10,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE);
     page.on('pageerror', e => errs.push(e.message));
     page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
     await page.goto(process.env.GAME_URL);
-    await page.locator('[data-action=start]').click();
+    await page.locator('[data-action=stage-select]').click();await page.locator('.stage-node.active').click();
     await page.waitForTimeout(1400);
 
     const out = await page.evaluate(() => {

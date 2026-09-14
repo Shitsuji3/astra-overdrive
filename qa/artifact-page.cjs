@@ -62,7 +62,7 @@ ${body}`;
     await page.waitForTimeout(200);
 
     // and it actually plays: run right, fire, and watch the world go by
-    await page.locator('[data-action=start]').click();
+    await page.locator('[data-action=stage-select]').click();await page.locator('.stage-node.active').click();
     await page.waitForTimeout(700);
     await page.keyboard.down('d');
     await page.waitForTimeout(2500);

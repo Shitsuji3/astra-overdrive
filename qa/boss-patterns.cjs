@@ -8,7 +8,7 @@ const { chromium } = require('C:/Users/situz/.cache/codex-runtimes/codex-primary
   try {
     const page = await br.newPage({ viewport: { width: 640, height: 360 } });
     await page.goto('http://127.0.0.1:4173/');
-    await page.locator('[data-action=start]').click();
+    await page.locator('[data-action=stage-select]').click();await page.locator('.stage-node.active').click();
     await page.waitForTimeout(700);
 
     const shots = await page.evaluate(async () => {

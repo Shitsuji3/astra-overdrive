@@ -3,7 +3,7 @@ const {chromium}=require('C:/Users/situz/.cache/codex-runtimes/codex-primary-run
 (async()=>{const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'}),results=[];try{
 for(const protocol of ['http','file']){
  const page=await browser.newPage({viewport:{width:1280,height:800}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto(protocol==='http'?'http://127.0.0.1:4173/':'file:///C:/Users/situz/Documents/ChatGPT/Astragemes/index.html');await page.locator('[data-action=start]').click();await page.waitForTimeout(2000);
+ await page.goto(protocol==='http'?'http://127.0.0.1:4173/':'file:///C:/Users/situz/Documents/ChatGPT/Astragemes/index.html');await page.locator('[data-action=stage-select]').click();await page.locator('.stage-node.active').click();await page.waitForTimeout(2000);
  await page.evaluate(()=>{const s=game.state;s.enemies=[];s.pickups=[];s.platforms=[{x:-100,y:310,w:10000,h:50,type:'floor'}];s.player.x=1500;s.player.hp=8;window.observedRun=new Set();window.spawned=[];const draw=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(im,...args){if(im.src?.endsWith('player-run-v4.svg'))observedRun.add(args[0]+','+args[1]);return draw.call(this,im,...args)};const spawn=game._spawn;game._spawn=function(...args){spawned.push(args);return spawn.apply(this,args)};});
  const box=await page.locator('canvas').boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);
  for(const key of ['d','a']){

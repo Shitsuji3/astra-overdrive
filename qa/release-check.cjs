@@ -28,7 +28,7 @@ const SHOT = path.join(__dirname, 'release-check.png');
 
     await page.goto(URL, { waitUntil: 'load' });
     const beforeStart = [...bytes.values()].reduce((a, b) => a + b, 0);
-    await page.locator('[data-action=start]').click();
+    await page.locator('[data-action=stage-select]').click();await page.locator('.stage-node.active').click();
     await page.waitForTimeout(2500);
 
     // drive it through a kill, a drop and the whole boss fight
@@ -67,7 +67,7 @@ const SHOT = path.join(__dirname, 'release-check.png');
     // a phone has no keyboard, so the on-screen pad has to carry the whole game
     const phone = await br.newPage({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
     await phone.goto(URL);
-    await phone.locator('[data-action=start]').click();
+    await phone.locator('[data-action=stage-select]').click();await phone.locator('.stage-node.active').click();
     await phone.waitForTimeout(800);
     const pad = {};
     pad.visible = await phone.locator('[data-input=jump]').isVisible();

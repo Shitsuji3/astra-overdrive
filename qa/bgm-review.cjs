@@ -15,7 +15,7 @@ const {chromium}=require('C:/Users/situz/.cache/codex-runtimes/codex-primary-run
    const check=(name,ok)=>{assert.ok(ok,`${url}: ${name}`);checks.push(name);};
    await page.goto(url);
    check('title is silent',await page.evaluate(()=>window.__qaAudio.every(a=>a.paused)));
-   await page.locator('[data-action=start]').click();
+   await page.locator('[data-action=stage-select]').click();await page.locator('.stage-node.active').click();
    await page.waitForFunction(()=>window.__qaAudio.length===1&&window.__qaAudio[0].readyState>=3&&window.__qaAudio[0].currentTime>.1);
    check('provided mp3 is decoded with loop enabled',await page.evaluate(()=>{const a=window.__qaAudio[0];return a.currentSrc.endsWith('/assets/stage1-bgm.mp3')&&a.loop&&a.duration>220&&a.duration<222&&!a.error;}));
    check('initial music/master volume is retained',await page.evaluate(()=>Math.abs(window.__qaAudio[0].volume-.45*.8)<.001));
@@ -41,7 +41,7 @@ const {chromium}=require('C:/Users/situz/.cache/codex-runtimes/codex-primary-run
    check('track loops at end',await page.evaluate(()=>{const a=window.__qaAudio[0];return !a.paused&&a.currentTime<2&&!a.ended;}));
    await page.keyboard.press('Escape');await page.locator('#overlay [data-action=title]').click();
    check('return to title stops and rewinds music',await page.evaluate(()=>{const a=window.__qaAudio[0];return a.paused&&a.currentTime===0;}));
-   await page.locator('[data-action=start]').click();await page.waitForTimeout(160);
+   await page.locator('[data-action=stage-select]').click();await page.locator('.stage-node.active').click();await page.waitForTimeout(160);
    check('new stage reuses one music player and starts at beginning',await page.evaluate(()=>window.__qaAudio.length===1&&!window.__qaAudio[0].paused&&window.__qaAudio[0].currentTime<1));
    await page.evaluate(()=>{AstraAudio.setPaused(true);AstraAudio.setPaused(false);AstraAudio.stop();});await page.waitForTimeout(150);
    check('pending play cannot restart a stopped track',await page.evaluate(()=>window.__qaAudio[0].paused));

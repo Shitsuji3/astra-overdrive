@@ -4,8 +4,20 @@
     {
       "name": "astra",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["server.cjs"],
+      "runtimeArgs": [
+        "server.cjs"
+      ],
       "port": 4173
+    },
+    {
+      "name": "astra-release",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "server.cjs",
+        "release",
+        "4174"
+      ],
+      "port": 4174
     }
   ]
 }
