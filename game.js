@@ -440,7 +440,8 @@
   NeonGame.prototype._saberDeflects=function(b){var p=this.state.player,c=global.AstraCombat;if(b.team==='player'||p.saberTime<=0)return false;var segs=p.saberCombo===4?c.risingFire(p):c.saberSweep(p);if(segs)return c.bladeTouches(segs,{x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},c.saberPad(p));if(p.saberCombo===6||p.saberCombo===4)return false;var elapsed=c.saberDuration-p.saberTime;if(elapsed<c.saberHitAt||elapsed>=c.saberDeflectEnd)return false;var facing=p.saberFacing,dx=(b.x-p.x)*facing;return dx>=0&&dx<c.saberRange+b.r&&Math.abs(b.y-(p.y+p.h/2))<55+b.r;};
   // A shell with gravity bursts on whatever it lands on.
   NeonGame.prototype._shellLands=function(b){var s=this.state;for(var i=0;i<s.platforms.length;i++){var q=s.platforms[i];if(b.x>q.x&&b.x<q.x+q.w&&b.y+b.r>=q.y&&b.y-b.r<=q.y+q.h){
-    if(b.mine){this._spawn(b.x,q.y-8,0,0,'enemy',false,1,{r:7,kind:'mine',fuse:b.fuse||1.2,burst:b.burst||5,life:b.fuse||1.2});this._explode(b.x,q.y-4,'#ffb04a',.3);return true;}
+    if(b.mine){this._spawn(b.x,q.y-8,0,0,'enemy',false,1,{r:7,kind:'mine',fxBoss:b.fxBoss,fuse:b.fuse||1.2,burst:b.burst||5,life:b.fuse||1.2});this._explode(b.x,q.y-4,'#ffb04a',.3);return true;}
+    if(b.fxBoss)this._bossImpact(b.x,q.y-4,b.fxBoss,30);
     this._explode(b.x,q.y-4,'#ff9a4a',.55);return true;}}return false;};
   NeonGame.prototype._bullets=function(dt){var s=this.state,p=s.player;for(var i=s.bullets.length-1;i>=0;i--){var b=s.bullets[i];if(b.g)b.vy+=b.g*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;var remove=b.life<=0||b.x<0||b.x>this.worldWidth||b.y>430||b.y<-140;if(remove&&b.fuse&&b.life<=0)this._mineBursts(b);if(!remove&&(b.g||b.pops)&&this._shellLands(b))remove=true;if(!remove){if(b.team==='player'){for(var j=0;j<s.enemies.length;j++){var e=s.enemies[j];if(!e.dead&&hit({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},e)){e.hp-=b.power;e.flash=.1;remove=true;for(var z=0;z<3;z++)this._particle(b.x,b.y,'#ffe36e');if(e.hp<=0)this._killEnemy(e);}}if(s.boss&&s.boss.active&&!s.boss.down&&hit({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},s.boss)){s.boss.hp-=b.power;s.boss.flash=.1;remove=true;this._burst(b.x,b.y,'#ff4f9a');}}else if(this._saberDeflects(b)){remove=true;for(var k=0;k<5;k++)this._particle(b.x,b.y,'#80fff0');this._particle(b.x,b.y,'#e5ffff','ring');}else if(hit({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},p)&&p.invuln<=0){p.hp--;p.invuln=.8;remove=true;s.shake=.25;this._emit('sound',{name:'hurt'});if(p.hp<=0)this._die();}}if(remove)s.bullets.splice(i,1);}};
   NeonGame.prototype._pickups=function(dt){
@@ -470,6 +471,7 @@
   NeonGame.prototype._bossFire=function(b,name){
     var s=this.state,p=s.player,dir=p.x<b.x?-1:1,cx=b.x+b.w/2,cy=b.y+b.h/2,
         floorY=(b.baseY===undefined?b.y:b.baseY)+b.h,i,a;
+    var firstBullet=s.bullets.length;
     b.facing=dir;
     if(name==='volley'){
       var shots=knob(b,'volleyShots');
@@ -524,12 +526,14 @@
           {r:6,kind:'wall'});
       }
     }
+    for(var fx=firstBullet;fx<s.bullets.length;fx++)s.bullets[fx].fxBoss=b.id;
   };
   // The slam only pays off when he lands: the floor throws a wave out both ways.
   NeonGame.prototype._bossSlam=function(b){
     var s=this.state,cx=b.x+b.w/2,fy=b.y+b.h,speed=knob(b,'slamWave');
-    this._spawn(cx-b.w*.3,fy-12,-speed,0,'enemy',false,2,{r:7,kind:'wave'});
-    this._spawn(cx+b.w*.3,fy-12,speed,0,'enemy',false,2,{r:7,kind:'wave'});
+    this._spawn(cx-b.w*.3,fy-12,-speed,0,'enemy',false,2,{r:7,kind:'wave',fxBoss:b.id});
+    this._spawn(cx+b.w*.3,fy-12,speed,0,'enemy',false,2,{r:7,kind:'wave',fxBoss:b.id});
+    this._bossImpact(b.x+b.w/2,fy,b.id,48);
     s.shake=Math.max(s.shake,.45);
     for(var i=0;i<12;i++){
       var d=i<6?-1:1,sp=80+Math.random()*150;
@@ -538,14 +542,19 @@
     }
     this._emit('sound',{name:'boss'});
   };
+  // Cosmetic only: fixed lifetime, no RNG, collision or damage.
+  NeonGame.prototype._bossImpact=function(x,y,id,size){
+    this._push({x:x,y:y,vx:0,vy:0,gravity:0,life:.38,maxLife:.38,size:size,type:'boss-impact',fxBoss:id});
+  };
   // A mine that has run its fuse throws a short fan upward before it is gone.
   NeonGame.prototype._mineBursts=function(b){
     var shots=b.burst||5;
     this._explode(b.x,b.y,'#ffb04a',.7);
     for(var i=0;i<shots;i++){
       var a=-Math.PI/2+(i-(shots-1)/2)*.42;
-      this._spawn(b.x,b.y-6,Math.cos(a)*165,Math.sin(a)*165,'enemy',false,1,{r:5,pops:true});
+      this._spawn(b.x,b.y-6,Math.cos(a)*165,Math.sin(a)*165,'enemy',false,1,{r:5,pops:true,fxBoss:b.fxBoss});
     }
+    if(b.fxBoss)this._bossImpact(b.x,b.y,b.fxBoss,36);
     this.state.shake=Math.max(this.state.shake,.2);
   };
   // Everything he had in the air comes off the board with him, and the arena goes quiet.
