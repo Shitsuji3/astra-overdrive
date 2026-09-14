@@ -872,3 +872,11 @@ Current worktree が増え、Push origin はPL2770H上で約(588,38)。押す直
 - **公開：** 未実施。
 
 詳細は work/TITLE-STAGE-SELECT-20260914.md。
+
+公開（2026-09-14 夜）：START MISSIONの削除（コミット4ff7327、Astraの公開記録と引き継ぎの2コミットを含む）を、ユーザーの「反映して」でGitHub DesktopのPush originから公開した。
+押す前に画面で、リポジトリ astra-overdrive／作業ツリー Astragemes／ブランチ main／未送信3件を確認。`git -c credential.helper= fetch` で origin/main が 4ff7327 と一致。
+公開サイト https://shitsuji3.github.io/astra-overdrive/ で、`data-action="start"` が無いこと、見えるメニューが STAGE SELECT／操作ガイド／システム設定、
+起動時のフォーカスがSTAGE SELECT、Enterでステージ選択が開きもう一度Enterで出撃、ページエラー0を確認。
+公開URLで `tests/browser-smoke.cjs` 18項目、`tests/browser-mouse.cjs` 11項目に合格。`tests/browser-gamepad.cjs` は1回目、テスト内の5秒上限で最初のページ読み込み（page.goto）が時間切れになった。
+そのまま再実行すると35項目合格。ゲームの不具合ではなく、ネットワーク越しの読み込み時間による失敗。
+公開したコードは保存版 `dist/history/ASTRA-OVERDRIVE-title-stage-select-only-20260914-211149.zip` と同じ。
