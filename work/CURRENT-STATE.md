@@ -909,3 +909,9 @@ Current worktree が増え、Push origin はPL2770H上で約(588,38)。押す直
 - **公開：** 未実施。
 
 詳細は work/BOSS-SIGNATURE-20260915.md。
+
+公開（2026-09-16）：ボスの固有技（コミットdaa68ee、Astraの引き継ぎ資料14cb13aを含む）を、ユーザーの「GitHubにも反映して」で公開した。
+- **push：** GitHub DesktopのPush originから。押す前に画面でリポジトリ astra-overdrive／作業ツリー Astragemes／ブランチ main／未送信2件を確認。`git -c credential.helper= fetch` で origin/main が daa68ee と一致。
+- **配信：** 公開サイト https://shitsuji3.github.io/astra-overdrive/ が約1分後に新しい `game.js`（`combat.bossDive`）、`assets/bosses.js`（COILHEADの最後の手 dive）、`render.js`（`BOSS_FLOOR_BAND`）を配信。
+- **確認：** 公開URLで `qa/boss-signature-moves.cjs` を実行し、急降下・糸渡りとも全段階を通過。アリーナ外に出ず、描画による状態変更なし、演出軽減でも同じ、ページエラー0。`tests/browser-smoke.cjs` は1回目で18項目合格。
+- **公開したコード：** 保存版 `dist/history/ASTRA-OVERDRIVE-boss-signature-dive-swing-20260915-222303.zip` と同じ。
