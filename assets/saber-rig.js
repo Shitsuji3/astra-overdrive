@@ -604,14 +604,16 @@
     }
     ctx.restore();
   }
-  function drawFanCharge(ctx,p,reduced){
+  function drawFanCharge(ctx,p,reduced,level,clock){
     var t=p.t,expand=ease(.10,.42,t),fade=1-ease(.53,.70,t);if(t<.10||fade<=0)return;
-    var rx=8+29*expand,ry=5+24*expand;ctx.save();ctx.globalAlpha=fade;
+    level=level||1;var rx=8+(29+(level-1)*3)*expand,ry=5+(24+(level-1)*2)*expand;ctx.save();ctx.globalAlpha=fade;
     // Nested pixel-column dome. The flat bottom stays on the floor beneath the raised arm.
     var cols=['#2454a4','#528de0','#a8d9ff','#f0faff'];
     for(var l=0;l<4;l++){ctx.fillStyle=cols[l];var r=rx-l*1.7,h=ry-l*1.5;for(var x=-Math.ceil(r);x<=r;x++){var y=Math.sqrt(Math.max(0,1-x*x/(r*r)))*h;ctx.fillRect(x,-Math.round(y),1,Math.round(y));}}
     ctx.globalAlpha=fade*.8;ctx.strokeStyle='#b4e8ff';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(0,-1,rx,4,0,0,Math.PI*2);ctx.stroke();
     if(!reduced)for(var i=0;i<5;i++){var a=Math.PI*(i/4),rr=rx*(.55+((t*2+i*.2)%1)*.35);ctx.fillStyle='#477dcc';ctx.fillRect(Math.round(Math.cos(a)*rr),-Math.round(Math.sin(a)*ry*.85),2,4);}
+    ctx.globalAlpha=fade*.75;ctx.strokeStyle='#d8f7ff';
+    for(var ring=1;ring<level;ring++){ctx.beginPath();ctx.ellipse(0,-3-ring*5,rx+ring*5,7+ring*2,reduced?0:Math.sin((clock||0)*5+ring)*.08,Math.PI,Math.PI*2);ctx.stroke();}
     ctx.restore();
   }
   function draw(ctx,o){
@@ -677,7 +679,7 @@
     if(p.stage===2)horizontalTrail(ctx,p,true);
     // the thrust's light is in front of the fist and the arm, as it is on the sheet
     if(p.stage===6)drawThrust(ctx,p,o.reducedMotion);
-    if(p.stage===7)drawFanCharge(ctx,p,o.reducedMotion);
+    if(p.stage===7)drawFanCharge(ctx,p,o.reducedMotion,o.fanLevel,o.effectTime);
     if(spin)ctx.restore();
     var b=blade(p);
     // The rising cut and the ride down carry fire, already drawn behind the figure; only the

@@ -532,10 +532,10 @@ test('down+saber builds a dome before exactly one seven-shot fan, with no melee 
   let melee=0;g._damageNearby=()=>melee++;
   g.setInput('down',true);g.setInput('saber',true);tick(g);
   assert.equal(p.saberCombo,7);tick(g,35);assert.equal(shots.length,0,'windup does not fire');
-  tick(g,14);assert.equal(shots.length,7);assert.ok(shots.every(b=>b.kind==='fan-orb'&&b.power===4.5&&b.vy<0));
+  g.setInput('saber',false);tick(g,20);assert.equal(shots.length,7);assert.ok(shots.every(b=>b.kind==='fan-orb'&&b.power===4.5&&b.vy<0));
   assert.ok(shots.some(b=>b.vx<0)&&shots.some(b=>b.vx>0),'fan spreads across both sides');
   assert.equal(new Set(shots.map(b=>Math.atan2(b.vy,b.vx))).size,7);
-  tick(g,90);assert.equal(shots.length,7,'holding cannot repeat or launch a charged thrust');assert.equal(melee,0);
+  tick(g,90);assert.equal(shots.length,7,'release cannot repeat or launch a charged thrust');assert.equal(melee,0);
 });
 test('down after saber converts only the initial ground swing; death cancels the fan',()=>{
   const g=game();quiet(g);const p=g.state.player;p.x=openGround(g);p.y=270;p.onGround=true;
@@ -719,4 +719,31 @@ test('the rising cut lands its four bites in quick succession, four frames apart
   assert.equal(at.length,4,`bites on frames ${at.join(', ')}`);
   for(let k=1;k<at.length;k++)assert.equal(at[k]-at[k-1],4,`bites on frames ${at.join(', ')}`);
   assert.ok((at[3]-at[0])/60<=.21,'all four inside about a fifth of a second');
+});
+
+for(const [frames,level,power] of [[1,1,4.5],[41,1,4.5],[42,2,6.75],[83,2,6.75],[84,3,9],[240,3,9]]){
+ test('fan charge '+frames+' frames releases '+level+' volleys with '+power+' damage',()=>{
+  const g=game();quiet(g);const p=g.state.player;p.x=openGround(g);p.y=270;p.onGround=true;
+  const shots=[],spawn=g._spawn.bind(g);g._spawn=(...args)=>{const b=spawn(...args);shots.push(b);return b;};
+  g.setInput('down',true);g.setInput('saber',true);tick(g,frames);
+  assert.equal(shots.length,0,'never fires before release, even beyond full');
+  assert.equal(ctx.AstraCombat.fanLevel(p),level);
+  assert.ok(p.fanCharge<=1.4);
+  // Down selects the attack; releasing Down alone must not fire it.
+  g.setInput('down',false);
+  assert.equal(p.saberCombo,7);
+  g.setInput('saber',false);tick(g,75);
+  assert.equal(shots.length,7*level);assert.ok(shots.every(b=>b.power===power&&b.vy<0));
+  assert.equal(ctx.AstraCombat.saberChargeShown(p),0);
+  tick(g,90);assert.equal(shots.length,7*level);
+  g.setInput('down',true);g.setInput('saber',true);tick(g);assert.equal(ctx.AstraCombat.fanLevel(p),1,'new attack clears old charge');
+ });
+}
+test('pausing or losing focus cancels a held fan without firing on resume',()=>{
+ const g=game();quiet(g);const p=g.state.player;p.x=openGround(g);p.y=270;p.onGround=true;
+ g.setInput('down',true);g.setInput('saber',true);tick(g,100);
+ assert.equal(ctx.AstraCombat.saberChargeShown(p),1);
+ g.pause();assert.equal(p.saberCombo,0);assert.equal(p.fanCharge,0);
+ g.setInput('saber',false);g.state.mode='playing';tick(g,90);
+ assert.equal(g.state.bullets.filter(b=>b.kind==='fan-orb').length,0);
 });
