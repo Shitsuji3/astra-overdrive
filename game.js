@@ -174,7 +174,28 @@
     ring:   { tell: .85, active: 1.4 },
     slam:   { tell: .75, active: 1.6 },
     mines:  { tell: .95, active: 1.6 },
-    wall:   { tell: .85, active: 1.5 }
+    wall:   { tell: .85, active: 1.5 },
+    // Signature moves, each owned by one boss. They run on their own phases (NeonGame._bossMove) and
+    // hand over to the rest the moment they are done, so active is only their nominal length.
+    dive:   { tell: .90, active: 2.4 },
+    swing:  { tell: .90, active: 2.1 }
+  };
+  // COILHEAD's dive. It rises lift px over the floor in rise seconds, hunts the player from overhead at
+  // track px/s for hover seconds but holds still for the last lock of them, so the drop can be read and
+  // sidestepped, falls at fall px/s^2, and sends a short shock out each way where it lands. Then it is
+  // stuck for stuck seconds, which is the opening the move is built around.
+  combat.bossDive = { rise: .45, lift: 150, hover: .55, lock: .18, track: 260, fall: 2600, stuck: 1.0,
+                      shockSpeed: 240, shockLife: .75, shockR: 7 };
+  // SPARKWIDOW's swing. A silk line is anchored anchorY px from the top of the screen over the middle of
+  // the arena. It climbs to the end of the line on its own side in climb seconds, swings swingDeg either
+  // side of straight down in sweep seconds - at the bottom its feet brush the floor, so it is jumped or
+  // stood clear of - lets go on the far side, and on landing throws a saw blade each way that rolls out
+  // and comes back once turn seconds are left of its life.
+  combat.bossSwing = { climb: .40, anchorY: 36, rope: 250, swingDeg: 55, sweep: .90,
+                       sawSpeed: 270, sawLife: 1.5, sawTurn: .75, sawR: 9 };
+  // Where the swing hangs from, in world coordinates of the body's centre, for the arena in use.
+  combat.bossSwingAnchor = function (b) {
+    return { x: (combat.arena.bossMin + combat.arena.bossMax) / 2 + b.w / 2, y: combat.bossSwing.anchorY };
   };
   // The whole catalogue. Which of these a boss owns is its own business.
   combat.bossPatternOrder = ['volley','wave','dash','mortar','ring','slam','mines','wall'];
@@ -466,7 +487,7 @@
     if(b.mine){this._spawn(b.x,q.y-8,0,0,'enemy',false,1,{r:7,kind:'mine',fxBoss:b.fxBoss,fuse:b.fuse||1.2,burst:b.burst||5,life:b.fuse||1.2});this._explode(b.x,q.y-4,'#ffb04a',.3);return true;}
     if(b.fxBoss)this._bossImpact(b.x,q.y-4,b.fxBoss,30);
     this._explode(b.x,q.y-4,'#ff9a4a',.55);return true;}}return false;};
-  NeonGame.prototype._bullets=function(dt){var s=this.state,p=s.player;for(var i=s.bullets.length-1;i>=0;i--){var b=s.bullets[i];if(b.g)b.vy+=b.g*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;var remove=b.life<=0||b.x<0||b.x>this.worldWidth||b.y>430||b.y<-140;if(remove&&b.fuse&&b.life<=0)this._mineBursts(b);if(!remove&&(b.g||b.pops)&&this._shellLands(b))remove=true;if(!remove){if(b.team==='player'){for(var j=0;j<s.enemies.length;j++){var e=s.enemies[j];if(!e.dead&&hit({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},e)){e.hp-=b.power;e.flash=.1;remove=true;for(var z=0;z<3;z++)this._particle(b.x,b.y,'#ffe36e');if(e.hp<=0)this._killEnemy(e);}}if(s.boss&&s.boss.active&&!s.boss.down&&hit({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},s.boss)){s.boss.hp-=b.power;s.boss.flash=.1;remove=true;this._burst(b.x,b.y,'#ff4f9a');}}else if(this._saberDeflects(b)){remove=true;for(var k=0;k<5;k++)this._particle(b.x,b.y,'#80fff0');this._particle(b.x,b.y,'#e5ffff','ring');}else if(hit({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},p)&&p.invuln<=0){p.hp--;p.invuln=.8;remove=true;s.shake=.25;this._emit('sound',{name:'hurt'});if(p.hp<=0)this._die();}}if(remove)s.bullets.splice(i,1);}};
+  NeonGame.prototype._bullets=function(dt){var s=this.state,p=s.player;for(var i=s.bullets.length-1;i>=0;i--){var b=s.bullets[i];if(b.g)b.vy+=b.g*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(b.turn&&b.life<=b.turn){b.vx=-b.vx;b.turn=0;}var remove=b.life<=0||b.x<0||b.x>this.worldWidth||b.y>430||b.y<-140;if(remove&&b.fuse&&b.life<=0)this._mineBursts(b);if(!remove&&(b.g||b.pops)&&this._shellLands(b))remove=true;if(!remove){if(b.team==='player'){for(var j=0;j<s.enemies.length;j++){var e=s.enemies[j];if(!e.dead&&hit({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},e)){e.hp-=b.power;e.flash=.1;remove=true;for(var z=0;z<3;z++)this._particle(b.x,b.y,'#ffe36e');if(e.hp<=0)this._killEnemy(e);}}if(s.boss&&s.boss.active&&!s.boss.down&&hit({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},s.boss)){s.boss.hp-=b.power;s.boss.flash=.1;remove=true;this._burst(b.x,b.y,'#ff4f9a');}}else if(this._saberDeflects(b)){remove=true;for(var k=0;k<5;k++)this._particle(b.x,b.y,'#80fff0');this._particle(b.x,b.y,'#e5ffff','ring');}else if(hit({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},p)&&p.invuln<=0){p.hp--;p.invuln=.8;remove=true;s.shake=.25;this._emit('sound',{name:'hurt'});if(p.hp<=0)this._die();}}if(remove)s.bullets.splice(i,1);}};
   NeonGame.prototype._pickups=function(dt){
     var s=this.state,p=s.player;dt=dt||0;
     for(var i=s.pickups.length-1;i>=0;i--){
@@ -539,6 +560,16 @@
         var at=p.x+p.w/2+(i-(count-1)/2)*mSpread;
         this._spawn(cx,b.y+b.h*.18,(at-cx)/mf,mClimb,'enemy',false,1,{r:6,g:mg,kind:'shell',mine:true});
       }
+    } else if(name==='dive'){
+      // it lets go of the floor; _bossMove flies it from here
+      b.fly=true;b.vy=0;b.leap=false;b.slammed=true;
+      b.move={kind:'dive',phase:'rise',t:0,fromY:b.y,lockX:null,done:false};
+    } else if(name==='swing'){
+      var SW=global.AstraCombat.bossSwing,anchor=global.AstraCombat.bossSwingAnchor(b),
+          side=(b.x+b.w/2)>=anchor.x?1:-1;
+      b.fly=true;b.vy=0;b.leap=false;b.slammed=true;b.facing=-side;
+      b.move={kind:'swing',phase:'climb',t:0,ax:anchor.x,ay:anchor.y,th0:side*SW.swingDeg*Math.PI/180,
+        th:side*SW.swingDeg*Math.PI/180,fromX:b.x,fromY:b.y,done:false};
     } else if(name==='wall'){
       // a column with exactly one hole in it, which is the whole puzzle
       var rows=knob(b,'wallRows'),step=knob(b,'wallStep'),
@@ -550,6 +581,66 @@
       }
     }
     for(var fx=firstBullet;fx<s.bullets.length;fx++)s.bullets[fx].fxBoss=b.id;
+  };
+  // A signature move, one frame at a time. When it is done it zeroes the timer, and the boss goes
+  // straight into the rest its beat asked for.
+  NeonGame.prototype._bossMove=function(b,dt){
+    var s=this.state,p=s.player,C=global.AstraCombat,arena=C.arena,m=b.move,u,e;
+    if(!m||m.done)return;
+    m.t+=dt;
+    if(m.kind==='dive'){
+      var D=C.bossDive,hoverY=b.baseY-D.lift,want=p.x+p.w/2-b.w/2;
+      function hunt(){var gap=want-b.x,step=D.track*dt;b.x=clamp(b.x+(gap>0?Math.min(step,gap):Math.max(-step,gap)),arena.bossMin,arena.bossMax);}
+      if(m.phase==='rise'){
+        u=Math.min(1,m.t/D.rise);e=u*u*(3-2*u);b.y=m.fromY+(hoverY-m.fromY)*e;hunt();
+        if(u>=1){m.phase='hover';m.t=0;}
+      }else if(m.phase==='hover'){
+        b.y=hoverY;
+        // it keeps the way it faced when it took off: hovering over the player, the picture would
+        // otherwise flip every time its middle crossed his
+        if(m.t<D.hover-D.lock)hunt();
+        else if(m.lockX===null)m.lockX=b.x;
+        if(m.t>=D.hover){if(m.lockX===null)m.lockX=b.x;m.phase='fall';m.t=0;b.vy=0;}
+      }else if(m.phase==='fall'){
+        b.x=m.lockX;b.vy+=D.fall*dt;b.y+=b.vy*dt;
+        if(b.y>=b.baseY){
+          b.y=b.baseY;b.vy=0;b.fly=false;m.phase='stuck';m.t=0;
+          var fy=b.y+b.h,cx=b.x+b.w/2;
+          this._spawn(cx-b.w*.3,fy-12,-D.shockSpeed,0,'enemy',false,1,{r:D.shockR,kind:'wave',life:D.shockLife,fxBoss:b.id});
+          this._spawn(cx+b.w*.3,fy-12,D.shockSpeed,0,'enemy',false,1,{r:D.shockR,kind:'wave',life:D.shockLife,fxBoss:b.id});
+          this._bossImpact(cx,fy,b.id,44);
+          s.shake=Math.max(s.shake,.4);
+          this._emit('sound',{name:'boss'});
+        }
+      }else if(m.phase==='stuck'){
+        if(m.t>=D.stuck){m.done=true;b.timer=0;}
+      }
+    }else if(m.kind==='swing'){
+      var S=C.bossSwing,L=S.rope;
+      if(m.phase==='climb'){
+        u=Math.min(1,m.t/S.climb);e=u*u*(3-2*u);
+        var tx=m.ax+L*Math.sin(m.th0)-b.w/2,ty=m.ay+L*Math.cos(m.th0)-b.h/2;
+        b.x=clamp(m.fromX+(tx-m.fromX)*e,arena.bossMin,arena.bossMax);b.y=Math.min(b.baseY,m.fromY+(ty-m.fromY)*e);
+        if(u>=1){m.phase='sweep';m.t=0;}
+      }else if(m.phase==='sweep'){
+        u=Math.min(1,m.t/S.sweep);m.th=m.th0*Math.cos(Math.PI*u);
+        b.x=clamp(m.ax+L*Math.sin(m.th)-b.w/2,arena.bossMin,arena.bossMax);b.y=Math.min(b.baseY,m.ay+L*Math.cos(m.th)-b.h/2);
+        // it lets go on the far side and drops; slammed stays set, so the landing throws no slam wave
+        if(u>=1){m.phase='drop';m.t=0;b.fly=false;b.vy=0;b.slammed=true;}
+      }else if(m.phase==='drop'){
+        if(b.y>=b.baseY){
+          m.phase='saws';m.t=0;
+          var sx=b.x+b.w/2,sy=b.baseY+b.h;
+          for(var d=-1;d<=1;d+=2)
+            this._spawn(sx+d*b.w*.4,sy-S.sawR-1,d*S.sawSpeed,0,'enemy',false,1,{r:S.sawR,kind:'saw',life:S.sawLife,turn:S.sawTurn,fxBoss:b.id});
+          this._bossImpact(sx,sy,b.id,34);
+          s.shake=Math.max(s.shake,.25);
+          this._emit('sound',{name:'boss'});
+        }
+      }else if(m.phase==='saws'){
+        if(m.t>=.25){m.done=true;b.timer=0;}
+      }
+    }
   };
   // The slam only pays off when he lands: the floor throws a wave out both ways.
   NeonGame.prototype._bossSlam=function(b){
@@ -591,7 +682,7 @@
       this._emit('sound',{name:'pickup'});
     }
     b.hp=0;b.down=true;b.downTime=0;b.deathBursts=0;b.blasted=false;
-    b.dashTime=0;b.attack='down';b.timer=999;
+    b.dashTime=0;b.attack='down';b.timer=999;b.move=null;b.fly=false;
     for(var i=s.bullets.length-1;i>=0;i--)if(s.bullets[i].team==='enemy')s.bullets.splice(i,1);
     s.shake=Math.max(s.shake,.35);
     this._emit('sound',{name:'explode'});
@@ -635,7 +726,7 @@
     s.boss={id:def.id,name:def.name,title:def.title,look:def.look||'',sprite:def.sprite||'',
       x:arena.bossX,y:bottom-def.h,baseY:bottom-def.h,w:def.w,h:def.h,
       hp:hp,maxHp:hp,active:true,phase:0,healthPhase:1,attack:'tell-'+def.pool[0],
-      timer:.95,flash:0,facing:-1,vy:0,leap:false,slammed:true,beat:undefined,walkTo:undefined};
+      timer:.95,flash:0,facing:-1,vy:0,leap:false,slammed:true,beat:undefined,walkTo:undefined,fly:false,move:null};
     // it opens on the first beat of its routine, so the loop starts where the roster says
     this._bossBeat(s.boss,def);
     return s.boss;
@@ -661,12 +752,13 @@
     var ratio=b.hp/b.maxHp;b.healthPhase=ratio>.66?1:ratio>.33?2:3;
     // the slam leap tracks the player through the air and shakes the floor on landing. A
     // scurry hop rides the same gravity but lands already slammed, so it throws no wave.
-    if(b.vy||b.y<b.baseY){
+    if(!b.fly&&(b.vy||b.y<b.baseY)){
       b.vy=(b.vy||0)+1500*dt;b.y+=b.vy*dt;
       var toward=(p.x+p.w/2)-(b.x+b.w/2);
       if(b.leap&&Math.abs(toward)>4)b.x=clamp(b.x+(toward>0?1:-1)*knob(b,'slamTrack')*dt,arena.bossMin,arena.bossMax);
       if(b.y>=b.baseY){b.y=b.baseY;if(b.vy>0&&!b.slammed){b.slammed=true;this._bossSlam(b);}b.vy=0;b.leap=false;}
     }
+    if(b.move)this._bossMove(b,dt);
     if(b.dashTime>0){b.dashTime-=dt;b.x=clamp(b.x+b.facing*knob(b,'dashSpeed')*dt,arena.bossMin,arena.bossMax);}
     // Walking only ever happens on the way to the spot the next beat asked for, and it ends
     // the moment the boss gets there.
@@ -681,6 +773,8 @@
     }
     // Resting is the opening: it stands, it faces you, and it starts nothing.
     if(state==='rest')b.facing=(p.x+p.w/2)<b.x+b.w/2?-1:1;
+    // a signature move ends when its own phases do, not when the pattern's nominal time runs out
+    if(b.move&&!b.move.done&&b.timer<=0)b.timer=1e-6;
     if(b.timer<=0){
       if(state.indexOf('walk-')===0)this._bossWind(b,def,state.slice(5));
       else if(state.indexOf('tell-')===0&&C.bossPatterns[state.slice(5)]){
@@ -703,7 +797,7 @@
     b.walkTo=clamp(mid+side*away-b.w/2,arena.bossMin,arena.bossMax);
     if(Math.abs(b.walkTo+b.w/2-mid)<away-24)
       b.walkTo=clamp(mid-side*away-b.w/2,arena.bossMin,arena.bossMax);
-    b.attack='walk-'+beat.move;b.timer=C.bossWalk.cap;b.dashTime=0;
+    b.attack='walk-'+beat.move;b.timer=C.bossWalk.cap;b.dashTime=0;b.move=null;b.fly=false;
   };
   // Plant and telegraph. The wind-up is the same one the warning graphic is drawn from.
   NeonGame.prototype._bossWind=function(b,def,move){
@@ -718,7 +812,7 @@
   NeonGame.prototype._bossRest=function(b,def){
     var C=global.AstraCombat,routine=C.bossRoutine(def),
         beat=routine&&routine[b.beat===undefined?0:b.beat];
-    b.attack='rest';b.dashTime=0;
+    b.attack='rest';b.dashTime=0;b.move=null;b.fly=false;
     b.timer=Math.max(C.bossRestFloor,(beat?beat.rest:.8)*C.bossTellScale[b.healthPhase-1]);
   };
   NeonGame.prototype._deathTick=function(dt){var s=this.state,f=s.deathFx;if(s.mode!=='dead'||!f||f.done)return;f.time=Math.min(f.duration,f.time+dt);s.shake=Math.max(0,s.shake-dt*3);s.flash=0;if(f.time>=f.duration){f.done=true;this._emit('death-ready',this.snapshot());}};

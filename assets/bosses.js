@@ -21,6 +21,7 @@
    tells you exactly what the fight is, and the rests are where the player gets their hits in.
 
    Attacks in the catalogue: volley, wave, dash, mortar, ring, slam, mines, wall.
+   Signature moves, one boss each: dive (COILHEAD), swing (SPARKWIDOW).
    A boss with a short routine is not a weaker boss, it is a more readable one. */
 (function (g) {
   'use strict';
@@ -40,7 +41,7 @@
     stepSpeed: 210
   };
 
-  var ALL = ['volley', 'wave', 'dash', 'mortar', 'ring', 'slam', 'mines', 'wall'];
+  var ALL = ['volley', 'wave', 'dash', 'mortar', 'ring', 'slam', 'mines', 'wall', 'dive', 'swing'];
 
   var roster = [
     {
@@ -73,15 +74,17 @@
     },
     {
       id: 'coilhead', name: 'COILHEAD', title: 'ARC FRAME', jp: '磁頭',
-      blurb: '弾幕の壁を張って距離を詰めてくる。隙間を読んで抜ける相手。',
+      blurb: '弾幕の壁を張って距離を詰め、飛び上がって毒針で急降下してくる。落ちる位置を読んで抜ける相手。',
       hp: 96, easyHp: 64, w: 34, h: 50, sprite: 'assets/bosses/coilhead.webp', look: 'hue-rotate(38deg) saturate(1.3) brightness(1.06)',
-      // Five beats that walk you backwards: a wall, then a volley behind it, then the charge.
+      // Six beats that walk you backwards: a wall, then a volley behind it, then the charge, and last
+      // its own move, the dive, from overhead.
       routine: [
         { move: 'wall',   from: 'far',  rest: .7 },
         { move: 'volley', from: 'mid',  rest: .75 },
         { move: 'dash',   from: 'far',  rest: .9 },
         { move: 'mines',  from: 'mid',  rest: .8 },
-        { move: 'ring',   from: 'near', rest: .85 }
+        { move: 'ring',   from: 'near', rest: .85 },
+        { move: 'dive',   from: 'mid',  rest: .9 }
       ], tempo: .95,
       knobs: { wallRows: 6, wallSpeed: 250, volleyShots: 6, ringShots: 12, stepSpeed: 240 }
     },
@@ -130,17 +133,17 @@
     },
     {
       id: 'sparkwidow', name: 'SPARKWIDOW', title: 'FILAMENT FRAME', jp: '火寡',
-      blurb: '小さくて速い。突進と壁を休みなく繰り返す。',
+      blurb: '小さくて速い。突進と壁を休みなく繰り返し、天井の糸で振り子のように横切って丸鋸を投げる。',
       hp: 80, easyHp: 54, w: 30, h: 44, sprite: 'assets/bosses/sparkwidow.webp', look: 'hue-rotate(295deg) saturate(1.4) brightness(1.05)',
       // Six short beats. Nothing it does is heavy; the pressure is that the next thing is
-      // already coming.
+      // already coming. Its last beat is its own move, the silk swing, in place of a second volley.
       routine: [
         { move: 'dash',   from: 'far',  rest: .65 },
         { move: 'volley', from: 'mid',  rest: .6 },
         { move: 'wall',   from: 'far',  rest: .65 },
         { move: 'dash',   from: 'near', rest: .7 },
         { move: 'mines',  from: 'mid',  rest: .65 },
-        { move: 'volley', from: 'far',  rest: .75 }
+        { move: 'swing',  from: 'far',  rest: .75 }
       ], tempo: .65,
       knobs: { dashSpeed: 330, dashHold: .75, wallSpeed: 270, wallRows: 5, volleyShots: 4, mineShells: 2, stepSpeed: 300 }
     },

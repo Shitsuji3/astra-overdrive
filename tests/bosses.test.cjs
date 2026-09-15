@@ -159,6 +159,7 @@ test('each attack does something, for every boss that owns it', () => {
       const shots = fire(g, b, move);
       if (move === 'dash') assert.ok(b.dashTime > 0, `${def.id} charges`);
       else if (move === 'slam') assert.ok(b.vy < 0, `${def.id} leaves the floor`);
+      else if (move === 'dive' || move === 'swing') assert.ok(b.move && b.fly, `${def.id} takes to the air for its ${move}`);
       else assert.ok(shots.length > 0, `${def.id}'s ${move} puts something on the board`);
     }
   }
@@ -263,4 +264,159 @@ test('a run stage still ends when its single boss goes down', () => {
   g.state.boss.hp = 0;
   for (let i = 0; i < 300 && g.state.mode === 'playing'; i++) { p.invuln = 1e9; g._boss(1 / 60); }
   assert.equal(g.state.mode, 'victory');
+});
+
+// The signature moves. A move is run through the real boss tick, a frame at a time.
+function runMove(g, b, frames, each) {
+  for (let i = 0; i < frames && (String(b.attack) === 'dive' || String(b.attack) === 'swing'); i++) {
+    const was = { x: b.x, y: b.y, phase: b.move && b.move.phase };
+    g._boss(1 / 60); g._bullets(1 / 60);
+    if (each) each(was, i);
+  }
+}
+
+test('signature: COILHEAD rises, hunts from overhead, locks, then drives its sting into the floor', () => {
+  const h = harness(), C = h.api, D = C.bossDive;
+  const def = h.bosses.get('coilhead');
+  assert.equal(Array.from(def.routine).slice(-1)[0].move, 'dive', 'the dive closes its loop');
+  const { g, b } = arena(h, 'coilhead');
+  const p = g.state.player;
+  b.x = Math.min(C.arena.bossMax, p.x + 160);
+  fire(g, b, 'dive');
+  assert.equal(String(b.attack), 'dive');
+  let top = b.y, lockX = null, movedAfterLock = false, landed = null, stuckFrames = 0, shocks = null;
+  runMove(g, b, 60 * 5, (was, i) => {
+    top = Math.min(top, b.y);
+    assert.ok(b.x >= C.arena.bossMin && b.x <= C.arena.bossMax, 'it stays inside the arena');
+    const m = b.move;
+    if (m && m.phase === 'hover' && m.lockX === null && i % 6 === 0) p.x += 6;     // the player keeps moving
+    if (m && m.lockX !== null && lockX === null) lockX = m.lockX;
+    if (lockX !== null && m && (m.phase === 'hover' || m.phase === 'fall')) {
+      p.x += 12;                                                                   // and sidesteps after the lock
+      if (b.x !== lockX) movedAfterLock = true;
+    }
+    if (landed === null && was.phase === 'fall' && m && m.phase === 'stuck') {
+      landed = { x: b.x, y: b.y };
+      shocks = Array.from(g.state.bullets).filter(s => s.kind === 'wave');
+    }
+    if (m && m.phase === 'stuck' && was.phase === 'stuck') {
+      stuckFrames++;
+      assert.equal(b.x, landed.x, 'stuck, it does not move');
+      assert.equal(b.y, b.baseY, 'and it is on the floor');
+    }
+  });
+  assert.ok(top <= b.baseY - D.lift + 1, `it rises ${D.lift}px: top ${Math.round(top)} against floor ${b.baseY}`);
+  assert.ok(lockX !== null, 'it locks its position before the drop');
+  assert.equal(movedAfterLock, false, 'after the lock it does not follow the player');
+  assert.ok(landed && landed.x === lockX, 'it lands where it locked');
+  assert.equal(shocks.length, 2, 'two shocks leave the landing');
+  assert.ok(shocks.some(s => s.vx < 0) && shocks.some(s => s.vx > 0), 'one each way');
+  assert.ok(shocks.every(s => s.power === 1 && s.life <= D.shockLife), 'short and light');
+  assert.ok(stuckFrames / 60 >= D.stuck - 2 / 60, `it stays stuck ${(stuckFrames / 60).toFixed(2)}s`);
+  assert.equal(String(b.attack), 'rest', 'then it rests as its beat asks');
+  assert.equal(b.fly, false); assert.equal(b.move, null);
+});
+
+test('signature: the sting hits a player who stays under it and misses one who stepped aside after the lock', () => {
+  for (const sidestep of [false, true]) {
+    const h = harness(), C = h.api;
+    const { g, b } = arena(h, 'coilhead');
+    const p = g.state.player;
+    // it starts beside him, not on top of him: a body it spawned inside would hurt before anything moved
+    b.x = p.x + 70;
+    fire(g, b, 'dive');
+    let hpBeforeFall = null, hitAtLanding = false, armed = false;
+    runMove(g, b, 60 * 5, (was) => {
+      const m = b.move;
+      if (m && m.phase === 'hover' && !armed) { armed = true; p.invuln = 0; p.hp = 8; }
+      if (m && m.phase === 'hover' && m.lockX !== null && hpBeforeFall === null) {
+        hpBeforeFall = p.hp;
+        if (sidestep) p.x = m.lockX + b.w + 90;
+      }
+      if (m && m.phase === 'hover' && m.lockX === null) p.x = b.x + b.w / 2 - p.w / 2;   // stay right under it
+      if (was.phase === 'fall' && m && m.phase === 'stuck') {
+        hitAtLanding = p.hp < hpBeforeFall;
+        g.state.bullets = [];                       // only the body is being tested here, not the shocks
+      }
+    });
+    assert.equal(hpBeforeFall, 8, 'nothing lands before the drop');
+    assert.equal(hitAtLanding, !sidestep, sidestep ? 'stepping aside after the lock is safe' : 'staying under it is not');
+  }
+});
+
+test('signature: SPARKWIDOW swings across the arena on a silk line, grazing the floor, and lands without a slam', () => {
+  const h = harness(), C = h.api, S = C.bossSwing;
+  const def = h.bosses.get('sparkwidow');
+  const routine = Array.from(def.routine);
+  assert.ok(routine.some(x => x.move === 'swing'), 'the swing is in its loop');
+  assert.ok(routine.length <= 6, 'and the loop is still six beats');
+  const { g, b } = arena(h, 'sparkwidow');
+  const p = g.state.player;
+  b.x = C.arena.bossMax;
+  fire(g, b, 'swing');
+  const anchor = C.bossSwingAnchor(b);
+  assert.equal(b.move.ax, anchor.x, 'the line hangs over the middle of the arena');
+  const startSide = Math.sign(b.x + b.w / 2 - anchor.x);
+  let lowest = 0, minX = b.x, maxX = b.x, slamWaves = 0, saws = null, sweepEndSide = 0;
+  runMove(g, b, 60 * 5, (was) => {
+    assert.ok(b.x >= C.arena.bossMin && b.x <= C.arena.bossMax, 'it stays inside the arena');
+    minX = Math.min(minX, b.x); maxX = Math.max(maxX, b.x);
+    const m = b.move;
+    if (m && (m.phase === 'sweep' || m.phase === 'climb')) lowest = Math.max(lowest, b.y + b.h);
+    if (was.phase === 'sweep' && m && m.phase === 'drop') sweepEndSide = Math.sign(b.x + b.w / 2 - anchor.x);
+    slamWaves += Array.from(g.state.bullets).filter(s => s.kind === 'wave').length;
+    if (!saws && m && m.phase === 'saws') saws = Array.from(g.state.bullets).filter(s => s.kind === 'saw').map(s => s);
+  });
+  assert.ok(lowest >= 310 - 6 && lowest <= 310, `at the bottom its feet brush the floor: ${Math.round(lowest)}`);
+  assert.equal(sweepEndSide, -startSide, 'it lets go on the far side');
+  assert.ok(maxX - minX >= 300, `it crosses the arena: ${Math.round(maxX - minX)}px`);
+  assert.equal(slamWaves, 0, 'the landing throws no slam wave');
+  assert.equal(String(b.attack), 'rest');
+  assert.ok(saws && saws.length === 2, 'two saws are thrown on landing');
+  assert.ok(saws.some(s => s.vx < 0) && saws.some(s => s.vx > 0), 'one each way');
+});
+
+test('signature: a saw rolls out along the floor and comes back once', () => {
+  const h = harness(), C = h.api, S = C.bossSwing;
+  const { g, b } = arena(h, 'sparkwidow');
+  g.state.bullets = [];
+  g._spawn(b.x, 300, S.sawSpeed, 0, 'enemy', false, 1, { r: S.sawR, kind: 'saw', life: S.sawLife, turn: S.sawTurn, fxBoss: b.id });
+  const saw = g.state.bullets[0], from = saw.x;
+  let flips = 0, last = Math.sign(saw.vx), far = 0;
+  for (let i = 0; i < 60 * 2 && g.state.bullets.length; i++) {
+    g._bullets(1 / 60);
+    far = Math.max(far, saw.x - from);
+    if (Math.sign(saw.vx) !== last) { flips++; last = Math.sign(saw.vx); }
+  }
+  assert.equal(flips, 1, 'it turns round exactly once');
+  assert.ok(far >= 180, `it goes out ${Math.round(far)}px first`);
+  assert.equal(g.state.bullets.length, 0, 'and is gone at the end of its life');
+  assert.equal(saw.y, 300, 'it keeps to the floor');
+});
+
+test('signature: a standing player in the swing path is struck by the body', () => {
+  const h = harness(), C = h.api;
+  const { g, b } = arena(h, 'sparkwidow');
+  const p = g.state.player;
+  b.x = C.arena.bossMax;
+  fire(g, b, 'swing');
+  const anchor = C.bossSwingAnchor(b);
+  p.x = anchor.x - p.w / 2; p.y = 270; p.invuln = 0; p.hp = 8;
+  let hit = false;
+  runMove(g, b, 60 * 5, () => { const m = b.move; if (m && m.phase === 'sweep' && p.hp < 8) hit = true; p.x = anchor.x - p.w / 2; p.y = 270; });
+  assert.ok(hit, 'the bottom of the swing hits someone standing there');
+});
+
+test('signature: a boss downed mid-move comes back to the floor', () => {
+  const h = harness();
+  for (const [id, move] of [['coilhead', 'dive'], ['sparkwidow', 'swing']]) {
+    const { g, b } = arena(h, id);
+    fire(g, b, move);
+    for (let i = 0; i < 40; i++) g._boss(1 / 60);
+    assert.ok(b.y < b.baseY - 20, `${id} is in the air`);
+    b.hp = 0; g._boss(1 / 60);
+    assert.equal(b.fly, false); assert.equal(b.move, null);
+    for (let i = 0; i < 60 && b.y < b.baseY; i++) g._boss(1 / 60);
+    assert.equal(b.y, b.baseY, `${id} falls back to the floor as it dies`);
+  }
 });

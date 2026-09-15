@@ -80,6 +80,24 @@ function bossProjectile(c,s,b){
   if(x<-65||x>W+65||y<-65||y>H+65)return true;
   c.save();
   G(c,x,y,r*2.7,co[0],reduced?.12:.25);
+  if(b.kind==='saw'){
+    // a spinning blade that reads against the dark floor: bright teeth with a dark edge, a dark disc ringed in
+    // the boss's colour, and sparks thrown off behind it where it bites the floor
+    var dirS=b.vx<0?-1:1,spin=(reduced?0:t*18)*dirS,teeth=10,tt,an,ra;
+    if(!reduced)for(var sp=0;sp<3;sp++){var ph=(t*9+sp/3)%1;R(c,x-dirS*(r+3+ph*14),y+r-1-(sp%2)*2-ph*3,2,2,sp%2?co[1]:'#ffd27a')}
+    c.translate(x,y);c.rotate(spin);
+    c.fillStyle='#10161b';c.beginPath();
+    for(tt=0;tt<teeth*2;tt++){ra=tt%2?r:r+3;an=tt*Math.PI/teeth;c.lineTo(Math.cos(an)*ra,Math.sin(an)*ra)}
+    c.closePath();c.fill();
+    c.fillStyle='#e6ecef';c.beginPath();
+    for(tt=0;tt<teeth*2;tt++){ra=tt%2?r-1:r+2;an=tt*Math.PI/teeth;c.lineTo(Math.cos(an)*ra,Math.sin(an)*ra)}
+    c.closePath();c.fill();
+    c.fillStyle='#4f5a61';c.beginPath();c.arc(0,0,r*.62,0,Math.PI*2);c.fill();
+    c.strokeStyle=co[0];c.lineWidth=2;c.beginPath();c.arc(0,0,r*.62,0,Math.PI*2);c.stroke();
+    c.fillStyle=co[1];c.beginPath();c.arc(0,0,r*.25,0,Math.PI*2);c.fill();
+    R(c,-1,-1,2,2,P.white);
+    c.restore();return true;
+  }
   if(b.kind==='mine'){
     var left=C(b.life/(b.fuse||1.2),0,1);
     Q(c,[x-r,y-r*.5,x,y-r,x+r,y-r*.5,x+r,y+r*.5,x,y+r,x-r,y+r*.5],P.ink);
@@ -119,6 +137,28 @@ function bossImpact(c,s,q){
   }
   c.restore();return true;
 }
+// How a boss's picture leans for its signature move. The picture is drawn mirrored when it faces left, so a
+// lean that belongs to the world - the swing hangs from a line over the arena - is turned into the
+// picture's own frame, while one that belongs to the body - the sting is at the picture's right end, and a
+// turn of BOSS_STING_TURN points it at the floor - is used as it is.
+var BOSS_STING_TURN=.6;
+// How much of the bottom of a boss's cut-out is floor rather than machine, as a share of its height: the strip
+// of factory floor the cut-out kept under its feet. Measured on the webp: COILHEAD's bright floor edge and the
+// plate under it are its last 12 of 336 rows, SPARKWIDOW's floor plate and hazard stripes its last 40 of 290.
+var BOSS_FLOOR_BAND={coilhead:12/336,sparkwidow:40/290};
+function bossPose(b,t,reduced){
+  var m=b&&b.move,o={rot:0,dx:0,dy:0};
+  if(!m||b.down)return o;
+  if(m.kind==='dive'){
+    if(m.phase==='rise')o.rot=-.1;
+    else if(m.phase==='hover'){o.dy=reduced?0:Math.sin(t*40)*1.2;o.rot=m.lockX!==null?BOSS_STING_TURN*.5:0}
+    else if(m.phase==='fall')o.rot=BOSS_STING_TURN;
+    else if(m.phase==='stuck'){o.rot=BOSS_STING_TURN*.85;o.dx=reduced?0:Math.sin(t*55)*1.5}
+  }else if(m.kind==='swing'&&(m.phase==='climb'||m.phase==='sweep')){
+    o.rot=(b.facing<0?-1:1)*(-(m.th||0)*.55);
+  }
+  return o;
+}
 function bossEnergy(c,s,b){
   if(!b||!b.active||b.down||b.gone)return;
   var raw=String(b.attack||''),tell=raw.indexOf('tell-')===0,co=bossColors(b.id),t=s.time||0,
@@ -136,23 +176,45 @@ function bossEnergy(c,s,b){
     c.globalAlpha=.7;fxArc(c,x+dir*b.w*.35,b.y+b.h*.5,b.h*.44,dir>0?-1.1:2.04,dir>0?1.1:4.24,co[1],2);
   }else if(raw==='slam'&&b.leap){
     c.globalAlpha=reduced?.18:.42;fxArc(c,x,b.y+b.h*.5,b.w*.72,.1,3.04,co[0],2);
+  }else if(raw==='dive'&&b.move){
+    // where the sting will land: a ring on the floor that follows it, then turns solid when it locks
+    var m=b.move,floorY=b.baseY+b.h,locked=m.lockX!==null,fx0=gx(s,(locked?m.lockX:b.x)+b.w/2);
+    if(m.phase!=='stuck'){
+      c.globalAlpha=locked?.9:(reduced?.6:.45+.35*Math.abs(Math.sin(t*14)));
+      c.strokeStyle=locked?P.coral:co[0];c.lineWidth=locked?2:1;
+      c.beginPath();c.ellipse(fx0,floorY-3,b.w*.75,5,0,0,Math.PI*2);c.stroke();
+      if(locked){L(c,fx0-b.w*1.05,floorY-3,fx0-b.w*.82,floorY-3,P.coral,2);L(c,fx0+b.w*.82,floorY-3,fx0+b.w*1.05,floorY-3,P.coral,2)}
+      c.globalAlpha=locked?.35:.18;c.setLineDash([3,5]);L(c,fx0,b.y+b.h,fx0,floorY-6,locked?P.coral:co[0],1);c.setLineDash([]);
+    }
+    if(m.phase==='fall'&&!reduced){c.globalAlpha=.5;for(var k=0;k<4;k++){var sx=x-b.w*.3+k*b.w*.2;L(c,sx,b.y-4-(k%2)*6,sx,b.y-30-k*6,k%2?co[1]:co[0],2)}}
+    if(m.phase==='stuck'){
+      var fyy=b.y+b.h,st=reduced?0:Math.floor(t*20);c.globalAlpha=.85;
+      for(var q=0;q<(reduced?2:4);q++){var aa=-Math.PI+(q+.5)*Math.PI/4+(reduced?0:Math.sin(st+q)*.3),r2=16+((st+q)%3)*4;
+        L(c,x+Math.cos(aa)*6,fyy+Math.sin(aa)*3,x+Math.cos(aa)*r2,fyy+Math.sin(aa)*r2*.5,q%2?co[1]:co[0],2)}
+    }
+  }else if(raw==='swing'&&b.move&&(b.move.phase==='climb'||b.move.phase==='sweep')){
+    // the silk line, from its anchor over the arena to the top of the body
+    var mv=b.move,axs=gx(s,mv.ax),topY=b.y+b.h*.18;
+    c.globalAlpha=reduced?.12:.22;L(c,axs,mv.ay,x,topY,co[1],3);
+    c.globalAlpha=reduced?.5:.8;L(c,axs,mv.ay,x,topY,'#eef8ff',1);
+    c.globalAlpha=.9;R(c,axs-2,mv.ay-2,4,4,'#eef8ff');
   }
   c.restore();
 }
 
-var BOSS_MOVE_NAMES={volley:'VOLLEY',wave:'GROUND WAVE',dash:'CHARGE',mortar:'MORTAR',ring:'SPREAD',slam:'SLAM',mines:'MINES',wall:'BARRIER'};
+var BOSS_MOVE_NAMES={volley:'VOLLEY',wave:'GROUND WAVE',dash:'CHARGE',mortar:'MORTAR',ring:'SPREAD',slam:'SLAM',mines:'MINES',wall:'BARRIER',dive:'DIVE STING',swing:'SILK SWING'};
 // Six patterns only work if the player can read which one is coming, so each wind-up draws
 // its own warning where the attack will actually arrive.
 function bossTell(c,s,b){
   if(!b||!b.active)return;
-  var raw=String(b.attack||''),telling=raw.indexOf('tell-')===0,move=telling?raw.slice(5):raw,label=BOSS_MOVE_NAMES[move];
+  var raw=String(b.attack||''),telling=raw.indexOf('tell-')===0,move=telling?raw.slice(5):raw,label=BOSS_MOVE_NAMES[move],stuck=raw==='dive'&&!!b.move&&b.move.phase==='stuck';
   // The recovery after an attack is the window the fight is built around, so it is said out
   // loud rather than left for the player to infer from a boss that has gone quiet.
-  if(raw==='rest'){
+  if(raw==='rest'||stuck){
     var beat=.55+.45*Math.abs(Math.sin((s.time||0)*7));
     c.save();c.globalAlpha=beat;T(c,'\u25bd OPEN',490,322,8,P.cyan,'right');c.restore();
   }
-  if(label)T(c,(telling?'\u25b8 ':'')+label,490,telling?322:323,telling?8:7,telling?P.amber:P.steel,'right');
+  if(label&&!stuck)T(c,(telling?'\u25b8 ':'')+label,490,telling?322:323,telling?8:7,telling?P.amber:P.steel,'right');
   if(!telling||!label)return;
   var pl=s.player||{},pw=pl.w||24,t=s.time||0,pulse=.32+.42*Math.abs(Math.sin(t*11)),
       cx=gx(s,b.x+b.w/2),top=b.y,dir=b.facing<0?-1:1,
@@ -167,6 +229,8 @@ function bossTell(c,s,b){
   else if(move==='slam'){c.setLineDash([]);L(c,cx,top-6,cx,top-34,P.coral,3);L(c,cx-9,top-22,cx,top-35,P.coral,3);L(c,cx+9,top-22,cx,top-35,P.coral,3);c.setLineDash([5,4]);c.strokeStyle=P.coral;c.lineWidth=2;c.strokeRect(px-46,floorY-15,92,13)}
   else if(move==='mines'){c.strokeStyle=P.amber;c.lineWidth=2;for(i=-1;i<2;i++){tx=px+i*90;c.strokeRect(tx-13,floorY-17,26,15);L(c,tx-19,floorY-9,tx+19,floorY-9,P.amber,1)}}
   else if(move==='wall'){ax=cx+dir*(b.w*.5+10);c.strokeStyle=P.coral;c.lineWidth=3;L(c,ax,floorY-16,ax,floorY-186,P.coral,3);L(c,ax,floorY-16,ax+dir*30,floorY-16,P.coral,1);L(c,ax,floorY-186,ax+dir*30,floorY-186,P.coral,1)}
+  else if(move==='dive'){c.setLineDash([]);for(i=0;i<3;i++){y=top-8-i*14;L(c,cx-9,y+8,cx,y,P.amber,2);L(c,cx+9,y+8,cx,y,P.amber,2)}c.setLineDash([5,4]);L(c,cx,top-4,cx,top-g.AstraCombat.bossDive.lift,P.amber,1)}
+  else if(move==='swing'){var an=g.AstraCombat.bossSwingAnchor(b),SW=g.AstraCombat.bossSwing,axs=gx(s,an.x),th=SW.swingDeg*Math.PI/180;L(c,cx,top+2,axs,an.y,P.coral,2);c.strokeStyle=P.coral;c.lineWidth=1;c.beginPath();c.arc(axs,an.y,SW.rope,Math.PI/2-th,Math.PI/2+th);c.stroke();c.setLineDash([]);R(c,axs-3,an.y-3,6,6,P.coral)}
   c.setLineDash([]);c.restore()
 }
 function drawSaberCore(c,fr,rx,gy,scale,reducedMotion){var paths=[function(p){p.moveTo(129,356);p.quadraticCurveTo(101,409,51,463)},function(p){p.moveTo(139,181);p.quadraticCurveTo(70,200,43,258)},function(p){p.moveTo(151,175);p.quadraticCurveTo(143,90,178,36)},function(p){p.moveTo(218,382);p.quadraticCurveTo(398,400,376,303);p.quadraticCurveTo(365,255,329,232)},function(p){p.moveTo(159,297);p.quadraticCurveTo(248,374,350,372)},function(p){p.moveTo(196,350);p.quadraticCurveTo(265,389,358,390)},function(p){p.moveTo(170,268);p.quadraticCurveTo(245,300,301,314)},function(p){p.moveTo(130,305);p.quadraticCurveTo(100,363,64,400)}],path=paths[Math.max(0,Math.min(paths.length-1,fr|0))],a=(reducedMotion?.62:.82)*c.globalAlpha;c.save();c.scale(scale,scale);c.translate(-rx,-gy);function stroke(w,col,alpha){c.beginPath();path(c);c.lineCap='round';c.lineJoin='round';c.lineWidth=w;c.strokeStyle=col;c.globalAlpha=alpha;c.stroke()}stroke(13,P.ice,a*.42);stroke(7,P.white,a);c.globalAlpha=1;c.restore()}
@@ -230,8 +294,12 @@ draw=function(c,s){
   // hung on the middle of it: feet on the body's floor, head a little over the top.
   if(own){var k=bb.h*1.16/own.naturalHeight;dw=own.naturalWidth*k;dh=own.naturalHeight*k;bx=gx(s,bb.x)+bb.w/2-dw/2;by=bb.y+bb.h-dh}
   if(!bb.gone){c.save();c.globalAlpha=bb.flash>0?.72:1;if(!own&&bb.look)c.filter=bb.look;if(bb.facing<0){c.translate(bx+dw,0);c.scale(-1,1);bx=0}
-    var frame=own||bossSprite;
-    c.drawImage(frame,0,0,frame.naturalWidth,frame.naturalHeight,bx,by+recoil,dw,dh);c.restore();}R(c,146,317,348,32,P.ink);T(c,(bb.name||'WARDEN').split('').join(' ')+'  //  '+(bb.title||''),150,322,8,P.cyan);R(c,150,334,340,7,P.deep);R(c,152,336,336*C(bb.hp/bb.maxHp,0,1),3,P.coral)}
+    var frame=own||bossSprite,pose=bossPose(bb,s.time||0,!!s.reducedMotion),
+        // the strip of floor a cut-out still carries would tilt into a slab while it leans, and hang in the air
+        // under it while it flies; during a move it is left off whenever either is true
+        keep=own&&bb.move&&(pose.rot||bb.y<bb.baseY-1)?1-(BOSS_FLOOR_BAND[bb.id]||0):1;
+    if(pose.rot||pose.dx||pose.dy){var pcx=bx+dw/2,pcy=by+recoil+dh/2;c.translate(pcx+pose.dx,pcy+pose.dy);c.rotate(pose.rot);c.translate(-pcx,-pcy);}
+    c.drawImage(frame,0,0,frame.naturalWidth,frame.naturalHeight*keep,bx,by+recoil,dw,dh*keep);c.restore();}R(c,146,317,348,32,P.ink);T(c,(bb.name||'WARDEN').split('').join(' ')+'  //  '+(bb.title||''),150,322,8,P.cyan);R(c,150,334,340,7,P.deep);R(c,152,336,336*C(bb.hp/bb.maxHp,0,1),3,P.coral)}
   if(s.boss&&s.boss.active){bossEnergy(c,s,s.boss);bossTell(c,s,s.boss);}
   nextBossMarker(c,s);
   playerBreak(c,s);
