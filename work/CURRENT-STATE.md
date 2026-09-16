@@ -915,3 +915,14 @@ Current worktree が増え、Push origin はPL2770H上で約(588,38)。押す直
 - **配信：** 公開サイト https://shitsuji3.github.io/astra-overdrive/ が約1分後に新しい `game.js`（`combat.bossDive`）、`assets/bosses.js`（COILHEADの最後の手 dive）、`render.js`（`BOSS_FLOOR_BAND`）を配信。
 - **確認：** 公開URLで `qa/boss-signature-moves.cjs` を実行し、急降下・糸渡りとも全段階を通過。アリーナ外に出ず、描画による状態変更なし、演出軽減でも同じ、ページエラー0。`tests/browser-smoke.cjs` は1回目で18項目合格。
 - **公開したコード：** 保存版 `dist/history/ASTRA-OVERDRIVE-boss-signature-dive-swing-20260915-222303.zip` と同じ。
+
+最新変更（2026-09-16）：**COILHEAD（蜂）を普段は飛んでいるボスにした**（ユーザー依頼「基本飛んでる、たまーに降りてくる」）。
+- **飛び方：** 登場から床90px上を巡航する。立っているプレイヤーの頭上を越え、ジャンプ攻撃と斬り上げは届く。
+- **攻撃：** すべて空中から。射撃はプレイヤーへ向けて斜め下に撃つ。突進は、立っている高さまで沈み、ジャンプで越えられる低空滑空（SWOOP）にした。
+- **降りる時：** 急降下の刺さりとその後の休みだけ床にいて、次の手で飛び立つ。1ループで空中92.8%。
+- **床にいる時：** 元の8種の攻撃は変更なし（64組一致）。
+- **描画：** 飛行中の揺れと影、滑空の予兆。
+- **確認：** `npm test` 156件、起動テスト18、build:ci合格。
+- **公開：** 未実施。
+
+詳細は work/COILHEAD-FLIGHT-20260916.md。

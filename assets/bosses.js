@@ -9,6 +9,8 @@
      look           a canvas filter for the shared frame, used only when there is no sprite
      routine        the four to six beats it loops forever; pool is derived from it
      tempo          multiplies every wind-up: below 1 is faster, above 1 is slower
+     flies          { cruise }: it lives in the air, cruise px over the floor, and only lands when a
+                    move brings it down
      knobs          per-attack numbers, merged over the defaults below
 
    A beat is one step of the loop: { move, from, rest }.
@@ -74,8 +76,11 @@
     },
     {
       id: 'coilhead', name: 'COILHEAD', title: 'ARC FRAME', jp: '磁頭',
-      blurb: '弾幕の壁を張って距離を詰め、飛び上がって毒針で急降下してくる。落ちる位置を読んで抜ける相手。',
+      blurb: '宙を飛んだまま弾幕の壁や射撃を浴びせ、低く滑空して突っ込む。降りてくるのは毒針で急降下した時だけ。',
       hp: 96, easyHp: 64, w: 34, h: 50, sprite: 'assets/bosses/coilhead.webp', look: 'hue-rotate(38deg) saturate(1.3) brightness(1.06)',
+      // It flies. Ninety pixels up it clears a standing player's head and stays in reach of a jump; every
+      // attack comes from the air, its charge is a low swoop, and only the dive brings it down.
+      flies: { cruise: 90 },
       // Six beats that walk you backwards: a wall, then a volley behind it, then the charge, and last
       // its own move, the dive, from overhead.
       routine: [

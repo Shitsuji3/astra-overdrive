@@ -157,7 +157,8 @@ test('each attack does something, for every boss that owns it', () => {
     for (const move of Array.from(def.pool)) {
       const { g, b } = arena(h, def.id);
       const shots = fire(g, b, move);
-      if (move === 'dash') assert.ok(b.dashTime > 0, `${def.id} charges`);
+      if (move === 'dash') assert.ok(b.dashTime > 0 || (b.move && b.move.kind === 'swoop'),
+        `${def.id} charges, or swoops if it is in the air`);
       else if (move === 'slam') assert.ok(b.vy < 0, `${def.id} leaves the floor`);
       else if (move === 'dive' || move === 'swing') assert.ok(b.move && b.fly, `${def.id} takes to the air for its ${move}`);
       else assert.ok(shots.length > 0, `${def.id}'s ${move} puts something on the board`);
@@ -419,4 +420,99 @@ test('signature: a boss downed mid-move comes back to the floor', () => {
     for (let i = 0; i < 60 && b.y < b.baseY; i++) g._boss(1 / 60);
     assert.equal(b.y, b.baseY, `${id} falls back to the floor as it dies`);
   }
+});
+
+// COILHEAD flies: up between moves, down only for the dive.
+function loop(g, b, seconds, each) {
+  for (let i = 0; i < 60 * seconds; i++) {
+    const was = { state: String(b.attack), y: b.y, move: b.move && b.move.kind, phase: b.move && b.move.phase };
+    g._boss(1 / 60); g._bullets(1 / 60);
+    if (each) each(was, i);
+  }
+}
+
+test('flight: COILHEAD enters in the air and cruises over a standing player, within reach of a jump', () => {
+  const h = harness();
+  const def = h.bosses.get('coilhead');
+  assert.ok(def.flies && def.flies.cruise > 0, 'the roster says it flies');
+  const { g, b } = arena(h, 'coilhead');
+  assert.equal(b.y, b.baseY - def.flies.cruise, 'it arrives at cruising height');
+  assert.equal(b.fly, true);
+  const p = g.state.player;
+  // a standing player's top, and a jumping player's top at the height of the jump
+  const standingTop = 310 - p.h, jumpTop = 310 - p.h - 84;
+  let cruising = 0;
+  loop(g, b, 12, (was) => {
+    if (b.move || String(b.attack).indexOf('dive') >= 0 || String(b.attack).indexOf('dash') >= 0 || b.grounded) return;
+    if (Math.abs(b.y - (b.baseY - def.flies.cruise)) > .5) return;              // taking off or settling
+    cruising++;
+    assert.ok(b.y + b.h < standingTop, `it clears a standing player's head: bottom ${b.y + b.h} against ${standingTop}`);
+    assert.ok(b.y + b.h > jumpTop, `and a jump reaches it: bottom ${b.y + b.h} against ${jumpTop}`);
+  });
+  assert.ok(cruising > 60 * 4, `it spends most of its time cruising: ${(cruising / 60).toFixed(1)}s of 12`);
+});
+
+test('flight: it only comes down for the dive, stays down through the sting and rest, then takes off', () => {
+  const h = harness(), C = h.api;
+  const { g, b } = arena(h, 'coilhead');
+  const cruiseY = b.baseY - b.flies;
+  let downFrames = 0, downOutsideDive = 0, landedAfterDive = false, tookOff = false, sawDive = false, lastDiveEnd = -1;
+  loop(g, b, 40, (was, i) => {
+    if (String(b.attack) === 'dive') sawDive = true;
+    const down = b.y >= b.baseY - .5;
+    if (down) {
+      downFrames++;
+      // the frame it sets off for its next beat still starts on the floor; the climb begins the frame after
+      const takingOff = was.state === 'rest' && String(b.attack).indexOf('walk-') === 0;
+      const diving = String(b.attack) === 'dive' || (String(b.attack) === 'rest' && b.grounded) || takingOff;
+      if (!diving) downOutsideDive++;
+      if (String(b.attack) === 'rest' && b.grounded) landedAfterDive = true;
+    }
+    if (was.state === 'rest' && String(b.attack).indexOf('walk-') === 0 && landedAfterDive) lastDiveEnd = i;
+    if (lastDiveEnd >= 0 && i - lastDiveEnd < 60 && b.y <= cruiseY + .5) tookOff = true;
+  });
+  assert.ok(sawDive, 'a full loop includes the dive');
+  assert.ok(landedAfterDive, 'after the sting it rests on the floor');
+  assert.equal(downOutsideDive, 0, 'it is never on the floor for anything else');
+  assert.ok(downFrames / (60 * 40) < .2, `and it is down only now and then: ${(100 * downFrames / (60 * 40)).toFixed(0)}% of the time`);
+  assert.ok(tookOff, 'it is back at cruising height within a second of setting off again');
+});
+
+test('flight: in the air its charge is a swoop that dips to a standing player and climbs back', () => {
+  const h = harness(), C = h.api;
+  const { g, b } = arena(h, 'coilhead');
+  const p = g.state.player, tu = h.bosses.get('coilhead').tuning;
+  b.x = C.arena.bossMin; p.x = C.arena.bossMax;
+  fire(g, b, 'dash');
+  assert.equal(b.dashTime, 0, 'no straight charge');
+  assert.ok(b.move && b.move.kind === 'swoop', 'a swoop');
+  const fromY = b.move.fromY, fromX = b.x;
+  let lowest = b.y, lowestAt = 0, frames = 0;
+  while (String(b.attack) === 'dash' && frames < 120) {
+    g._boss(1 / 60); frames++;
+    if (b.y > lowest) { lowest = b.y; lowestAt = frames; }
+  }
+  const standingTop = 310 - p.h, jumpFeet = 310 - 84;
+  assert.ok(lowest + b.h > standingTop, `at the bottom it is at a standing player's height: ${lowest + b.h} against ${standingTop}`);
+  assert.ok(lowest >= jumpFeet, `and low enough to be jumped over: top ${lowest} against feet at ${jumpFeet}`);
+  assert.ok(Math.abs(lowestAt / 60 - tu.dashHold / 2) <= 2 / 60, `the bottom is half way through: ${(lowestAt / 60).toFixed(2)}s`);
+  assert.ok(Math.abs(b.x - fromX) >= tu.dashSpeed * tu.dashHold * .9, 'it covers the charge\'s ground');
+  assert.equal(b.y, fromY, 'and it climbs back to where it started');
+  assert.equal(String(b.attack), 'rest'); assert.equal(b.fly, true, 'resting in the air');
+});
+
+test('flight: its volley from the air is aimed down at the player', () => {
+  const h = harness(), C = h.api;
+  const { g, b } = arena(h, 'coilhead');
+  const p = g.state.player;
+  b.x = p.x + 220;
+  const shots = fire(g, b, 'volley');
+  const target = p.y + p.h / 2, mid = shots[Math.floor(shots.length / 2)];
+  const arrive = mid.y + mid.vy * Math.abs((p.x + p.w / 2 - mid.x) / mid.vx);
+  assert.ok(Math.abs(arrive - target) < 24, `the middle of the fan reaches the player's chest: ${Math.round(arrive)} against ${Math.round(target)}`);
+  assert.ok(shots.every(s => s.vy > -120), 'nothing is thrown up and away');
+  // and on the floor the same boss fires the flat fan every other boss does
+  b.fly = false; b.y = b.baseY; b.grounded = true;
+  const flat = fire(g, b, 'volley'), tu = h.bosses.get('coilhead').tuning;
+  assert.deepEqual(flat.map(s => s.vy), flat.map((s, i) => tu.volleyRise + i * tu.volleyFall), 'grounded, it is unchanged');
 });

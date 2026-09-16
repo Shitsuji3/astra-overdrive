@@ -4,9 +4,11 @@ const out='qa/boss-attack-fx';fs.mkdirSync(out,{recursive:true});
 const moves=['volley','wave','dash','mortar','ring','slam','mines','wall'];
 function harness(source){const box={console,performance:{now:()=>0},requestAnimationFrame:()=>1,cancelAnimationFrame(){},addEventListener(){},removeEventListener(){},navigator:{getGamepads:()=>[]}};vm.createContext(box);vm.runInContext('Math.random=()=>.42',box);for(const file of ['assets/bosses.js','assets/stages.js','assets/run-rig-v6.js','assets/saber-rig.js'])vm.runInContext(fs.readFileSync(file,'utf8'),box);vm.runInContext(source,box);return box}
 const old=harness(cp.execFileSync('git',['show','c3f87c1:game.js'],{encoding:'utf8'})),now=harness(fs.readFileSync('game.js','utf8'));
+// A boss that flies is put on the floor for this comparison: on the floor its classic attacks are what they
+// always were, and in the air they differ by design (an aimed volley, a swoop instead of a charge).
 const clean=o=>JSON.parse(JSON.stringify(o,(k,v)=>k==='fxBoss'?undefined:v));let comparisons=0;
 for(const def of now.AstraBosses.list)for(const move of moves){
-  const results=[old,now].map(h=>{const g=new h.NeonGame(null);g.start({stage:'gauntlet'});const b=g._spawnBoss(def.id);g.state.player.x=b.x-150;g.state.bullets=[];g._bossFire(b,move);if(move==='slam')g._bossSlam(b);return {bullets:clean(g.state.bullets),dash:b.dashTime,vy:b.vy}});
+  const results=[old,now].map(h=>{const g=new h.NeonGame(null);g.start({stage:'gauntlet'});const b=g._spawnBoss(def.id);b.fly=false;b.y=b.baseY;g.state.player.x=b.x-150;g.state.bullets=[];g._bossFire(b,move);if(move==='slam')g._bossSlam(b);return {bullets:clean(g.state.bullets),dash:b.dashTime,vy:b.vy}});
   assert.deepEqual(results[1],results[0],def.id+'/'+move);comparisons++;
 }
 (async()=>{const br=await chromium.launch({headless:true,executablePath:process.env.CHROME_EXECUTABLE||'C:/Program Files/Google/Chrome/Application/chrome.exe'});try{

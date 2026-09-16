@@ -191,6 +191,11 @@
   // side of straight down in sweep seconds - at the bottom its feet brush the floor, so it is jumped or
   // stood clear of - lets go on the far side, and on landing throws a saw blade each way that rolls out
   // and comes back once turn seconds are left of its life.
+  // A boss whose roster entry flies cruises that high over the floor between moves. It changes height at
+  // climb px/s, so it lifts off again after it has landed. In the air its charge is a swoop that dips to
+  // swoopClear px over the floor at the middle of the pass - a standing player's height, and low enough
+  // to be jumped - and climbs back.
+  combat.bossFlight = { climb: 160, swoopClear: 24 };
   combat.bossSwing = { climb: .40, anchorY: 36, rope: 250, swingDeg: 55, sweep: .90,
                        sawSpeed: 270, sawLife: 1.5, sawTurn: .75, sawR: 9 };
   // Where the swing hangs from, in world coordinates of the body's centre, for the arena in use.
@@ -518,18 +523,27 @@
     var firstBullet=s.bullets.length;
     b.facing=dir;
     if(name==='volley'){
-      var shots=knob(b,'volleyShots');
+      var shots=knob(b,'volleyShots'),aimVy=0;
+      // from the air the fan is tilted so its middle arrives at the player's chest; on the floor it is
+      // the flat fan it always was
+      if(b.fly){
+        var reach=Math.max(40,Math.abs((p.x+p.w/2)-cx)),mid=(shots-1)/2,
+            midSpeed=knob(b,'volleySpeed')+mid*knob(b,'volleyStep');
+        aimVy=((p.y+p.h*.5)-(b.y+b.h*.27))/(reach/midSpeed)-(knob(b,'volleyRise')+mid*knob(b,'volleyFall'));
+      }
       // alternating sides of the chest, so the spread reads as coming off the machine
       for(i=0;i<shots;i++)this._spawn(b.x+b.w*(i%2?.72:.28),b.y+b.h*.27,
         dir*(knob(b,'volleySpeed')+i*knob(b,'volleyStep')),
-        knob(b,'volleyRise')+i*knob(b,'volleyFall'),'enemy',false,1);
+        knob(b,'volleyRise')+i*knob(b,'volleyFall')+aimVy,'enemy',false,1);
     } else if(name==='wave'){
       // more than one wave leaves staggered, so they arrive as a rhythm rather than a wall
       for(i=0;i<knob(b,'waveCount');i++)
         this._spawn(cx+dir*(b.w*.55+i*30),floorY-12,dir*(knob(b,'waveSpeed')-i*38),0,'enemy',false,2,
           {r:knob(b,'waveRadius'),kind:'wave'});
     } else if(name==='dash'){
-      b.dashTime=knob(b,'dashHold');
+      // in the air a straight charge would pass over everyone's head, so it swoops instead
+      if(b.fly)b.move={kind:'swoop',t:0,fromY:b.y,dir:dir,done:false};
+      else b.dashTime=knob(b,'dashHold');
     } else if(name==='mortar'){
       // shells lobbed onto where he last saw the player, straddling that spot. The arc is
       // solved so they come down on the floor plane, not on the muzzle line.
@@ -604,7 +618,7 @@
       }else if(m.phase==='fall'){
         b.x=m.lockX;b.vy+=D.fall*dt;b.y+=b.vy*dt;
         if(b.y>=b.baseY){
-          b.y=b.baseY;b.vy=0;b.fly=false;m.phase='stuck';m.t=0;
+          b.y=b.baseY;b.vy=0;b.fly=false;b.grounded=!!b.flies;m.phase='stuck';m.t=0;
           var fy=b.y+b.h,cx=b.x+b.w/2;
           this._spawn(cx-b.w*.3,fy-12,-D.shockSpeed,0,'enemy',false,1,{r:D.shockR,kind:'wave',life:D.shockLife,fxBoss:b.id});
           this._spawn(cx+b.w*.3,fy-12,D.shockSpeed,0,'enemy',false,1,{r:D.shockR,kind:'wave',life:D.shockLife,fxBoss:b.id});
@@ -615,6 +629,13 @@
       }else if(m.phase==='stuck'){
         if(m.t>=D.stuck){m.done=true;b.timer=0;}
       }
+    }else if(m.kind==='swoop'){
+      // the charge's own speed and length, along a dip that bottoms out half way
+      var dur=knob(b,'dashHold'),lowY=b.baseY-C.bossFlight.swoopClear;
+      u=Math.min(1,m.t/dur);
+      b.x=clamp(b.x+m.dir*knob(b,'dashSpeed')*dt,arena.bossMin,arena.bossMax);
+      b.y=m.fromY+(lowY-m.fromY)*Math.sin(Math.PI*u);
+      if(u>=1){b.y=m.fromY;m.done=true;b.timer=0;}
     }else if(m.kind==='swing'){
       var S=C.bossSwing,L=S.rope;
       if(m.phase==='climb'){
@@ -726,7 +747,9 @@
     s.boss={id:def.id,name:def.name,title:def.title,look:def.look||'',sprite:def.sprite||'',
       x:arena.bossX,y:bottom-def.h,baseY:bottom-def.h,w:def.w,h:def.h,
       hp:hp,maxHp:hp,active:true,phase:0,healthPhase:1,attack:'tell-'+def.pool[0],
-      timer:.95,flash:0,facing:-1,vy:0,leap:false,slammed:true,beat:undefined,walkTo:undefined,fly:false,move:null};
+      timer:.95,flash:0,facing:-1,vy:0,leap:false,slammed:true,beat:undefined,walkTo:undefined,fly:false,move:null,
+      flies:def.flies?def.flies.cruise:0,grounded:false};
+    if(s.boss.flies){s.boss.fly=true;s.boss.y=s.boss.baseY-s.boss.flies;}
     // it opens on the first beat of its routine, so the loop starts where the roster says
     this._bossBeat(s.boss,def);
     return s.boss;
@@ -757,6 +780,12 @@
       var toward=(p.x+p.w/2)-(b.x+b.w/2);
       if(b.leap&&Math.abs(toward)>4)b.x=clamp(b.x+(toward>0?1:-1)*knob(b,'slamTrack')*dt,arena.bossMin,arena.bossMax);
       if(b.y>=b.baseY){b.y=b.baseY;if(b.vy>0&&!b.slammed){b.slammed=true;this._bossSlam(b);}b.vy=0;b.leap=false;}
+    }
+    // a flying boss holds its cruising height between moves, or the floor after it has landed
+    if(b.flies&&!b.move){
+      var cruiseY=b.grounded?b.baseY:b.baseY-b.flies,gapY=cruiseY-b.y,climb=C.bossFlight.climb*dt;
+      if(gapY)b.y+=gapY>0?Math.min(climb,gapY):Math.max(-climb,gapY);
+      b.fly=!b.grounded;
     }
     if(b.move)this._bossMove(b,dt);
     if(b.dashTime>0){b.dashTime-=dt;b.x=clamp(b.x+b.facing*knob(b,'dashSpeed')*dt,arena.bossMin,arena.bossMax);}
@@ -797,7 +826,9 @@
     b.walkTo=clamp(mid+side*away-b.w/2,arena.bossMin,arena.bossMax);
     if(Math.abs(b.walkTo+b.w/2-mid)<away-24)
       b.walkTo=clamp(mid-side*away-b.w/2,arena.bossMin,arena.bossMax);
-    b.attack='walk-'+beat.move;b.timer=C.bossWalk.cap;b.dashTime=0;b.move=null;b.fly=false;
+    b.attack='walk-'+beat.move;b.timer=C.bossWalk.cap;b.dashTime=0;b.move=null;
+    // a flier that came down takes off again as it sets off for its next beat
+    b.grounded=false;b.fly=!!b.flies;
   };
   // Plant and telegraph. The wind-up is the same one the warning graphic is drawn from.
   NeonGame.prototype._bossWind=function(b,def,move){
@@ -812,7 +843,7 @@
   NeonGame.prototype._bossRest=function(b,def){
     var C=global.AstraCombat,routine=C.bossRoutine(def),
         beat=routine&&routine[b.beat===undefined?0:b.beat];
-    b.attack='rest';b.dashTime=0;b.move=null;b.fly=false;
+    b.attack='rest';b.dashTime=0;b.move=null;b.fly=!!b.flies&&!b.grounded;
     b.timer=Math.max(C.bossRestFloor,(beat?beat.rest:.8)*C.bossTellScale[b.healthPhase-1]);
   };
   NeonGame.prototype._deathTick=function(dt){var s=this.state,f=s.deathFx;if(s.mode!=='dead'||!f||f.done)return;f.time=Math.min(f.duration,f.time+dt);s.shake=Math.max(0,s.shake-dt*3);s.flash=0;if(f.time>=f.duration){f.done=true;this._emit('death-ready',this.snapshot());}};

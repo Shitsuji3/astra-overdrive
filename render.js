@@ -148,6 +148,8 @@ var BOSS_STING_TURN=.6;
 var BOSS_FLOOR_BAND={coilhead:12/336,sparkwidow:40/290};
 function bossPose(b,t,reduced){
   var m=b&&b.move,o={rot:0,dx:0,dy:0};
+  // a flier cruising between moves drifts gently up and down; the body it collides with does not
+  if(b&&b.flies&&!b.down&&!b.grounded&&!m){o.dy=reduced?0:Math.sin(t*5.2)*2.2;return o;}
   if(!m||b.down)return o;
   if(m.kind==='dive'){
     if(m.phase==='rise')o.rot=-.1;
@@ -164,6 +166,11 @@ function bossEnergy(c,s,b){
   var raw=String(b.attack||''),tell=raw.indexOf('tell-')===0,co=bossColors(b.id),t=s.time||0,
       x=gx(s,b.x+b.w/2),y=b.y+b.h*.32,dir=b.facing<0?-1:1,reduced=!!s.reducedMotion;
   c.save();
+  if(b.baseY!==undefined&&b.y<b.baseY-4){
+    var alt=Math.min(1,(b.baseY-b.y)/160),shadowY=b.baseY+b.h-2;
+    c.globalAlpha=(reduced?.2:.3)*(1-alt*.45);c.fillStyle='#02080c';
+    c.beginPath();c.ellipse(x,shadowY,b.w*(.8-alt*.3),3.5-alt*1.2,0,0,Math.PI*2);c.fill();c.globalAlpha=1;
+  }
   if(tell){
     var r=10+Math.min(.8,Math.max(0,b.timer||0))*17,spin=reduced?0:t*2;
     G(c,x,y,23,co[0],.12);
@@ -176,6 +183,9 @@ function bossEnergy(c,s,b){
     c.globalAlpha=.7;fxArc(c,x+dir*b.w*.35,b.y+b.h*.5,b.h*.44,dir>0?-1.1:2.04,dir>0?1.1:4.24,co[1],2);
   }else if(raw==='slam'&&b.leap){
     c.globalAlpha=reduced?.18:.42;fxArc(c,x,b.y+b.h*.5,b.w*.72,.1,3.04,co[0],2);
+  }else if(raw==='dash'&&b.move&&b.move.kind==='swoop'){
+    c.globalAlpha=reduced?.22:.5;
+    for(var sj=0;sj<3;sj++){var syy=b.y+b.h*(.25+sj*.24),stail=reduced?12:26+sj*8;L(c,x-dir*b.w*.4,syy,x-dir*(b.w*.4+stail),syy-3,co[sj%2],2)}
   }else if(raw==='dive'&&b.move){
     // where the sting will land: a ring on the floor that follows it, then turns solid when it locks
     var m=b.move,floorY=b.baseY+b.h,locked=m.lockX!==null,fx0=gx(s,(locked?m.lockX:b.x)+b.w/2);
@@ -207,7 +217,7 @@ var BOSS_MOVE_NAMES={volley:'VOLLEY',wave:'GROUND WAVE',dash:'CHARGE',mortar:'MO
 // its own warning where the attack will actually arrive.
 function bossTell(c,s,b){
   if(!b||!b.active)return;
-  var raw=String(b.attack||''),telling=raw.indexOf('tell-')===0,move=telling?raw.slice(5):raw,label=BOSS_MOVE_NAMES[move],stuck=raw==='dive'&&!!b.move&&b.move.phase==='stuck';
+  var raw=String(b.attack||''),telling=raw.indexOf('tell-')===0,move=telling?raw.slice(5):raw,label=(move==='dash'&&b.flies)?'SWOOP':BOSS_MOVE_NAMES[move],stuck=raw==='dive'&&!!b.move&&b.move.phase==='stuck';
   // The recovery after an attack is the window the fight is built around, so it is said out
   // loud rather than left for the player to infer from a boss that has gone quiet.
   if(raw==='rest'||stuck){
@@ -223,6 +233,14 @@ function bossTell(c,s,b){
   c.save();c.globalAlpha=pulse;c.setLineDash([5,4]);
   if(move==='volley'){for(i=0;i<3;i++){y=top+b.h*.24+i*b.h*.13;L(c,cx+dir*(b.w*.6),y,cx+dir*(b.w*.6+84),y-16+i*16,P.amber,2)}}
   else if(move==='wave'){L(c,cx+dir*(b.w*.6),floorY-7,cx+dir*250,floorY-7,P.coral,3)}
+  else if(move==='dash'&&b.flies){
+    // the path the swoop will take: its own length, dipping to a standing player's height half way
+    var tu=g.AstraBosses.get(b.id).tuning,span=tu.dashSpeed*tu.dashHold,cy0=top+b.h/2,
+        lowC=b.baseY-g.AstraCombat.bossFlight.swoopClear+b.h/2;
+    c.strokeStyle=P.amber;c.lineWidth=2;c.beginPath();
+    for(i=0;i<=14;i++){var su=i/14,spx=cx+dir*span*su,spy=cy0+(lowC-cy0)*Math.sin(Math.PI*su);if(i)c.lineTo(spx,spy);else c.moveTo(spx,spy)}
+    c.stroke();
+  }
   else if(move==='dash'){c.setLineDash([]);for(i=0;i<3;i++){ax=cx+dir*(b.w*.7+i*20);L(c,ax,top+b.h*.27,ax+dir*11,top+b.h*.5,P.amber,2);L(c,ax,top+b.h*.73,ax+dir*11,top+b.h*.5,P.amber,2)}}
   else if(move==='mortar'){c.strokeStyle=P.coral;c.lineWidth=2;for(i=-1;i<2;i++){tx=px+i*72;c.beginPath();c.arc(tx,floorY-5,11,0,7);c.stroke();L(c,tx-16,floorY-5,tx+16,floorY-5,P.coral,1);L(c,tx,floorY-21,tx,floorY+11,P.coral,1)}}
   else if(move==='ring'){c.strokeStyle=P.amber;c.lineWidth=2;c.beginPath();c.arc(cx,top+b.h/2,b.w*.8+pulse*20,0,7);c.stroke()}
@@ -296,8 +314,8 @@ draw=function(c,s){
   if(!bb.gone){c.save();c.globalAlpha=bb.flash>0?.72:1;if(!own&&bb.look)c.filter=bb.look;if(bb.facing<0){c.translate(bx+dw,0);c.scale(-1,1);bx=0}
     var frame=own||bossSprite,pose=bossPose(bb,s.time||0,!!s.reducedMotion),
         // the strip of floor a cut-out still carries would tilt into a slab while it leans, and hang in the air
-        // under it while it flies; during a move it is left off whenever either is true
-        keep=own&&bb.move&&(pose.rot||bb.y<bb.baseY-1)?1-(BOSS_FLOOR_BAND[bb.id]||0):1;
+        // under it while it flies; it is left off whenever either is true
+        keep=own&&(pose.rot||bb.y<bb.baseY-1)?1-(BOSS_FLOOR_BAND[bb.id]||0):1;
     if(pose.rot||pose.dx||pose.dy){var pcx=bx+dw/2,pcy=by+recoil+dh/2;c.translate(pcx+pose.dx,pcy+pose.dy);c.rotate(pose.rot);c.translate(-pcx,-pcy);}
     c.drawImage(frame,0,0,frame.naturalWidth,frame.naturalHeight*keep,bx,by+recoil,dw,dh*keep);c.restore();}R(c,146,317,348,32,P.ink);T(c,(bb.name||'WARDEN').split('').join(' ')+'  //  '+(bb.title||''),150,322,8,P.cyan);R(c,150,334,340,7,P.deep);R(c,152,336,336*C(bb.hp/bb.maxHp,0,1),3,P.coral)}
   if(s.boss&&s.boss.active){bossEnergy(c,s,s.boss);bossTell(c,s,s.boss);}
