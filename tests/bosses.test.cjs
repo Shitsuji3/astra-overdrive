@@ -68,7 +68,8 @@ test('the Warden still does exactly what it did before the roster existed', () =
   const frozen = JSON.parse(fs.readFileSync(path.join(__dirname, 'warden-baseline.json'), 'utf8'));
   const h = harness();
   const warden = h.bosses.get('warden');
-  assert.deepEqual(Array.from(warden.pool), frozen.order.slice(0, 6), 'same six attacks in the same order');
+  // His routine is now his own moves. What stays frozen is the classic catalogue, fired on his body.
+  assert.ok(Array.from(warden.pool).every(m => h.api.bossMoves[m]), 'he fights with his own moves');
   assert.equal(warden.hp, 72); assert.equal(warden.easyHp, 48);
   assert.equal(warden.w, frozen.fire.volley.body.w); assert.equal(warden.h, frozen.fire.volley.body.h);
   assert.equal(warden.tempo, 1, 'unchanged tempo');
@@ -104,18 +105,18 @@ test('between attacks a boss walks to one spot and then holds it', () => {
   for (let i = 0; i < 60 * 30; i++) {
     // judge each frame by the state it began in: a frame can both finish a walk and start a
     // wind-up, and the movement in it belonged to the walk
-    const was = { x: b.x, state: String(b.attack), dashing: b.dashTime > 0, air: b.leap || b.y < b.baseY };
+    const was = { x: b.x, state: String(b.attack), dashing: b.dashTime > 0, air: b.leap || b.y < b.baseY, moving: !!b.move };
     g._boss(1 / 60);
     if (was.state.indexOf('walk-') === 0) walkedTo = b.walkTo;
-    // outside a walk, only a charge or the slam leap may move him
-    else if (b.x !== was.x && !was.dashing && !was.air) drifted++;
+    // outside a walk, only a move may move him - a charge, a leap, a lunge
+    else if (b.x !== was.x && !was.dashing && !was.air && !was.moving) drifted++;
     if (b.x === was.x) still++;
   }
   assert.equal(drifted, 0, 'he never wanders: every step he takes is on his way somewhere');
   assert.ok(still > 60 * 12, `and he spends real time planted: ${(still / 60).toFixed(1)}s`);
   assert.ok(walkedTo !== null && walkedTo >= C.arena.bossMin && walkedTo <= C.arena.bossMax,
     'the spot he walks to is inside the arena');
-  assert.ok(b.y === b.baseY, 'he is on the floor, not hopping');
+  assert.ok(b.y === b.baseY || b.move, 'he is on the floor unless a move has him in the air');
 });
 
 test('a beat walks him to the distance it asks for', () => {
@@ -161,6 +162,17 @@ test('each attack does something, for every boss that owns it', () => {
         `${def.id} charges, or swoops if it is in the air`);
       else if (move === 'slam') assert.ok(b.vy < 0, `${def.id} leaves the floor`);
       else if (move === 'dive' || move === 'swing') assert.ok(b.move && b.fly, `${def.id} takes to the air for its ${move}`);
+      else if (h.api.bossMoves[move] || move === 'swoop') {
+        // a move plays out over time: run it to its rest and see that it did something
+        const from = { x: b.x, y: b.y };
+        let spawned = shots.length, moved = false;
+        for (let i = 0; i < 60 * 5 && String(b.attack) === move; i++) {
+          g._boss(1 / 60); g._bullets(1 / 60);
+          spawned = Math.max(spawned, g.state.bullets.length);
+          if (b.x !== from.x || b.y !== from.y) moved = true;
+        }
+        assert.ok(spawned > 0 || moved, `${def.id}'s ${move} puts something on the board or moves the body`);
+      }
       else assert.ok(shots.length > 0, `${def.id}'s ${move} puts something on the board`);
     }
   }
@@ -515,4 +527,228 @@ test('flight: its volley from the air is aimed down at the player', () => {
   b.fly = false; b.y = b.baseY; b.grounded = true;
   const flat = fire(g, b, 'volley'), tu = h.bosses.get('coilhead').tuning;
   assert.deepEqual(flat.map(s => s.vy), flat.map((s, i) => tu.volleyRise + i * tu.volleyFall), 'grounded, it is unchanged');
+});
+
+// ---- Each boss's own moves ---------------------------------------------------------------------------
+const CLASSIC = ['volley', 'wave', 'dash', 'mortar', 'ring', 'slam', 'mines', 'wall'];
+function runToRest(g, b, move, each) {
+  let frames = 0;
+  for (; frames < 60 * 6 && String(b.attack) === move; frames++) {
+    g._boss(1 / 60); g._bullets(1 / 60);
+    if (each) each(frames);
+  }
+  return frames;
+}
+function overlap(a, z) { return a.x < z.x + z.w && a.x + a.w > z.x && a.y < z.y + z.h && a.y + a.h > z.y; }
+function box(q) { return q.hw ? { x: q.x - q.hw, y: q.y - q.hh, w: q.hw * 2, h: q.hh * 2 } : { x: q.x - q.r, y: q.y - q.r, w: q.r * 2, h: q.r * 2 }; }
+
+test('moves: every boss fights only with moves drawn from its own body, and no two share one', () => {
+  const h = harness(), own = {};
+  for (const def of Array.from(h.bosses.list)) {
+    for (const move of Array.from(def.pool)) {
+      assert.ok(CLASSIC.indexOf(move) < 0, `${def.id} no longer uses the classic ${move}`);
+      assert.ok(h.api.bossMoves[move] || ['dive', 'swing', 'swoop'].indexOf(move) >= 0, `${def.id}'s ${move} is a move of its own`);
+      assert.ok(!own[move] || own[move] === def.id, `${move} belongs to ${own[move]}, not also to ${def.id}`);
+      own[move] = def.id;
+    }
+    assert.ok(def.pool.length >= 3, `${def.id} has at least three moves`);
+  }
+});
+
+test('moves: every move runs to a rest inside the arena, on time, and leaves the boss on its feet', () => {
+  const h = harness(), C = h.api;
+  for (const def of Array.from(h.bosses.list)) {
+    for (const move of Array.from(def.pool)) {
+      const { g, b } = arena(h, def.id);
+      fire(g, b, move);
+      const frames = runToRest(g, b, move, () => {
+        assert.ok(b.x >= C.arena.bossMin && b.x <= C.arena.bossMax, `${def.id}'s ${move} stays inside the arena`);
+      });
+      assert.equal(String(b.attack), 'rest', `${def.id}'s ${move} ends in its rest`);
+      assert.ok(frames / 60 <= C.bossPatterns[move].active + .3, `${def.id}'s ${move} takes ${(frames / 60).toFixed(2)}s`);
+      assert.equal(b.move, null); assert.equal(!!b.phaseOut, false, 'nothing is left faded');
+      if (!def.flies) { assert.equal(b.y, b.baseY, `${def.id} is back on the floor after its ${move}`); assert.equal(b.fly, false); }
+    }
+  }
+});
+
+test('moves: a hazard only hurts once it is armed, and it is not used up by the hit', () => {
+  const h = harness();
+  const { g, b } = arena(h, 'coilhead');
+  const p = g.state.player;
+  p.invuln = 0; p.hp = 8; g.state.bullets = [];
+  g._spawn(p.x + p.w / 2, p.y + p.h / 2, 0, 0, 'enemy', false, 1,
+    { kind: 'hazard', style: 'bolt', hw: 9, hh: 60, r: 60, armIn: .3, life: .6, solid: true, fxBoss: 'coilhead' });
+  for (let i = 0; i < 15; i++) g._bullets(1 / 60);
+  assert.equal(p.hp, 8, 'while it only warns, standing in it is safe');
+  for (let i = 0; i < 6; i++) g._bullets(1 / 60);
+  assert.equal(p.hp, 7, 'armed, it hurts');
+  assert.equal(g.state.bullets.length, 1, 'and it is still there');
+});
+
+test('moves: WARDEN closes the gate from both ends of the arena, and its rocks wait, then fall on their marks', () => {
+  const h = harness(), C = h.api;
+  let { g, b } = arena(h, 'warden');
+  fire(g, b, 'pincer');
+  runToRest(g, b, 'pincer', () => {});
+  let shocks = Array.from(g.state.bullets).filter(q => q.kind === 'wave');
+  ({ g, b } = arena(h, 'warden'));
+  fire(g, b, 'pincer');
+  for (let i = 0; i < 20; i++) { g._boss(1 / 60); g._bullets(1 / 60); }
+  shocks = Array.from(g.state.bullets).filter(q => q.kind === 'wave');
+  assert.equal(shocks.length, 2, 'two shocks');
+  const left = shocks.find(q => q.vx > 0), right = shocks.find(q => q.vx < 0);
+  assert.ok(left && right && left.x < C.arena.bossMin + 30 && right.x > C.arena.bossMax, 'one from each end, running inward');
+
+  ({ g, b } = arena(h, 'warden'));
+  fire(g, b, 'quake');
+  for (let i = 0; i < 30; i++) { g._boss(1 / 60); g._bullets(1 / 60); }
+  const rocks = Array.from(g.state.bullets).filter(q => q.kind === 'rock');
+  const marks = Array.from(g.state.bullets).filter(q => q.style === 'mark');
+  assert.equal(rocks.length, 3, 'three rocks'); assert.equal(marks.length, 3, 'three marks');
+  assert.ok(rocks.every(r => marks.some(mk => mk.x === r.x)), 'each rock has its mark under it');
+  assert.ok(marks.every(mk => mk.harmless), 'the marks are only marks');
+  const held = rocks.filter(r => r.armIn > 0);
+  assert.ok(held.length >= 2 && held.every(r => r.y === -20), 'the later rocks are still held at the top');
+});
+
+test('moves: TIDEBREAKER throws a low blade to jump and a high one that passes over a standing player', () => {
+  const h = harness();
+  const { g, b } = arena(h, 'tidebreaker');
+  const p = g.state.player;
+  fire(g, b, 'crescent');
+  runToRest(g, b, 'crescent', () => {});
+  const blades = Array.from(g.state.bullets).filter(q => q.kind === 'crescent');
+  assert.equal(blades.length, 2);
+  const standing = { x: 0, y: 310 - p.h, w: 1e5, h: p.h }, jumped = { x: 0, y: 310 - 84 - p.h, w: 1e5, h: p.h };
+  const low = blades.find(q => !q.high), high = blades.find(q => q.high);
+  assert.ok(overlap(box(low), standing), 'the low blade hits a standing player');
+  assert.ok(!overlap(box(low), jumped), 'and a jump clears it');
+  assert.ok(!overlap(box(high), standing), 'the high blade passes over a standing player');
+});
+
+test('moves: OBSIDIAN CROWN fires a beam at head height, then one along the floor', () => {
+  const h = harness();
+  const { g, b } = arena(h, 'obsidian-crown');
+  const p = g.state.player;
+  fire(g, b, 'crownbeam');
+  for (let i = 0; i < 3; i++) { g._boss(1 / 60); g._bullets(1 / 60); }
+  const beams = Array.from(g.state.bullets).filter(q => q.style === 'beam');
+  assert.equal(beams.length, 2);
+  const [first, second] = beams.slice().sort((a, z) => a.armIn - z.armIn);
+  const standing = { x: 0, y: 310 - p.h, w: 1e5, h: p.h }, airborne = { x: 0, y: 310 - 26 - p.h, w: 1e5, h: p.h };
+  assert.ok(!overlap(box(first), standing), 'standing still is safe from the first beam');
+  assert.ok(overlap(box(second), standing), 'the second beam sweeps a standing player');
+  assert.ok(!overlap(box(second), airborne), 'and a jump clears it');
+  assert.ok(second.armIn - first.armIn >= .6, 'with time between them to see which is which');
+});
+
+test('moves: NULLPRIEST fades, comes back on the far side of the player, and nothing touches it while faded', () => {
+  const h = harness(), C = h.api;
+  const { g, b } = arena(h, 'nullpriest');
+  const p = g.state.player;
+  b.x = p.x + 150;
+  const before = Math.sign(b.x + b.w / 2 - (p.x + p.w / 2));
+  fire(g, b, 'voidstep');
+  let faded = 0, hpLost = 0, bossHit = false;
+  runToRest(g, b, 'voidstep', () => {
+    if (!b.phaseOut) return;
+    faded++;
+    // stand in it and shoot it: neither should register
+    const hp = p.hp; p.invuln = 0; p.x = b.x; p.y = b.y + b.h - p.h;
+    const bossHp = b.hp;
+    g._spawn(b.x + b.w / 2, b.y + b.h / 2, 0, 0, 'player', false, 1);
+    g._bullets(0); g._boss(0);
+    if (p.hp < hp) hpLost++;
+    if (b.hp < bossHp) bossHit = true;
+    p.invuln = 1e9; g.state.bullets = g.state.bullets.filter(q => q.team !== 'player');
+  });
+  assert.ok(faded > 5, 'it is faded for a while');
+  assert.equal(hpLost, 0, 'touching it while faded does no harm');
+  assert.equal(bossHit, false, 'and shots pass through it');
+});
+
+test('moves: NULLPRIEST ends up on the other side of a player who stands still', () => {
+  const h = harness();
+  const { g, b } = arena(h, 'nullpriest');
+  const p = g.state.player;
+  p.x = h.api.arena.bossMin + 200;
+  b.x = p.x + 150;
+  fire(g, b, 'voidstep');
+  runToRest(g, b, 'voidstep', () => {});
+  assert.ok(b.x + b.w / 2 < p.x + p.w / 2, 'it reappears behind the player');
+});
+
+test('moves: NULLPRIEST\'s orb splits into eight', () => {
+  const h = harness();
+  const { g, b } = arena(h, 'nullpriest');
+  fire(g, b, 'crossorb');
+  let most = 0;
+  for (let i = 0; i < 60 * 2; i++) {
+    g._boss(1 / 60); g._bullets(1 / 60);
+    most = Math.max(most, Array.from(g.state.bullets).filter(q => q.kind === 'voidorb' && q.r === 4).length);
+  }
+  assert.equal(most, 8);
+});
+
+test('moves: ASHMAW\'s molten rocks leave the floor burning where they come down', () => {
+  const h = harness();
+  const { g, b } = arena(h, 'ashmaw');
+  fire(g, b, 'eruption');
+  for (let i = 0; i < 20; i++) { g._boss(1 / 60); g._bullets(1 / 60); }
+  const rocks = Array.from(g.state.bullets).filter(q => q.kind === 'rock');
+  const fires = Array.from(g.state.bullets).filter(q => q.style === 'embers');
+  assert.equal(rocks.length, 5); assert.equal(fires.length, 5);
+  assert.ok(fires.every(f => f.armIn > .8), 'the burning waits for the rock to land');
+  // follow one rock down and check it lands on its fire
+  const rock = rocks[2], fire0 = fires[2];
+  let landedAt = null;
+  for (let i = 0; i < 120 && landedAt === null; i++) { const y = rock.y; g._bullets(1 / 60); if (g.state.bullets.indexOf(rock) < 0) landedAt = rock.x; }
+  assert.ok(landedAt !== null && Math.abs(landedAt - fire0.x) < 8, `the rock comes down on its fire: ${Math.round(landedAt)} against ${Math.round(fire0.x)}`);
+});
+
+test('moves: SPARKWIDOW stands its ground and its thrown saws roll out along the floor and come back', () => {
+  const h = harness(), { g, b } = arena(h, 'sparkwidow');
+  fire(g, b, 'sawtoss');
+  const x0 = b.x, dir = b.facing;
+  const seen = new Map();
+  let throwing = true;
+  for (let i = 0; i < 60 * 2.4; i++) {
+    // after its rest it walks on to its next beat, so only the throw itself is held to standing still
+    if (throwing && String(b.attack) !== 'sawtoss') { throwing = false; g.state.boss = null; }
+    if (throwing) { g._boss(1 / 60); assert.equal(b.x, x0, 'it does not move while it throws'); }
+    g._bullets(1 / 60);
+    for (const q of Array.from(g.state.bullets).filter(q => q.kind === 'saw')) {
+      const r = seen.get(q) || { from: q.x, far: 0, back: false, y: q.y };
+      const out = (q.x - r.from) * dir;
+      r.far = Math.max(r.far, out); if (r.far > 20 && out < r.far - 20) r.back = true;
+      assert.equal(q.y, r.y, 'a saw keeps to the floor'); seen.set(q, r);
+    }
+  }
+  const saws = Array.from(seen.values());
+  assert.equal(saws.length, 2, 'two saws');
+  assert.ok(saws.every(r => r.back), 'both come back');
+  assert.ok(saws[0].far > saws[1].far + 40, `the first runs further: ${Math.round(saws[0].far)} against ${Math.round(saws[1].far)}`);
+});
+
+test('moves: COILHEAD keeps to the air for its own moves', () => {
+  const h = harness();
+  for (const move of ['needles', 'arcbolt']) {
+    const { g, b } = arena(h, 'coilhead');
+    const cruise = b.y;
+    fire(g, b, move);
+    runToRest(g, b, move, () => { assert.equal(b.y, cruise, `${move} is flown at cruising height`); });
+  }
+});
+
+test('moves: a leap lands on the floor and hands the body back', () => {
+  const h = harness();
+  for (const [id, move] of [['warden', 'quake'], ['tidebreaker', 'leapslash'], ['gravelock', 'anvil'], ['obsidian-crown', 'pounce']]) {
+    const { g, b } = arena(h, id);
+    fire(g, b, move);
+    let top = b.y;
+    runToRest(g, b, move, () => { top = Math.min(top, b.y); });
+    assert.ok(top < b.baseY - 30, `${id}'s ${move} leaves the floor`);
+    assert.equal(b.y, b.baseY); assert.equal(b.fly, false);
+  }
 });

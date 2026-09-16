@@ -932,3 +932,18 @@ Current worktree が増え、Push origin はPL2770H上で約(588,38)。押す直
 - **配信：** 公開サイト https://shitsuji3.github.io/astra-overdrive/ が約15秒後に `combat.bossFlight`、COILHEADの `flies: { cruise: 90 }`、SWOOPの予兆を配信。
 - **確認：** 公開URLで `qa/coilhead-flight.cjs` を実行し、手元と同じ結果（空中92.8%、6種の攻撃はすべて高さ90pxで発射、滑空の底は体の下端286px、描画による状態変更なし、ページエラー0）。`tests/browser-smoke.cjs` は1回目で18項目合格。
 - **公開したコード：** 保存版 `dist/history/ASTRA-OVERDRIVE-coilhead-flight-20260916-215151.zip` と同じ。
+
+最新変更（2026-09-17）：**全ボスの攻撃を、見た目に合う固有技に入れ替えた**（ユーザー依頼「全てのボスの見た目に合う攻撃モーションを今の攻撃モーションと入れ替えて。君のセンスに任せる」）。
+- **技：** 8体とも共通の8種の攻撃をやめ、体の形から作った3〜4技（共有なし）で戦う。
+  - 例：WARDENの両端からの衝撃波、TIDEBREAKERの水柱、ASHMAWの火炎の息、NULLPRIESTの背後への瞬間移動、OBSIDIAN CROWNの2段ビーム。
+  - COILHEADの急降下・低空滑空と、SPARKWIDOWの糸渡りは残した。
+  - SPARKWIDOWには「その場に留まる割合」を保つため、戻ってくる丸鋸投げ（SAW TOSS）を足した。
+- **向き：** ボスの絵がプレイヤーに背を向けていた件を直した。元絵はASHMAWとNULLPRIESTが右向き、ほかは左向き。
+- **描画：** 技ごとのポーズ、来る場所への予告、技名、弾と地形の攻撃（水柱・落雷・炎・ビームなど）の絵。
+- **確認：**
+  - `npm test` 169件、`qa/boss-moves.cjs`（新規）でエラー0、`qa/boss-motion.cjs` は全員基準内。
+  - 共通の8種の攻撃は変更前と64組一致。起動テスト18合格、build:ci合格。
+- **未解決（今回の変更が原因ではない）：** `tests/browser-gamepad.cjs` の失敗画面の確認が毎回失敗する。テストが失敗画面の出る前にAを押しているためで、ゲームは正常。
+- **公開：** 未実施。
+
+詳細は work/BOSS-MOVES-20260917.md。

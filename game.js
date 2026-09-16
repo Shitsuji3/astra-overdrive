@@ -178,7 +178,23 @@
     // Signature moves, each owned by one boss. They run on their own phases (NeonGame._bossMove) and
     // hand over to the rest the moment they are done, so active is only their nominal length.
     dive:   { tell: .90, active: 2.4 },
-    swing:  { tell: .90, active: 2.1 }
+    swing:  { tell: .90, active: 2.1 },
+    // Each boss's own moves, run by BOSS_MOVES. active is their nominal length; a move ends when its script does.
+    swoop:     { tell: .85, active: .9 },
+    pincer:    { tell: .90, active: 1.0 },  cannon:   { tell: .95, active: 1.0 },
+    clawrush:  { tell: .85, active: 1.14 }, quake:    { tell: .90, active: 1.35 },
+    geyser:    { tell: 1.0, active: 1.3 },  crescent: { tell: .90, active: .9 },
+    leapslash: { tell: .90, active: 1.0 },  rain:     { tell: .95, active: .7 },
+    needles:   { tell: .80, active: .75 },  arcbolt:  { tell: .85, active: 1.2 },
+    breath:    { tell: 1.0, active: 1.25 }, eruption: { tell: .95, active: .8 },
+    tackle:    { tell: 1.0, active: 1.25 }, bite:     { tell: .80, active: .7 },
+    voidstep:  { tell: .80, active: .8 },   crossorb: { tell: .75, active: .55 },
+    voidring:  { tell: .80, active: .65 },  tailbeam: { tell: .90, active: .85 },
+    hornflip:  { tell: 1.0, active: 1.2 },  stomp:    { tell: 1.05, active: 1.5 },
+    anvil:     { tell: .85, active: 1.2 },
+    sawrush:   { tell: .80, active: .9 },   embers:   { tell: .80, active: .6 },   sawtoss:  { tell: .80, active: .7 },
+    crownbeam: { tell: 1.0, active: 1.6 },  barrage:  { tell: .80, active: 1.6 },
+    tailspin:  { tell: .85, active: .9 },   pounce:   { tell: .85, active: 1.0 }
   };
   // COILHEAD's dive. It rises lift px over the floor in rise seconds, hunts the player from overhead at
   // track px/s for hover seconds but holds still for the last lock of them, so the drop can be read and
@@ -475,10 +491,10 @@
     }
     for(var i=0;i<s.enemies.length;i++){var e=s.enemies[i];if(e.dead||!bites(e))continue;
       e.hp-=cut;e.flash=.12;this._particle(e.x,e.y,'#ffb52e','burst');if(e.hp<=0)this._killEnemy(e);}
-    var b=s.boss;if(b&&b.active&&!b.down&&bites(b)){b.hp=Math.max(0,b.hp-cut);b.flash=.12;}
+    var b=s.boss;if(b&&b.active&&!b.down&&!b.phaseOut&&bites(b)){b.hp=Math.max(0,b.hp-cut);b.flash=.12;}
   };
   NeonGame.prototype._resolve=function(o,oldY){var s=this.state;for(var i=0;i<s.platforms.length;i++){var q=s.platforms[i];if(!hit(o,q))continue;if(oldY+o.h<=q.y&&o.vy>=0){o.y=q.y-o.h;o.vy=0;o.onGround=true;o.coyote=.1;}else if(oldY>=q.y+q.h&&o.vy<0){o.y=q.y+q.h;o.vy=20;}else if(o.x+o.w/2<q.x+q.w/2){o.x=q.x-o.w;o.vx=0;o.wallDir=1;}else{o.x=q.x+q.w;o.vx=0;o.wallDir=-1;}}o.x=clamp(o.x,0,this.worldWidth-o.w);};
-  NeonGame.prototype._damageNearby=function(range,dmg,facing){var s=this.state,p=s.player,attackFacing=facing===undefined?p.facing:facing;var segs=global.AstraCombat.saberSweep(p);function reaches(box,cx,cy,wide){if(segs)return global.AstraCombat.bladeTouches(segs,box,global.AstraCombat.saberPad(p));var dx=cx-p.x;return Math.abs(dx)<range+(wide||0)&&((dx>0?1:-1)===attackFacing)&&Math.abs(cy-(p.y+p.h/2))<(p.saberCombo===6?1.5:1)*(wide?75:55);}for(var i=0;i<s.enemies.length;i++){var e=s.enemies[i];if(!e.dead&&reaches(e,e.x,e.y+e.h/2,0)){e.hp-=dmg;e.flash=.12;this._particle(e.x,e.y,'#ffb52e','burst');if(e.hp<=0)this._killEnemy(e);}}if(s.boss&&s.boss.active&&!s.boss.down&&reaches(s.boss,s.boss.x,s.boss.y+s.boss.h/2,s.boss.w*.4)){s.boss.hp=Math.max(0,s.boss.hp-dmg);s.boss.flash=.12;}}
+  NeonGame.prototype._damageNearby=function(range,dmg,facing){var s=this.state,p=s.player,attackFacing=facing===undefined?p.facing:facing;var segs=global.AstraCombat.saberSweep(p);function reaches(box,cx,cy,wide){if(segs)return global.AstraCombat.bladeTouches(segs,box,global.AstraCombat.saberPad(p));var dx=cx-p.x;return Math.abs(dx)<range+(wide||0)&&((dx>0?1:-1)===attackFacing)&&Math.abs(cy-(p.y+p.h/2))<(p.saberCombo===6?1.5:1)*(wide?75:55);}for(var i=0;i<s.enemies.length;i++){var e=s.enemies[i];if(!e.dead&&reaches(e,e.x,e.y+e.h/2,0)){e.hp-=dmg;e.flash=.12;this._particle(e.x,e.y,'#ffb52e','burst');if(e.hp<=0)this._killEnemy(e);}}if(s.boss&&s.boss.active&&!s.boss.down&&!s.boss.phaseOut&&reaches(s.boss,s.boss.x,s.boss.y+s.boss.h/2,s.boss.w*.4)){s.boss.hp=Math.max(0,s.boss.hp-dmg);s.boss.flash=.12;}}
   NeonGame.prototype._enemies=function(dt){var s=this.state,p=s.player;for(var i=0;i<s.enemies.length;i++){var e=s.enemies[i];if(e.dead)continue;e.flash=Math.max(0,e.flash-dt);if(Math.abs(e.x-p.x)>550)continue;e.fireTimer-=dt;if(e.type==='walker'){e.x=e.baseX+Math.sin(s.time*2+e.phase)*45;e.x=clamp(e.x,e.baseX-45,e.baseX+45);}if(e.type==='drone'){e.y=e.baseY+Math.sin(s.time*2+e.phase)*16;if(e.fireTimer<=0){var dx=p.x-e.x,dy=p.y-e.y,len=Math.sqrt(dx*dx+dy*dy)||1;this._spawn(e.x,e.y,dx/len*180,dy/len*180,'enemy',false,1);e.fireTimer=2.2;}}if(e.type==='turret'&&e.fireTimer<=0){this._spawn(e.x,e.y+10,(p.x<e.x?-1:1)*170,0,'enemy',false,1);e.fireTimer=1.6;}if(hit(p,e)&&p.invuln<=0){p.hp--;p.invuln=.9;s.shake=.2;this._emit('sound',{name:'hurt'});if(p.hp<=0)this._die();}}};
   NeonGame.prototype._fanBurst=function(){
     var s=this.state,p=s.player,F=global.AstraCombat.fan;
@@ -492,7 +508,7 @@
     if(b.mine){this._spawn(b.x,q.y-8,0,0,'enemy',false,1,{r:7,kind:'mine',fxBoss:b.fxBoss,fuse:b.fuse||1.2,burst:b.burst||5,life:b.fuse||1.2});this._explode(b.x,q.y-4,'#ffb04a',.3);return true;}
     if(b.fxBoss)this._bossImpact(b.x,q.y-4,b.fxBoss,30);
     this._explode(b.x,q.y-4,'#ff9a4a',.55);return true;}}return false;};
-  NeonGame.prototype._bullets=function(dt){var s=this.state,p=s.player;for(var i=s.bullets.length-1;i>=0;i--){var b=s.bullets[i];if(b.g)b.vy+=b.g*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(b.turn&&b.life<=b.turn){b.vx=-b.vx;b.turn=0;}var remove=b.life<=0||b.x<0||b.x>this.worldWidth||b.y>430||b.y<-140;if(remove&&b.fuse&&b.life<=0)this._mineBursts(b);if(!remove&&(b.g||b.pops)&&this._shellLands(b))remove=true;if(!remove){if(b.team==='player'){for(var j=0;j<s.enemies.length;j++){var e=s.enemies[j];if(!e.dead&&hit({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},e)){e.hp-=b.power;e.flash=.1;remove=true;for(var z=0;z<3;z++)this._particle(b.x,b.y,'#ffe36e');if(e.hp<=0)this._killEnemy(e);}}if(s.boss&&s.boss.active&&!s.boss.down&&hit({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},s.boss)){s.boss.hp-=b.power;s.boss.flash=.1;remove=true;this._burst(b.x,b.y,'#ff4f9a');}}else if(this._saberDeflects(b)){remove=true;for(var k=0;k<5;k++)this._particle(b.x,b.y,'#80fff0');this._particle(b.x,b.y,'#e5ffff','ring');}else if(hit({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},p)&&p.invuln<=0){p.hp--;p.invuln=.8;remove=true;s.shake=.25;this._emit('sound',{name:'hurt'});if(p.hp<=0)this._die();}}if(remove)s.bullets.splice(i,1);}};
+  NeonGame.prototype._bullets=function(dt){var s=this.state,p=s.player;for(var i=s.bullets.length-1;i>=0;i--){var b=s.bullets[i];if(b.hold&&b.armIn>0){b.armIn-=dt;continue;}if(b.g)b.vy+=b.g*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;b.life-=dt;if(b.turn&&b.life<=b.turn){b.vx=-b.vx;b.turn=0;}if(b.armIn>0)b.armIn-=dt;var remove=b.life<=0||b.x<0||b.x>this.worldWidth||b.y>430||b.y<-140;if(!remove&&b.split&&b.life<=b.split.at){this._bossSplit(b);remove=true;}if(remove&&b.fuse&&b.life<=0)this._mineBursts(b);if(!remove&&b.floorOnly){if(b.y+b.r>=310){remove=true;if(b.fxBoss)this._bossImpact(b.x,310,b.fxBoss,20);}}else if(!remove&&(b.g||b.pops)&&this._shellLands(b))remove=true;if(!remove){if(b.team==='player'){for(var j=0;j<s.enemies.length;j++){var e=s.enemies[j];if(!e.dead&&hit({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},e)){e.hp-=b.power;e.flash=.1;remove=true;for(var z=0;z<3;z++)this._particle(b.x,b.y,'#ffe36e');if(e.hp<=0)this._killEnemy(e);}}if(s.boss&&s.boss.active&&!s.boss.down&&!s.boss.phaseOut&&hit({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},s.boss)){s.boss.hp-=b.power;s.boss.flash=.1;remove=true;this._burst(b.x,b.y,'#ff4f9a');}}else if(!b.solid&&this._saberDeflects(b)){remove=true;for(var k=0;k<5;k++)this._particle(b.x,b.y,'#80fff0');this._particle(b.x,b.y,'#e5ffff','ring');}else if(!(b.armIn>0)&&!b.harmless&&hit(b.hw?{x:b.x-b.hw,y:b.y-b.hh,w:b.hw*2,h:b.hh*2}:{x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},p)&&p.invuln<=0){p.hp--;p.invuln=.8;if(!b.hw)remove=true;s.shake=.25;this._emit('sound',{name:'hurt'});if(p.hp<=0)this._die();}}if(remove)s.bullets.splice(i,1);}};
   NeonGame.prototype._pickups=function(dt){
     var s=this.state,p=s.player;dt=dt||0;
     for(var i=s.pickups.length-1;i>=0;i--){
@@ -515,6 +531,329 @@
   // Which entry in the roster this body is fighting as.
   function bossDef(b){ return global.AstraBosses.get(b && b.id); }
   function knob(b,name){ return bossDef(b).tuning[name]; }
+  // ---- Moves drawn from each boss's body --------------------------------------------------------------
+  // A move is a script run a frame at a time by _bossMove, with the boss, its move state m, the step and
+  // k = {s, p, A}. It moves the body, sets m.pose for the renderer to lean the picture into, and puts shots
+  // and hazards on the board. When it is done it calls finish, and the boss rests as its beat asked.
+  // Everything is timed, nothing is random, so a move always reads the same way.
+  function sstep(u){u=u<0?0:u>1?1:u;return u*u*(3-2*u);}
+  function once(m,key,at){if(m.t>=at&&!m.fired[key]){m.fired[key]=true;return true;}return false;}
+  function finish(b,m){m.done=true;m.pose=null;b.timer=0;}
+  function bossShot(game,b,x,y,vx,vy,extra){
+    var o={fxBoss:b.id};for(var key in extra)o[key]=extra[key];
+    return game._spawn(x,y,vx,vy,'enemy',false,1,o);
+  }
+  // A hazard is a rectangle that hurts while it is armed: a geyser, a lightning strike, burning floor, a beam.
+  // For armIn seconds it only warns. The saber cannot cut it away. A harmless one is a marker and nothing more.
+  function bossHazard(game,b,x,y,hw,hh,armIn,live,style,extra){
+    var o={fxBoss:b.id,kind:'hazard',style:style,hw:hw,hh:hh,r:Math.max(hw,hh),armIn:armIn,armFor:armIn,liveFor:live,life:armIn+live,solid:true};
+    for(var key in extra)o[key]=extra[key];
+    return game._spawn(x,y,0,0,'enemy',false,1,o);
+  }
+  // A lob that comes down on the floor at toX after flight seconds.
+  function bossLob(game,b,fromX,fromY,toX,flight,extra){
+    // it passes the arena's ledges and lands on the floor, so it comes down exactly where its mark or its
+    // burning floor is
+    var gv=900,floorY=b.baseY+b.h,o={g:gv,kind:'shell',floorOnly:true};
+    for(var key in extra)o[key]=extra[key];
+    return bossShot(game,b,fromX,fromY,(toX-fromX)/flight,(floorY-fromY-gv*flight*flight/2)/flight,o);
+  }
+  // A rock held at the top of the screen for delay seconds, then dropped; a marker shows where it will land.
+  function bossRockfall(game,b,x,delay){
+    bossHazard(game,b,x,b.baseY+b.h-6,14,6,0,delay+.9,'mark',{harmless:true});
+    bossShot(game,b,x,-20,0,0,{r:8,kind:'rock',g:900,life:3,armIn:delay,hold:true,floorOnly:true});
+  }
+  function arenaX(k,b,x){return clamp(x,k.A.gate+10,k.A.bossMax+b.w-10);}
+  function slide(k,b,dx){b.x=clamp(b.x+dx,k.A.bossMin,k.A.bossMax);}
+  function landShock(game,k,b,speed,r,life,power,size,shake){
+    var fy=b.baseY+b.h,cx=b.x+b.w/2;
+    bossShot(game,b,cx-b.w*.4,fy-Math.max(10,r),-speed,0,{r:r,kind:'wave',life:life,power:power});
+    bossShot(game,b,cx+b.w*.4,fy-Math.max(10,r),speed,0,{r:r,kind:'wave',life:life,power:power});
+    game._bossImpact(cx,fy,b.id,size);k.s.shake=Math.max(k.s.shake,shake);game._emit('sound',{name:'boss'});
+  }
+  var BOSS_MOVES={
+    // WARDEN, the siege crab. Claws that close like a gate, the cannon on its arm, and its weight.
+    pincer:function(b,m,dt,k){
+      // claws thrown wide, then driven into the floor: a shock runs in from each end of the arena and they
+      // cross in the middle - jump each one as it reaches you, or both at once in the centre
+      m.pose=m.t<.25?'crouch':m.t<.9?'slam':null;
+      if(once(m,'clamp',.25)){
+        var y=b.baseY+b.h-12,left=k.A.gate-10,right=k.A.bossMax+b.w+24,life=(right-left)/230+.2;
+        bossShot(this,b,left,y,230,0,{r:8,kind:'wave',life:life,power:2});
+        bossShot(this,b,right,y,-230,0,{r:8,kind:'wave',life:life,power:2});
+        this._bossImpact(b.x+b.w/2,b.baseY+b.h,b.id,40);k.s.shake=Math.max(k.s.shake,.3);this._emit('sound',{name:'boss'});
+      }
+      if(m.t>=1)finish(b,m);
+    },
+    cannon:function(b,m,dt,k){
+      // three heavy slugs from the arm at chest height, each one kicking the body back - jump them
+      for(var i=0;i<3;i++)if(once(m,'s'+i,.1+i*.28)){
+        var mx=b.x+b.w/2+m.dir*b.w*.55,my=b.y+b.h*.36;
+        bossShot(this,b,mx,my,m.dir*250,0,{r:7,kind:'slug',life:2.6});
+        m.kick=.12;this._bossImpact(mx,my,b.id,16);this._emit('sound',{name:'boss'});
+      }
+      if(m.kick>0){m.kick-=dt;slide(k,b,-m.dir*42*dt);m.pose='recoil';}else m.pose='aim';
+      if(m.t>=1)finish(b,m);
+    },
+    clawrush:function(b,m,dt,k){
+      // three short snapping lunges, turning to the player before each one
+      var cycle=.38,n=Math.min(2,Math.floor(m.t/cycle)),local=m.t-n*cycle;
+      if(m.aimN!==n){m.aimN=n;m.aim=(k.p.x+k.p.w/2)<b.x+b.w/2?-1:1;b.facing=m.aim;m.from=b.x;}
+      if(local<.22){b.x=clamp(m.from+m.aim*64*sstep(local/.22),k.A.bossMin,k.A.bossMax);m.pose='lunge';}
+      else{m.pose='crouch';if(once(m,'snap'+n,n*cycle+.22)){this._bossImpact(b.x+b.w/2+m.aim*b.w*.6,b.y+b.h*.55,b.id,20);this._emit('sound',{name:'boss'});}}
+      if(m.t>=cycle*3)finish(b,m);
+    },
+    quake:function(b,m,dt,k){
+      // a short hop and both claws into the floor: rocks come down around where the player stood
+      if(m.t<.45){var u=m.t/.45;b.fly=true;b.y=b.baseY-38*4*u*(1-u);m.pose='rear';}
+      else{b.y=b.baseY;b.fly=!!b.flies;m.pose=m.t<.9?'slam':null;}
+      if(once(m,'land',.45)){
+        this._bossImpact(b.x+b.w/2,b.baseY+b.h,b.id,52);k.s.shake=Math.max(k.s.shake,.5);this._emit('sound',{name:'boss'});
+        var px=k.p.x+k.p.w/2;
+        for(var i=0;i<3;i++)bossRockfall(this,b,arenaX(k,b,px+(i-1)*70),.1+i*.16);
+      }
+      if(m.t>=1.35)finish(b,m);
+    },
+    // TIDEBREAKER, the mantis. Scythes, water, and a leap.
+    geyser:function(b,m,dt,k){
+      // it rears and brings both scythes down: three water columns burst up in turn, marching away from it
+      m.pose=m.t<.3?'rear':m.t<.8?'strike':null;
+      if(once(m,'slam',.3)){
+        var front=b.x+b.w/2+m.dir*b.w*.5,floor=b.baseY+b.h;
+        for(var i=0;i<3;i++)bossHazard(this,b,arenaX(k,b,front+m.dir*(60+i*70)),floor-70,12,70,.25+i*.18,.45,'geyser');
+        this._bossImpact(front,floor,b.id,30);k.s.shake=Math.max(k.s.shake,.25);this._emit('sound',{name:'boss'});
+      }
+      if(m.t>=1.3)finish(b,m);
+    },
+    crescent:function(b,m,dt,k){
+      // two scythe blades thrown along the ground: the first low - jump it - the second high, over a
+      // standing player's head - stay down for it
+      var floor=b.baseY+b.h,fx=b.x+b.w/2+m.dir*b.w*.6;
+      if(once(m,'low',.05))bossShot(this,b,fx,floor-12,m.dir*240,0,{r:9,kind:'crescent',life:2.4});
+      if(once(m,'high',.45)){bossShot(this,b,fx,floor-62,m.dir*240,0,{r:9,kind:'crescent',high:true,life:2.4});this._emit('sound',{name:'boss'});}
+      m.pose=m.t<.3?'strike':m.t<.45?'rear':m.t<.7?'strike':null;
+      if(m.t>=.9)finish(b,m);
+    },
+    leapslash:function(b,m,dt,k){
+      // it leaps over the player's head and lands on the far side with its scythes down, splashing both ways
+      if(m.fromX===undefined){var pc=k.p.x+k.p.w/2,side=(b.x+b.w/2)<pc?1:-1;
+        m.fromX=b.x;m.toX=clamp(pc+side*80-b.w/2,k.A.bossMin,k.A.bossMax);b.facing=side;}
+      var dur=.75,u=Math.min(1,m.t/dur);
+      if(u<1){b.fly=true;b.x=m.fromX+(m.toX-m.fromX)*u;b.y=b.baseY-110*4*u*(1-u);m.pose='air';}
+      if(once(m,'land',dur)){b.x=m.toX;b.y=b.baseY;b.fly=!!b.flies;landShock(this,k,b,200,7,.6,1,40,.3);
+        b.facing=(k.p.x+k.p.w/2)<b.x+b.w/2?-1:1;m.pose='strike';}
+      if(m.t>=dur+.25)finish(b,m);
+    },
+    rain:function(b,m,dt,k){
+      // scythes raised, it flings five drops high; they come down in a row across the player
+      m.pose=m.t<.35?'rear':null;
+      if(once(m,'throw',.2)){var px=k.p.x+k.p.w/2,mx=b.x+b.w/2,my=b.y+b.h*.15;
+        for(var i=0;i<5;i++)bossLob(this,b,mx,my,arenaX(k,b,px+(i-2)*55),1.15+Math.abs(i-2)*.05,{r:5,kind:'drop'});
+        this._emit('sound',{name:'boss'});}
+      if(m.t>=.7)finish(b,m);
+    },
+    // COILHEAD, the wasp, which flies: its sting, and the arc that gives it its name.
+    needles:function(b,m,dt,k){
+      // three bursts of needles from the tail, each aimed where the player is at that moment
+      m.pose='sting';
+      for(var i=0;i<3;i++)if(once(m,'n'+i,.05+i*.2)){
+        var tx=b.x+b.w/2-m.dir*b.w*.35,ty=b.y+b.h*.72,px=k.p.x+k.p.w/2,py=k.p.y+k.p.h*.5,a=Math.atan2(py-ty,px-tx);
+        for(var j=-1;j<=1;j++)bossShot(this,b,tx,ty,Math.cos(a+j*.12)*290,Math.sin(a+j*.12)*290,{r:4,kind:'needle',life:2});
+        this._emit('sound',{name:'boss'});
+      }
+      if(m.t>=.75)finish(b,m);
+    },
+    arcbolt:function(b,m,dt,k){
+      // lightning called down in three places around the player, one after another, starting on the side
+      // nearest the wasp - step back through the first strike once it is spent
+      m.pose=m.t<.9?'charge':null;
+      if(once(m,'call',.05)){var px=k.p.x+k.p.w/2,top=34,floor=b.baseY+b.h;
+        for(var i=0;i<3;i++)bossHazard(this,b,arenaX(k,b,px+(i-1)*60*m.dir),(top+floor)/2,9,(floor-top)/2,.45+i*.2,.22,'bolt');
+        this._emit('sound',{name:'boss'});}
+      if(m.t>=1.2)finish(b,m);
+    },
+    // ASHMAW, the cinder beast. Fire from the jaws and from the vents on its back, and its weight.
+    breath:function(b,m,dt,k){
+      // it rears, then breathes a line of fire along the floor that runs out ahead of it - jump the front of
+      // the flames as they reach you, or get behind it
+      m.pose=m.t<.2?'rear':m.t<.95?'strike':null;
+      var floor=b.baseY+b.h,front=b.x+b.w/2+m.dir*b.w*.5;
+      if(once(m,'roar',.2))this._emit('sound',{name:'boss'});
+      for(var i=0;i<10;i++)if(once(m,'f'+i,.2+i*.07)){
+        var fx=front+m.dir*(26+i*22);
+        if(fx>k.A.gate&&fx<k.A.bossMax+b.w+20)bossHazard(this,b,fx,floor-9,11,9,0,.45,'flame');
+      }
+      if(m.t>=1.25)finish(b,m);
+    },
+    eruption:function(b,m,dt,k){
+      // the vents on its back spit five molten rocks around the player; where each lands the floor burns
+      m.pose=m.t<.25?'crouch':m.t<.6?'rear':null;
+      if(once(m,'spew',.25)){var px=k.p.x+k.p.w/2,mx=b.x+b.w/2-m.dir*b.w*.2,my=b.y+b.h*.1,floor=b.baseY+b.h;
+        for(var i=0;i<5;i++){var to=arenaX(k,b,px+(i-2)*64),fl=1.05+(i%2)*.12;
+          bossLob(this,b,mx,my,to,fl,{r:7,kind:'rock'});
+          bossHazard(this,b,to,floor-6,13,6,fl,.8,'embers');}
+        k.s.shake=Math.max(k.s.shake,.25);this._emit('sound',{name:'boss'});}
+      if(m.t>=.8)finish(b,m);
+    },
+    tackle:function(b,m,dt,k){
+      // head down, a long heavy charge; it skids to a stop and the floor throws a shock on ahead
+      if(m.t<1){slide(k,b,m.dir*250*dt);m.pose='lunge';
+        var d=Math.floor(m.t*20);if(!k.s.reducedMotion&&d!==m.dust){m.dust=d;this._push({x:b.x+b.w/2-m.dir*b.w*.4,y:b.baseY+b.h-3,vx:-m.dir*60,vy:-30,life:.3,maxLife:.3,color:'#8a6f5a',size:3,type:'smoke',gravity:0});}}
+      if(once(m,'skid',1)){var fy=b.baseY+b.h,cx=b.x+b.w/2;
+        bossShot(this,b,cx+m.dir*b.w*.5,fy-10,m.dir*220,0,{r:8,kind:'wave',life:.7});
+        this._bossImpact(cx+m.dir*b.w*.4,fy,b.id,36);k.s.shake=Math.max(k.s.shake,.35);this._emit('sound',{name:'boss'});}
+      if(m.t>=1)m.pose='slam';
+      if(m.t>=1.25)finish(b,m);
+    },
+    bite:function(b,m,dt,k){
+      // a quick lunge and the jaws snap shut just ahead of it, then it backs off
+      if(m.from===undefined)m.from=b.x;
+      if(m.t<.18){b.x=clamp(m.from+m.dir*90*sstep(m.t/.18),k.A.bossMin,k.A.bossMax);m.pose='lunge';}
+      else if(m.t<.45)m.pose='strike';
+      else{slide(k,b,-m.dir*80*dt);m.pose=null;}
+      if(once(m,'snap',.18)){var jx=b.x+b.w/2+m.dir*(b.w*.6+14),jy=b.y+b.h*.5;
+        bossHazard(this,b,jx,jy,20,22,0,.14,'jaws');this._bossImpact(jx,jy,b.id,26);k.s.shake=Math.max(k.s.shake,.3);this._emit('sound',{name:'boss'});}
+      if(m.t>=.7)finish(b,m);
+    },
+    // NULLPRIEST, the void scorpion. It is not always there, and its tail does the rest.
+    voidstep:function(b,m,dt,k){
+      // it fades out, comes back on the far side of the player and strikes with its tail. While it is faded
+      // nothing touches it and it touches nothing.
+      var pc=k.p.x+k.p.w/2;
+      if(m.t<.25){m.alpha=1-m.t/.25;b.phaseOut=m.t>.12;}
+      else if(once(m,'blink',.25)){var side=(b.x+b.w/2)<pc?-1:1,to=pc-side*80-b.w/2;
+        if(to<k.A.bossMin||to>k.A.bossMax)to=pc+side*110-b.w/2;
+        b.x=clamp(to,k.A.bossMin,k.A.bossMax);b.facing=pc<b.x+b.w/2?-1:1;m.dir=b.facing;m.alpha=0;b.phaseOut=true;}
+      else if(m.t<.45){m.alpha=(m.t-.25)/.2;b.phaseOut=m.t<.35;}
+      else{m.alpha=1;b.phaseOut=false;m.pose='strike';
+        if(once(m,'strike',.47)){var tx=b.x+b.w/2+m.dir*b.w*.5,ty=b.y+b.h*.35;
+          for(var j=-1;j<=1;j++)bossShot(this,b,tx,ty,m.dir*Math.cos(j*.28)*220,Math.sin(j*.28)*220,{r:5,kind:'voidorb',life:2});
+          this._emit('sound',{name:'boss'});}
+        if(m.t<.6)slide(k,b,m.dir*140*dt);}
+      if(m.t>=.8){b.phaseOut=false;m.alpha=1;finish(b,m);}
+    },
+    crossorb:function(b,m,dt,k){
+      // the tail lobs a slow orb at the player that splits into eight
+      m.pose=m.t<.3?'rear':null;
+      if(once(m,'orb',.15)){var tx=b.x+b.w/2+m.dir*b.w*.3,ty=b.y+b.h*.1,px=k.p.x+k.p.w/2,py=k.p.y+k.p.h*.4,a=Math.atan2(py-ty,px-tx);
+        bossShot(this,b,tx,ty,Math.cos(a)*130,Math.sin(a)*130,{r:8,kind:'voidorb',big:true,life:3,split:{at:2.15,n:8,speed:170,r:4}});
+        this._emit('sound',{name:'boss'});}
+      if(m.t>=.55)finish(b,m);
+    },
+    voidring:function(b,m,dt,k){
+      // two rings of orbs, the second turned half a step so it fills the first one's gaps
+      m.pose='charge';
+      for(var r=0;r<2;r++)if(once(m,'ring'+r,.05+r*.32)){var cx=b.x+b.w/2,cy=b.y+b.h/2,n=10,off=r*Math.PI/n;
+        for(var i=0;i<n;i++){var a=off+Math.PI*2*i/n;bossShot(this,b,cx+Math.cos(a)*b.w*.66,cy+Math.sin(a)*b.h*.44,Math.cos(a)*150,Math.sin(a)*150,{r:5,kind:'voidorb',pops:true,life:2.5});}
+        this._emit('sound',{name:'boss'});}
+      if(m.t>=.65)finish(b,m);
+    },
+    tailbeam:function(b,m,dt,k){
+      // the tail levels and a thin beam fires along the floor at knee height - jump it
+      m.pose=m.t<.45?'charge':m.t<.8?'aim':null;
+      if(once(m,'beam',.02)){var floor=b.baseY+b.h,fx=b.x+b.w/2+m.dir*b.w*.5,len=360;
+        bossHazard(this,b,fx+m.dir*len/2,floor-24,len/2,5,.45,.3,'beam',{dir:m.dir});}
+      if(m.t>=.85)finish(b,m);
+    },
+    // GRAVELOCK, the anvil beetle. The horn, the stomp, and the whole weight of it from above.
+    hornflip:function(b,m,dt,k){
+      // a short charge that ends with the horn thrown up, flinging four chunks of floor both ways
+      if(m.t<.6){slide(k,b,m.dir*300*dt);m.pose='lunge';}
+      else m.pose=m.t<1?'rear':null;
+      if(once(m,'flip',.6)){var cx=b.x+b.w/2+m.dir*b.w*.4,cy=b.y+b.h*.2,arcs=[[-200,-380],[-110,-430],[120,-430],[210,-380]];
+        for(var i=0;i<4;i++)bossShot(this,b,cx,cy,arcs[i][0],arcs[i][1],{r:6,kind:'rock',g:900,life:3,floorOnly:true});
+        this._bossImpact(cx,b.baseY+b.h,b.id,40);k.s.shake=Math.max(k.s.shake,.4);this._emit('sound',{name:'boss'});}
+      if(m.t>=1.2)finish(b,m);
+    },
+    stomp:function(b,m,dt,k){
+      // it rears and stomps twice; each stomp sends a heavy shock both ways, and the second shakes rocks loose
+      var t=m.t;m.pose=(t<.3||(t>=.6&&t<.9))?'rear':t<1.2?'slam':null;
+      for(var i=0;i<2;i++)if(once(m,'st'+i,.3+i*.6)){
+        landShock(this,k,b,180,12,2,2,56,.55);
+        if(i===1){var px=k.p.x+k.p.w/2;for(var j=0;j<3;j++)bossRockfall(this,b,arenaX(k,b,px+(j-1)*60),.15+j*.15);}
+      }
+      if(t>=1.5)finish(b,m);
+    },
+    anvil:function(b,m,dt,k){
+      // a huge leap onto the spot where the player stood when it jumped, marked on the floor, and a shock
+      // both ways when it lands
+      if(m.fromX===undefined){m.fromX=b.x;m.toX=clamp(k.p.x+k.p.w/2-b.w/2,k.A.bossMin,k.A.bossMax);
+        bossHazard(this,b,m.toX+b.w/2,b.baseY+b.h-6,b.w*.8,6,0,.95,'mark',{harmless:true});}
+      var dur=.9,u=Math.min(1,m.t/dur);
+      if(u<1){b.fly=true;b.x=m.fromX+(m.toX-m.fromX)*sstep(u);b.y=b.baseY-150*4*u*(1-u);m.pose='air';}
+      if(once(m,'land',dur)){b.x=m.toX;b.y=b.baseY;b.fly=!!b.flies;landShock(this,k,b,300,10,1.2,2,64,.6);m.pose='slam';}
+      if(m.t>=dur+.3)finish(b,m);
+    },
+    // SPARKWIDOW, the saw spider: saws, the smokestacks on its back, and its silk (swing).
+    sawrush:function(b,m,dt,k){
+      // saws spinning, it runs flat out along the floor throwing sparks
+      if(m.t<.7){slide(k,b,m.dir*340*dt);m.pose='lunge';
+        var sp=Math.floor(m.t*30);if(!k.s.reducedMotion&&sp!==m.spark){m.spark=sp;this._push({x:b.x+b.w/2-m.dir*b.w*.3,y:b.baseY+b.h-2,vx:-m.dir*(80+sp%3*30),vy:-60-sp%4*15,life:.25,maxLife:.25,color:'#ffd27a',size:2,type:'spark',gravity:500});}}
+      else m.pose=m.t<.85?'crouch':null;
+      if(m.t>=.9)finish(b,m);
+    },
+    sawtoss:function(b,m,dt,k){
+      // legs planted, it flings the saw from each front leg along the floor. Each one rolls out and comes back
+      // to it: the first runs long, the second short and a beat later, so each is jumped going out and again
+      // coming back
+      m.pose=m.t<.12?'crouch':m.t<.55?'strike':null;
+      var S=combat.bossSwing,throws=[[.12,S.sawSpeed,S.sawTurn],[.46,200,.55]];
+      for(var i=0;i<2;i++)if(once(m,'saw'+i,throws[i][0])){
+        var t0=throws[i];
+        bossShot(this,b,b.x+b.w/2+m.dir*b.w*.4,b.baseY+b.h-S.sawR-1,m.dir*t0[1],0,{r:S.sawR,kind:'saw',life:t0[2]*2,turn:t0[2]});
+        this._emit('sound',{name:'boss'});
+      }
+      if(m.t>=.7)finish(b,m);
+    },
+    embers:function(b,m,dt,k){
+      // the smokestacks cough seven embers high into the air; they rain down across the player
+      m.pose=m.t<.3?'crouch':null;
+      if(once(m,'puff',.15)){var px=k.p.x+k.p.w/2,sx=b.x+b.w/2,sy=b.y+b.h*.05;
+        for(var i=0;i<7;i++)bossLob(this,b,sx+(i-3)*3,sy,arenaX(k,b,px+(i-3)*44),1+(i%3)*.08,{r:4,kind:'ember'});
+        this._emit('sound',{name:'boss'});}
+      if(m.t>=.6)finish(b,m);
+    },
+    // OBSIDIAN CROWN, the gate dragon. The cannons on its back, its tail, and a pounce.
+    crownbeam:function(b,m,dt,k){
+      // two beams from the back cannons: first at head height - stay down - then along the floor - jump
+      m.pose=m.t<1.5?'aim':null;
+      if(once(m,'beams',.02)){var floor=b.baseY+b.h,fx=b.x+b.w/2+m.dir*b.w*.5,len=480;
+        bossHazard(this,b,fx+m.dir*len/2,floor-66,len/2,7,.35,.4,'beam',{dir:m.dir});
+        bossHazard(this,b,fx+m.dir*len/2,floor-14,len/2,7,1.1,.4,'beam',{dir:m.dir,low:true});
+        this._emit('sound',{name:'boss'});}
+      if(m.t>=1.6)finish(b,m);
+    },
+    barrage:function(b,m,dt,k){
+      // three low shells - jump them - a breath, then three high ones over a standing player
+      m.pose='aim';
+      var floor=b.baseY+b.h,times=[.05,.23,.41,1.11,1.29,1.47];
+      for(var i=0;i<6;i++)if(once(m,'b'+i,times[i])){
+        bossShot(this,b,b.x+b.w/2+m.dir*b.w*.5,floor-(i>=3?62:14),m.dir*280,0,{r:6,kind:'slug',life:2.5});
+        this._emit('sound',{name:'boss'});}
+      if(m.t>=1.6)finish(b,m);
+    },
+    tailspin:function(b,m,dt,k){
+      // it spins, its tail sweeping close on both sides, and finishes with a shock both ways
+      m.pose='spin';m.poseU=Math.min(1,m.t/.6);
+      if(once(m,'sweep',.1)){var fy=b.baseY+b.h,cx=b.x+b.w/2;
+        bossHazard(this,b,cx-60,fy-16,45,16,0,.5,'sweep');bossHazard(this,b,cx+60,fy-16,45,16,0,.5,'sweep');}
+      if(once(m,'waves',.6)){landShock(this,k,b,260,8,.9,1,48,.35);}
+      if(m.t>=.6)m.pose=null;
+      if(m.t>=.9)finish(b,m);
+    },
+    pounce:function(b,m,dt,k){
+      // it leaps at the player and bursts five shards up and outward where it lands
+      if(m.fromX===undefined){m.fromX=b.x;m.toX=clamp(k.p.x+k.p.w/2-b.w/2,k.A.bossMin,k.A.bossMax);
+        bossHazard(this,b,m.toX+b.w/2,b.baseY+b.h-6,b.w*.8,6,0,.8,'mark',{harmless:true});}
+      var dur=.75,u=Math.min(1,m.t/dur);
+      if(u<1){b.fly=true;b.x=m.fromX+(m.toX-m.fromX)*u;b.y=b.baseY-120*4*u*(1-u);m.pose='air';}
+      if(once(m,'land',dur)){b.x=m.toX;b.y=b.baseY;b.fly=!!b.flies;var fy=b.baseY+b.h,cx=b.x+b.w/2;
+        for(var i=0;i<5;i++){var a=-Math.PI*(150-i*30)/180;bossShot(this,b,cx,fy-20,Math.cos(a)*200,Math.sin(a)*200,{r:5,kind:'shard',pops:true,life:2});}
+        this._bossImpact(cx,fy,b.id,52);k.s.shake=Math.max(k.s.shake,.45);this._emit('sound',{name:'boss'});m.pose='slam';}
+      if(m.t>=dur+.25)finish(b,m);
+    }
+  };
+  combat.bossMoves=BOSS_MOVES;
   // Each pattern fires once, at the moment its wind-up ends. Every number it uses comes from
   // the roster entry, so two bosses sharing an attack still do not play the same.
   NeonGame.prototype._bossFire=function(b,name){
@@ -584,6 +923,10 @@
       b.fly=true;b.vy=0;b.leap=false;b.slammed=true;b.facing=-side;
       b.move={kind:'swing',phase:'climb',t:0,ax:anchor.x,ay:anchor.y,th0:side*SW.swingDeg*Math.PI/180,
         th:side*SW.swingDeg*Math.PI/180,fromX:b.x,fromY:b.y,done:false};
+    } else if(name==='swoop'){
+      b.move={kind:'swoop',t:0,fromY:b.y,dir:dir,done:false};
+    } else if(BOSS_MOVES[name]){
+      b.move={kind:name,t:0,dir:dir,done:false,fired:{},pose:null};
     } else if(name==='wall'){
       // a column with exactly one hole in it, which is the whole puzzle
       var rows=knob(b,'wallRows'),step=knob(b,'wallStep'),
@@ -661,7 +1004,16 @@
       }else if(m.phase==='saws'){
         if(m.t>=.25){m.done=true;b.timer=0;}
       }
+    }else if(BOSS_MOVES[m.kind]){
+      BOSS_MOVES[m.kind].call(this,b,m,dt,{s:s,p:p,A:arena});
     }
+  };
+  // An orb that has flown its course bursts into shards all the way round.
+  NeonGame.prototype._bossSplit=function(q){
+    var sp=q.split;
+    for(var i=0;i<sp.n;i++){var a=Math.PI*2*i/sp.n;
+      this._spawn(q.x,q.y,Math.cos(a)*sp.speed,Math.sin(a)*sp.speed,'enemy',false,1,{r:sp.r,kind:'voidorb',life:2,pops:true,fxBoss:q.fxBoss});}
+    if(q.fxBoss)this._bossImpact(q.x,q.y,q.fxBoss,22);
   };
   // The slam only pays off when he lands: the floor throws a wave out both ways.
   NeonGame.prototype._bossSlam=function(b){
@@ -703,7 +1055,7 @@
       this._emit('sound',{name:'pickup'});
     }
     b.hp=0;b.down=true;b.downTime=0;b.deathBursts=0;b.blasted=false;
-    b.dashTime=0;b.attack='down';b.timer=999;b.move=null;b.fly=false;
+    b.dashTime=0;b.attack='down';b.timer=999;b.move=null;b.fly=false;b.phaseOut=false;
     for(var i=s.bullets.length-1;i>=0;i--)if(s.bullets[i].team==='enemy')s.bullets.splice(i,1);
     s.shake=Math.max(s.shake,.35);
     this._emit('sound',{name:'explode'});
@@ -812,7 +1164,7 @@
       } else if(C.bossPatterns[state])this._bossRest(b,def);
       else this._bossBeat(b,def);
     }
-    if(hit(p,b)&&p.invuln<=0){p.hp-=2;p.invuln=1;s.shake=.3;if(p.hp<=0)this._die();}
+    if(!b.phaseOut&&hit(p,b)&&p.invuln<=0){p.hp-=2;p.invuln=1;s.shake=.3;if(p.hp<=0)this._die();}
   };
   // Step to the next beat of the routine and set off for the distance it asks for. Whichever
   // side of the player it is already on is the side it keeps, unless the arena is too tight
@@ -828,7 +1180,7 @@
       b.walkTo=clamp(mid-side*away-b.w/2,arena.bossMin,arena.bossMax);
     b.attack='walk-'+beat.move;b.timer=C.bossWalk.cap;b.dashTime=0;b.move=null;
     // a flier that came down takes off again as it sets off for its next beat
-    b.grounded=false;b.fly=!!b.flies;
+    b.grounded=false;b.fly=!!b.flies;b.phaseOut=false;
   };
   // Plant and telegraph. The wind-up is the same one the warning graphic is drawn from.
   NeonGame.prototype._bossWind=function(b,def,move){
@@ -843,7 +1195,7 @@
   NeonGame.prototype._bossRest=function(b,def){
     var C=global.AstraCombat,routine=C.bossRoutine(def),
         beat=routine&&routine[b.beat===undefined?0:b.beat];
-    b.attack='rest';b.dashTime=0;b.move=null;b.fly=!!b.flies&&!b.grounded;
+    b.attack='rest';b.dashTime=0;b.move=null;b.fly=!!b.flies&&!b.grounded;b.phaseOut=false;
     b.timer=Math.max(C.bossRestFloor,(beat?beat.rest:.8)*C.bossTellScale[b.healthPhase-1]);
   };
   NeonGame.prototype._deathTick=function(dt){var s=this.state,f=s.deathFx;if(s.mode!=='dead'||!f||f.done)return;f.time=Math.min(f.duration,f.time+dt);s.shake=Math.max(0,s.shake-dt*3);s.flash=0;if(f.time>=f.duration){f.done=true;this._emit('death-ready',this.snapshot());}};
