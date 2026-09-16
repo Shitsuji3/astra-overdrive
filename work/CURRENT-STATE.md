@@ -926,3 +926,9 @@ Current worktree が増え、Push origin はPL2770H上で約(588,38)。押す直
 - **公開：** 未実施。
 
 詳細は work/COILHEAD-FLIGHT-20260916.md。
+
+公開（2026-09-16）：飛行するCOILHEAD（コミット81d4768、前回の公開記録9d1cbf7を含む）を、ユーザーの「GitHubには反映」で公開した。
+- **push：** GitHub Desktop（3.6.6に更新されていたため `githubdesktop.exe` として許可を取り直した）のPush originから。押す前に画面でリポジトリ astra-overdrive／作業ツリー Astragemes／ブランチ main／未送信2件を確認。`git -c credential.helper= fetch` で origin/main が 81d4768 と一致。
+- **配信：** 公開サイト https://shitsuji3.github.io/astra-overdrive/ が約15秒後に `combat.bossFlight`、COILHEADの `flies: { cruise: 90 }`、SWOOPの予兆を配信。
+- **確認：** 公開URLで `qa/coilhead-flight.cjs` を実行し、手元と同じ結果（空中92.8%、6種の攻撃はすべて高さ90pxで発射、滑空の底は体の下端286px、描画による状態変更なし、ページエラー0）。`tests/browser-smoke.cjs` は1回目で18項目合格。
+- **公開したコード：** 保存版 `dist/history/ASTRA-OVERDRIVE-coilhead-flight-20260916-215151.zip` と同じ。
