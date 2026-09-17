@@ -944,6 +944,15 @@ Current worktree が増え、Push origin はPL2770H上で約(588,38)。押す直
   - `npm test` 169件、`qa/boss-moves.cjs`（新規）でエラー0、`qa/boss-motion.cjs` は全員基準内。
   - 共通の8種の攻撃は変更前と64組一致。起動テスト18合格、build:ci合格。
 - **未解決（今回の変更が原因ではない）：** `tests/browser-gamepad.cjs` の失敗画面の確認が毎回失敗する。テストが失敗画面の出る前にAを押しているためで、ゲームは正常。
-- **公開：** 未実施。
+- **公開：** 2026-09-17に実施（下記）。
 
 詳細は work/BOSS-MOVES-20260917.md。
+
+公開（2026-09-17）：全ボスの固有技（コミット61715d0、前回の公開記録aa007cfを含む）を、ユーザーの「反映して」で公開した。
+- **push：** GitHub DesktopのPush originから。押す前に画面でリポジトリ astra-overdrive／作業ツリー Astragemes／ブランチ main／未送信2件を確認。`git ls-remote` と `git -c credential.helper= fetch` で origin/main が 61715d0 と一致。
+- **配信：** 公開サイト https://shitsuji3.github.io/astra-overdrive/ が、最初の確認（push後すぐ）で新しい `game.js`（`sawtoss`）、`assets/bosses.js`（SPARKWIDOWのSAW TOSS）、`render.js`（`BOSS_DRAWN_RIGHT`）を配信していた。
+- **確認（公開URLで実行）：**
+  - `qa/boss-moves.cjs`：8体31技すべてが、通常と演出軽減の両方で発射して休みに戻った。問題0、ページエラー0。
+  - `qa/boss-motion.cjs`：全員がループを繰り返し、その場に留まる割合は手元と同じ（72〜82%）。
+  - `tests/browser-smoke.cjs`：1回目で18項目合格。
+- **公開したコード：** 保存版 `dist/history/ASTRA-OVERDRIVE-boss-moves-20260917-025805.zip` と同じ。

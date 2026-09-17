@@ -118,3 +118,11 @@
 - ポーズの大きさ → `render.js` の `BOSS_POSES`、溜めのポーズ → `BOSS_TELL_POSES`
 - 予告の描き方 → `render.js` の `BOSS_TELLS`、弾の絵 → `BOSS_SHOTS`、地形の攻撃の絵 → `bossHazardShape`
 - 元絵の向き → `render.js` の `BOSS_DRAWN_RIGHT`
+
+## 公開（2026-09-17）
+
+- ユーザーの「反映して」で、GitHub DesktopのPush originから公開した。origin/main は 61715d0。
+- 公開URLで確認した結果：
+  - `qa/boss-moves.cjs`：31技すべて発射して休みに戻った。問題0、ページエラー0
+  - `qa/boss-motion.cjs`：全員が基準内
+  - `tests/browser-smoke.cjs`：1回目で18項目合格
