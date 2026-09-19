@@ -1,0 +1,394 @@
+[
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\ARM-SWING-PLAN.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\ARM-SWING-PLAN.md",
+    "relative": "work\\ARM-SWING-PLAN.md",
+    "bytes": 1648,
+    "sha256": "89B219A00B0B4C0328E14BC9AB8A1192A7531A84548422CC84BFE5DA4998B20B",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\ART-MATCH-20260910.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\ART-MATCH-20260910.md",
+    "relative": "work\\ART-MATCH-20260910.md",
+    "bytes": 4783,
+    "sha256": "0997E76AA7BD78A5BFD4A29C0BFB433E2D5899459226B590FFCDBDA1DC6C6DD1",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\BOSS-ROSTER-20260911.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\BOSS-ROSTER-20260911.md",
+    "relative": "work\\BOSS-ROSTER-20260911.md",
+    "bytes": 6490,
+    "sha256": "57BFAE50730997B0E954B470287F73DDA4B607174D656395A07E5475A2BA6932",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\BOSS-ROUTINE-20260912.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\BOSS-ROUTINE-20260912.md",
+    "relative": "work\\BOSS-ROUTINE-20260912.md",
+    "bytes": 9016,
+    "sha256": "E224CBE9AA1C6B34F291786C53E7C8DC71AA7C3DCDE302FCC2AAB761D2141333",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\BOSS-SCALE-20260912.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\BOSS-SCALE-20260912.md",
+    "relative": "work\\BOSS-SCALE-20260912.md",
+    "bytes": 7631,
+    "sha256": "0594B8784D99D23633DEDA222ED15039A98E3406F413D6E15D954EF4D491E5E5",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\BUILD-MATCH-20260910.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\BUILD-MATCH-20260910.md",
+    "relative": "work\\BUILD-MATCH-20260910.md",
+    "bytes": 3517,
+    "sha256": "1697315E5A9AC16D3F68B643444611DEF909F22EFD5879C68D1412974AFD5AA1",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\BUSTER-SUPPORT-20260913.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\BUSTER-SUPPORT-20260913.md",
+    "relative": "work\\BUSTER-SUPPORT-20260913.md",
+    "bytes": 3221,
+    "sha256": "18FBF031D7F716F9983ACC4348F824E1870E896D6780496A28FEAE9B6CDC1C75",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\EIGHT-STAGES-20260912.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\EIGHT-STAGES-20260912.md",
+    "relative": "work\\EIGHT-STAGES-20260912.md",
+    "bytes": 8036,
+    "sha256": "D51625E51522AB63791A19E813B96729804BC05C129743F354567A88142890DA",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\ENEMY-REDESIGN.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\ENEMY-REDESIGN.md",
+    "relative": "work\\ENEMY-REDESIGN.md",
+    "bytes": 2297,
+    "sha256": "309F9F214994360F40E10983719B74DDA3EC90FAE33F8D9AD423E370D57FE9BC",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\EXPLOSION-SE-20260911.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\EXPLOSION-SE-20260911.md",
+    "relative": "work\\EXPLOSION-SE-20260911.md",
+    "bytes": 5892,
+    "sha256": "BF4F6B6A28992D609EC24E9DC72AA4713EA5FC6C8EA67E284A453C30A160DC42",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\fan-charge-build.log",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\fan-charge-build.log",
+    "relative": "work\\fan-charge-build.log",
+    "bytes": 1796,
+    "sha256": "48AE3E28FED933A0AD95476951236002312DDE19F8E8C126F26303748170FD21",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\fan-charge-tests.log",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\fan-charge-tests.log",
+    "relative": "work\\fan-charge-tests.log",
+    "bytes": 32384,
+    "sha256": "91E39E1BCAFE5E4534349FC74F9F9C36017EC1CEDF0CE09038D5410B30749308",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\GAMEPAD-MENU-20260913.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\GAMEPAD-MENU-20260913.md",
+    "relative": "work\\GAMEPAD-MENU-20260913.md",
+    "bytes": 4527,
+    "sha256": "FBB8F12249C165E6CD9A3C8260F0A54FC35DCF856890441FFB4C3E4123FD912D",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\HANDOFF-20260909.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\HANDOFF-20260909.md",
+    "relative": "work\\HANDOFF-20260909.md",
+    "bytes": 5964,
+    "sha256": "8D1B1E82C5D37D14F2DE77DC54EA767E99777CE02691501890F61923FA156EAC",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\handoff-20260910-tests.log",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\handoff-20260910-tests.log",
+    "relative": "work\\handoff-20260910-tests.log",
+    "bytes": 11985,
+    "sha256": "368DBCDEDEF6136C6D160E83FB3DDFB8973F29DB6DDF48A90B9391D0BAB2D9C8",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\HANDOFF-20260910.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\HANDOFF-20260910.md",
+    "relative": "work\\HANDOFF-20260910.md",
+    "bytes": 9365,
+    "sha256": "43352B2EE22541AC3B4024B5C8A450096B68EC2C92E13AEF84985BA6E2675E55",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\handoff-20260914-tests.log",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\handoff-20260914-tests.log",
+    "relative": "work\\handoff-20260914-tests.log",
+    "bytes": 28765,
+    "sha256": "F050EBA6D8090E12056B19D6B33C53FECF660EDB8B2300EAA2E922B5874A2CDC",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\HANDOFF-20260915-OPUS.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\HANDOFF-20260915-OPUS.md",
+    "relative": "work\\HANDOFF-20260915-OPUS.md",
+    "bytes": 5518,
+    "sha256": "38497AAD7241FA56B3EFFAE7DECEBC9DC0C5797EF4025BB290A4734434589A02",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\HANDOFF-OPUS5-20260914.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\HANDOFF-OPUS5-20260914.md",
+    "relative": "work\\HANDOFF-OPUS5-20260914.md",
+    "bytes": 9602,
+    "sha256": "47324F8B5212475299769FFD69FBC57D5A588F3DA2F6D3C02FE2EF45B1749B36",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\IDLE-ART-20260910.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\IDLE-ART-20260910.md",
+    "relative": "work\\IDLE-ART-20260910.md",
+    "bytes": 2813,
+    "sha256": "DA76C320ED06066E45A22606CB883165E8A2881B9EF5AF892F6EC37D5C3F0D1E",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\KILL-FX-BOSS-20260910.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\KILL-FX-BOSS-20260910.md",
+    "relative": "work\\KILL-FX-BOSS-20260910.md",
+    "bytes": 8991,
+    "sha256": "FA5C643BAB8FBBCB02E5835DF7078DE5701D6D626AE291CBEFB419E4821D4AB7",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\MOTION-HANDOFF.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\MOTION-HANDOFF.md",
+    "relative": "work\\MOTION-HANDOFF.md",
+    "bytes": 1953,
+    "sha256": "3757E20ABB7FA2ED0FB9BD922DB41B21842799021DCBF503349DA505685DDDD4",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\MOTION-HANDOFF.md.bak",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\MOTION-HANDOFF.md.bak",
+    "relative": "work\\MOTION-HANDOFF.md.bak",
+    "bytes": 552,
+    "sha256": "F0160C8A73FC9A89E271832321D11ECED34A77C463C17D85C52D72A4F3E30E17",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\MOTION-V3-PLAN.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\MOTION-V3-PLAN.md",
+    "relative": "work\\MOTION-V3-PLAN.md",
+    "bytes": 1459,
+    "sha256": "7A83D2151F785821D9853D17FC599120EBCE8949CCC77F2C1E230B19A504CEC9",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\ONE-RIG-20260910.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\ONE-RIG-20260910.md",
+    "relative": "work\\ONE-RIG-20260910.md",
+    "bytes": 4441,
+    "sha256": "04D6F8A905C61CF1EC9DD98D930CC6079A92C602D04979B29A280AE612FA9F13",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\PUBLISH-20260912.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\PUBLISH-20260912.md",
+    "relative": "work\\PUBLISH-20260912.md",
+    "bytes": 9528,
+    "sha256": "D07915F9BA5C3197D56C2A46BCECEB21E2BCA2580FD185BBFE124215A908F4F5",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\relaxed-saber-tests.log",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\relaxed-saber-tests.log",
+    "relative": "work\\relaxed-saber-tests.log",
+    "bytes": 11764,
+    "sha256": "4045FF06CF576E97799C118295E70B618DA49B3CF5CBF1FD196FF21244E4D6A4",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\RELEASE-SETUP-20260911.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\RELEASE-SETUP-20260911.md",
+    "relative": "work\\RELEASE-SETUP-20260911.md",
+    "bytes": 9183,
+    "sha256": "119D1F7B074D130B93F2FC84707F7D41C59B3D1992249309B130BFE931A7EE83",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\RISING-FAITHFUL-20260912.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\RISING-FAITHFUL-20260912.md",
+    "relative": "work\\RISING-FAITHFUL-20260912.md",
+    "bytes": 6112,
+    "sha256": "836222331AE11EC498982FB921DC2724AAFDD8FBDC3CFC65447CA1FC00058D4B",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\RISING-FIRE-20260913.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\RISING-FIRE-20260913.md",
+    "relative": "work\\RISING-FIRE-20260913.md",
+    "bytes": 17792,
+    "sha256": "F3F12AAA73C5EC9E77B38A843BB899985DFF27FA97FF7F658948CC8022C9EDB1",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\RISING-HIT-20260913.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\RISING-HIT-20260913.md",
+    "relative": "work\\RISING-HIT-20260913.md",
+    "bytes": 7436,
+    "sha256": "BE363C4263E3E5D78D221E41DEA8829ACD7AB08C83F0EAECDFF8F5BF561D94C8",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\RISING-SHEET-20260912.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\RISING-SHEET-20260912.md",
+    "relative": "work\\RISING-SHEET-20260912.md",
+    "bytes": 9599,
+    "sha256": "BF248B88CB60FF3367A6E61CD7F6D647149D7E60C7C7BEB4C95FBB2CE8502BCF",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\RUN-V5-PLAN.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\RUN-V5-PLAN.md",
+    "relative": "work\\RUN-V5-PLAN.md",
+    "bytes": 171,
+    "sha256": "C1814EB19F6D2B0937CAA4637CD766E5534601A3A6953BA0F14DA5D7125405A4",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\RUN-V6-PLAN.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\RUN-V6-PLAN.md",
+    "relative": "work\\RUN-V6-PLAN.md",
+    "bytes": 1059,
+    "sha256": "E541E0149820B96860FF24347B9B3AF448106B96A647A478F025627D746EEA75",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\SABER-32-FRAME-REVIEW-20260910.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\SABER-32-FRAME-REVIEW-20260910.md",
+    "relative": "work\\SABER-32-FRAME-REVIEW-20260910.md",
+    "bytes": 3152,
+    "sha256": "36214ED31F0C997BC555EB77892B70F254E07C184B6FDE3A0DBF4551DC3A9A67",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\saber-deflect-tests.log",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\saber-deflect-tests.log",
+    "relative": "work\\saber-deflect-tests.log",
+    "bytes": 10890,
+    "sha256": "D2FD7C211BFC6F9E69355019968731D91F26F002EDC7D6A01B4D18370E6E64C9",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\SABER-FAITHFUL-20260910.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\SABER-FAITHFUL-20260910.md",
+    "relative": "work\\SABER-FAITHFUL-20260910.md",
+    "bytes": 3323,
+    "sha256": "D37457C38888095FBE05E3A84BEF7EC1B835129A0DB0C58982E5C163EC786799",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\SABER-FIDELITY-AUDIT-20260910.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\SABER-FIDELITY-AUDIT-20260910.md",
+    "relative": "work\\SABER-FIDELITY-AUDIT-20260910.md",
+    "bytes": 1651,
+    "sha256": "225FE9AEF57CE9340661E000B76CA5EF54EBA88ACE7F7811039F2C4C2B04511F",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\SABER-REACH-20260910.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\SABER-REACH-20260910.md",
+    "relative": "work\\SABER-REACH-20260910.md",
+    "bytes": 4119,
+    "sha256": "2EC7090F392BA56CFDB33B6B6F099A5ACF25EE5B8CBADF9B6E8C9B3D61983A3B",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\SABER-RISING-20260912.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\SABER-RISING-20260912.md",
+    "relative": "work\\SABER-RISING-20260912.md",
+    "bytes": 6883,
+    "sha256": "12D2A592BBAD55D0DAD7023CCF5C49BBC8C76C0F031D604CFB5621E38B5B328C",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\SABER-STAGE2-STANCE.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\SABER-STAGE2-STANCE.md",
+    "relative": "work\\SABER-STAGE2-STANCE.md",
+    "bytes": 9563,
+    "sha256": "B1557B404528EB2BC06B922666A5462CF9C428114DD0B3581AF0A76C849949D2",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\SELECT-MAP-20260912.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\SELECT-MAP-20260912.md",
+    "relative": "work\\SELECT-MAP-20260912.md",
+    "bytes": 6078,
+    "sha256": "0E02370689FFAB1957D28FBC3C7C5862F29D242838FF0E9CFD5B57963BF81BEE",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\STAGE-EXPANSION-20260910.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\STAGE-EXPANSION-20260910.md",
+    "relative": "work\\STAGE-EXPANSION-20260910.md",
+    "bytes": 3781,
+    "sha256": "9AD7E3CD906BACD385083B49E8993F3082B441305B82E8E041EE8682AB215377",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\STAGES-20260911.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\STAGES-20260911.md",
+    "relative": "work\\STAGES-20260911.md",
+    "bytes": 7499,
+    "sha256": "5D888BB9A5270150CDD8EE19D3E583F8888B15774397F41DCAA186490B71EFF0",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\THRUST-20260913.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\THRUST-20260913.md",
+    "relative": "work\\THRUST-20260913.md",
+    "bytes": 6787,
+    "sha256": "E1EA086603D2B60EC67328E3D442A58D40B21569E26FC4CFEFEA9DC61CD2F131",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\UPPER-BODY-PLAN.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\UPPER-BODY-PLAN.md",
+    "relative": "work\\UPPER-BODY-PLAN.md",
+    "bytes": 1636,
+    "sha256": "2248585C5584245AE4DB9504DE5F4D5CDF1F42CE18742BE929AFDBA70C575BE4",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\work\\CURRENT-STATE.md",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\work\\CURRENT-STATE.md",
+    "relative": "work\\CURRENT-STATE.md",
+    "bytes": 120744,
+    "sha256": "948CA11E025BE5B744CC7111D6E24682128A03E6E4760D1279A2DED2DFB12EA5",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\qa-title-initial.png",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\qa-title-initial.png",
+    "relative": "qa-title-initial.png",
+    "bytes": 41518,
+    "sha256": "2546A984927D92183C4818B07FFC9081D52632B2EC31EA0D38F63D8941083FC4",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  },
+  {
+    "original": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\test-out.txt",
+    "archived": "C:\\Users\\situz\\Desktop\\ASTRA_過去資料保管\\整理-20260919-215917\\test-out.txt",
+    "relative": "test-out.txt",
+    "bytes": 9098,
+    "sha256": "E6D57C3F485630EEC1888C1A26E11B91FD44B31BD4BBCA26144C7F0A6E9EC111",
+    "reason": "過去の作業記録・検証結果（CURRENT-STATEは全文履歴）"
+  }
+]

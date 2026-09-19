@@ -1,6 +1,0 @@
-# Motion handoff
-
-- Completed: idle breathing with stable feet, 8-frame run and saber atlases, saber core VFX, fallback baseline correction, eager atlas loading during play.
-- Review: Astra visual review passed; Luna implemented the renderer changes; Terra provided a read-only diagnosis of the atlas warm-up race.
-- Validation: renderer asset tests passed; motion review passed; motion visual check passed; HTTP and file motion input checks passed with 8 run and 8 saber frames and no errors.
-- Deferred: audio work remains outside this motion scope.
