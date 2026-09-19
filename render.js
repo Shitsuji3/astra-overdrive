@@ -345,6 +345,111 @@ function bossPose(b,t,reduced,pf,flip){
 // One pose flows into the next instead of snapping, remembered per boss outside the game's own state. A
 // walker turns on its hind feet while its head is up and on its front feet while its head is down; a flier
 // turns about its middle.
+
+// Art-space joints: centre, influence radii, and hinge. These deform only a local
+// part of the original artwork; the torso and planted feet remain independent.
+var BOSS_JOINTS={
+ warden:[[.22,.38,.27,.26,.43,.39],[.38,.66,.28,.27,.55,.59],[.72,.20,.21,.24,.70,.39]],
+ tidebreaker:[[.18,.48,.22,.34,.31,.31],[.49,.61,.24,.32,.59,.40],[.40,.18,.22,.22,.47,.35]],
+ coilhead:[[.74,.22,.29,.26,.58,.41],[.81,.68,.22,.27,.65,.54],[.28,.62,.23,.29,.39,.43]],
+ ashmaw:[[.83,.42,.23,.24,.65,.37],[.83,.72,.23,.25,.68,.60],[.39,.16,.27,.22,.46,.34]],
+ nullpriest:[[.40,.20,.37,.29,.25,.42],[.83,.68,.23,.25,.71,.57],[.35,.73,.23,.23,.44,.59]],
+ gravelock:[[.16,.36,.23,.40,.28,.60],[.26,.79,.22,.23,.35,.66],[.73,.80,.23,.22,.65,.65]],
+ sparkwidow:[[.25,.67,.23,.28,.33,.47],[.63,.72,.23,.26,.60,.48],[.50,.17,.26,.24,.49,.37]],
+ 'obsidian-crown':[[.27,.22,.30,.26,.51,.37],[.83,.30,.22,.37,.76,.62],[.25,.62,.25,.25,.42,.55]]
+};
+// Contact times mirror the existing simulation. No attack clocks or hitboxes change.
+var BOSS_ART_BEATS={
+ pincer:[.25],cannon:[.1,.38,.66],clawrush:[.22,.60,.98],quake:[.45],
+ geyser:[.3],crescent:[.05,.45],leapslash:[.75],rain:[.2],
+ needles:[.05,.25,.45],arcbolt:[.5,.7,.9],swoop:[.25],dive:[.15],
+ breath:[.2],eruption:[.25],tackle:[1],bite:[.18],voidstep:[.47],
+ crossorb:[.15],voidring:[.05,.37],tailbeam:[.47],
+ hornflip:[.6],stomp:[.3,.9],anvil:[.9],sawrush:[.08,.3,.52],
+ sawtoss:[.12,.46],embers:[.15],swing:[.2],crownbeam:[.37,1.12],
+ barrage:[.05,.23,.41,1.11,1.29,1.47],tailspin:[.1,.6],pounce:[.75]
+};
+function bossArtTarget(b,time,reduced){
+ var raw=String(b.attack||''),tell=raw.indexOf('tell-')===0,m=b.move,
+ name=tell?raw.slice(5):m&&!m.done?m.kind:'',out=[0,0,0,0],beats=BOSS_ART_BEATS[name];
+ if(b.down||!beats)return out;
+ var a=0,kick=0,tt=m?m.t||0:0;
+ if(tell){
+   var def=g.AstraBosses&&g.AstraBosses.get(b.id),pat=g.AstraCombat&&g.AstraCombat.bossPatterns[name];
+   var span=(pat?pat.tell:1)*(def&&def.tempo||1),u=C(1-(b.timer||0)/span,0,1);
+   a=u*u*(3-2*u);
+ }else{
+   a=1;
+   for(var i=0;i<beats.length;i++){var d=tt-beats[i];if(d>=-.10&&d<.24)kick=Math.max(kick,d<0?Math.pow(1+d/.10,2):Math.exp(-d*13));}
+   var last=beats[beats.length-1];a*=1-C((tt-last-.12)/.32,0,1);
+ }
+ // Each boss uses its own weapon: positive/negative rotations are in the source image.
+ var q=a*.36,hit=kick*.72;
+ switch(b.id){
+ case 'warden':
+   out=[-q+hit,-q*.8+hit*.9,q*.22];
+   if(name==='cannon')out=[q*.22-kick*.22,q*.15-kick*.16,kick*.12];
+   break;
+ case 'tidebreaker':out=[q-hit,q*.8-hit*1.1,-q*.18+hit*.18];break;
+ case 'coilhead':out=[q*.4, q-hit,-q*.35+hit*.3];break;
+ case 'ashmaw':
+   out=[-q+hit*.55,q*.8-hit*.75,-q*.45+hit*.5];
+   if(name==='breath')out[0]=tell?-q*.7:tt<.9?-.26:-.26*(1-C((tt-.9)/.3,0,1));
+   break;
+ case 'nullpriest':out=[-q+hit*.8,q*.65-hit*.6,-q*.5+hit*.45];break;
+ case 'gravelock':out=[q-hit,q*.65-hit*.7,-q*.28+hit*.25];break;
+ case 'sparkwidow':out=[q-hit,-q+hit,q*.5-hit*.4];break;
+ case 'obsidian-crown':out=[q*.6-hit*.45,-q+hit,q*.3-hit*.6];break;
+ }
+ out[3]=kick;
+ return out;
+}
+var bossJointMemo=new WeakMap();
+function bossArtMotion(b,time,reduced){
+ var target=bossArtTarget(b,time,reduced),old=bossJointMemo.get(b);
+ if(!old||time<old.t||time-old.t>.25){old={t:time,v:target.slice()};bossJointMemo.set(b,old);}
+ else{var k=1-Math.exp(-Math.max(0,time-old.t)*32);for(var i=0;i<4;i++)old.v[i]+=(target[i]-old.v[i])*k;old.t=time;}
+ return old.v.slice();
+}
+function bossMeshPoint(id,x,y,angles){
+ var parts=BOSS_JOINTS[id],dx=0,dy=0,total=0;
+ for(var i=0;i<parts.length;i++){
+   var j=parts[i],r=Math.hypot((x-j[0])/j[2],(y-j[1])/j[3]);
+   if(r>=1)continue;
+   var w=(1-r*r);w*=w;
+   var a=angles[i],co=Math.cos(a),si=Math.sin(a),vx=x-j[4],vy=y-j[5];
+   dx+=(vx*co-vy*si-vx)*w;dy+=(vx*si+vy*co-vy)*w;total+=w;
+ }
+ // Bounded blend keeps joints continuous and never shifts the ground contact.
+ var floor=1-C((y-.87)/.10,0,1),den=Math.max(1,total);
+ return {x:x+dx/den*floor,y:y+dy/den*floor};
+}
+function bossArtDraw(c,b,frame,x,y,w,h,keep,time,reduced){
+ if(!BOSS_JOINTS[b.id])return false;
+ var angles=bossArtMotion(b,time,reduced);
+ if(angles.slice(0,3).every(function(a){return Math.abs(a)<.001;}))return false;
+ var nx=12,ny=12,points=[],sw=frame.naturalWidth,sh=frame.naturalHeight;
+ for(var iy=0;iy<=ny;iy++)for(var ix=0;ix<=nx;ix++){
+   var u=ix/nx,v=iy/ny*keep,d=bossMeshPoint(b.id,u,v,angles);
+   points.push({u:u*sw,v:v*sh,x:x+d.x*w,y:y+d.y*h});
+ }
+ function tri(a,b,d){
+   var ux=b.u-a.u,uy=b.v-a.v,vx=d.u-a.u,vy=d.v-a.v,det=ux*vy-uy*vx,
+       X=b.x-a.x,Y=b.y-a.y,U=d.x-a.x,V=d.y-a.y,
+       aa=(X*vy-U*uy)/det,bb=(Y*vy-V*uy)/det,cc=(U*ux-X*vx)/det,dd=(V*ux-Y*vx)/det;
+   // A small overlap closes subpixel rasterisation cracks between neighbouring triangles.
+   var cx=(a.x+b.x+d.x)/3,cy=(a.y+b.y+d.y)/3;
+   c.save();c.beginPath();
+   [a,b,d].forEach(function(p,i){var dx=p.x-cx,dy=p.y-cy,l=Math.hypot(dx,dy)||1;
+     if(i)c.lineTo(p.x+dx/l*.25,p.y+dy/l*.25);else c.moveTo(p.x+dx/l*.25,p.y+dy/l*.25);});
+   c.closePath();c.clip();c.transform(aa,bb,cc,dd,a.x-aa*a.u-cc*a.v,a.y-bb*a.u-dd*a.v);
+   c.drawImage(frame,0,0);c.restore();
+ }
+ for(var yy=0;yy<ny;yy++)for(var xx=0;xx<nx;xx++){
+   var n=yy*(nx+1)+xx;tri(points[n],points[n+1],points[n+nx+1]);tri(points[n+1],points[n+nx+2],points[n+nx+1]);
+ }
+ return true;
+}
 var bossPoseMemo=typeof WeakMap==='function'?new WeakMap():null;
 function bossPoseEased(b,t,reduced,pf,flip){
   var o=bossPose(b,t,reduced,pf,flip),e=bossPoseMemo&&b?bossPoseMemo.get(b):null;
@@ -664,7 +769,7 @@ draw=function(c,s){
         // crouches or lunges, and hang in the air under it while it flies or leaps; it is left off whenever any is true
         keep=own&&(pose.rot||pose.dx||pose.sx!==1||pose.sy!==1||bb.y<bb.baseY-1)?1-(BOSS_FLOOR_BAND[bb.id]||0):1;
     if(pose.rot||pose.dx||pose.dy||pose.jx||pose.jy||pose.sx!==1||pose.sy!==1){var pcx=bx+dw*pose.px,pcy=by+recoil+dh*pose.py;c.translate(pcx+pose.dx+pose.jx,pcy+pose.dy+pose.jy);c.rotate(pose.rot);c.scale(pose.sx,pose.sy);c.translate(-pcx,-pcy);}
-    c.drawImage(frame,0,0,frame.naturalWidth,frame.naturalHeight*keep,bx,by+recoil,dw,dh*keep);c.restore();}R(c,146,317,348,32,P.ink);T(c,(bb.name||'WARDEN').split('').join(' ')+'  //  '+(bb.title||''),150,322,8,P.cyan);R(c,150,334,340,7,P.deep);R(c,152,336,336*C(bb.hp/bb.maxHp,0,1),3,P.coral)}
+    if(!bossArtDraw(c,bb,frame,bx,by+recoil,dw,dh,keep,s.time||0,!!s.reducedMotion))c.drawImage(frame,0,0,frame.naturalWidth,frame.naturalHeight*keep,bx,by+recoil,dw,dh*keep);c.restore();}R(c,146,317,348,32,P.ink);T(c,(bb.name||'WARDEN').split('').join(' ')+'  //  '+(bb.title||''),150,322,8,P.cyan);R(c,150,334,340,7,P.deep);R(c,152,336,336*C(bb.hp/bb.maxHp,0,1),3,P.coral)}
   if(s.boss&&s.boss.active){bossEnergy(c,s,s.boss);bossTell(c,s,s.boss);}
   nextBossMarker(c,s);
   playerBreak(c,s);
@@ -672,7 +777,7 @@ draw=function(c,s){
   if(s.flash>0&&!s.reducedMotion){c.save();c.globalAlpha=Math.min(.85,s.flash);c.fillStyle='#ffffff';c.fillRect(0,0,W,H);c.restore()}
   if(s.mode==='playing'&&s.message&&s.messageTimer>0){R(c,180,62,280,24,P.ink);L(c,180,62,460,62,P.amber,1);T(c,s.message,320,70,8,P.white,'center')}
   hud(c,s)
-};g.AstraRenderer={draw:draw}})(window);
+};g.AstraRenderer={draw:draw,bossArtTarget:bossArtTarget,bossMeshPoint:bossMeshPoint}})(window);
 
 
 
