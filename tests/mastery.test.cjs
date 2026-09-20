@@ -1,5 +1,5 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm');
-function setup(){const c={console,performance:{now:()=>0},addEventListener(){},removeEventListener(){},requestAnimationFrame(){},cancelAnimationFrame(){}};c.globalThis=c;vm.createContext(c);for(const f of ['assets/bosses.js','assets/stages.js','assets/run-rig-v6.js','assets/saber-rig.js','game.js','mastery.js'])vm.runInContext(fs.readFileSync(f,'utf8'),c);const g=new c.NeonGame(null);g.start({stage:'gauntlet'});g._spawnBoss('warden');return{g,c};}
+function setup(){const c={console,performance:{now:()=>0},addEventListener(){},removeEventListener(){},requestAnimationFrame(){},cancelAnimationFrame(){}};c.globalThis=c;vm.createContext(c);for(const f of ['assets/bosses.js','assets/stages.js','assets/run-rig-v6.js','assets/saber-rig.js','game.js','mastery.js'])vm.runInContext(fs.readFileSync(f,'utf8'),c);const g=new c.NeonGame(null);g.start({stage:'gauntlet'});g._spawnBoss('warden');g.state.bossIntro=null;return{g,c};}
 test('deflection arms the next attack only, not the attack that cut the bullet',()=>{const {g}=setup(),p=g.state.player;p.attackSerial=1;g._registerDeflect();assert.equal(g._masteryPower(4.5,'saber'),4.5);p.attackSerial=2;assert.equal(g._masteryPower(4.5,'saber'),6.75);assert.equal(g._masteryPower(4.5,'saber'),6.75);assert.equal(g.state.mastery.counters,1);p.attackSerial=3;assert.equal(g._masteryPower(4.5,'saber'),4.5);});
 test('counter expires, freezes on pause and is lost on damage',()=>{const {g}=setup();g._registerDeflect();g.pause();g._tick(2);assert.equal(g.state.mastery.ready,1.5);g.resume();g._enemies=()=>{};g._boss=()=>{};for(let i=0;i<100;i++)g._tick(1/60);assert.equal(g.state.mastery.ready,0);g._registerDeflect();g._registerHit();assert.equal(g.state.mastery.ready,0);assert.equal(g.state.mastery.hits,1);});
 test('thrust bonus needs recovery and rising bonus needs airborne target',()=>{const {g}=setup(),b=g.state.boss;b.attack='rest';assert.equal(g._masteryPower(6.75,'thrust'),8.4375);assert.equal(g._masteryPower(4.5,'saber'),4.5);b.attack='cannon';assert.equal(g._masteryPower(6.75,'thrust'),6.75);b.y=b.baseY-30;assert.equal(g._masteryPower(4,'rising'),5);b.y=b.baseY;assert.equal(g._masteryPower(4,'rising'),4);});
@@ -33,4 +33,29 @@ test('boss rush starts and retries directly in the arena',()=>{
  const {g,c}=setup();assert.ok(g.state.player.x>c.AstraCombat.arena.gate);assert.equal(g.state.boss.id,'warden');
  g._die();g.retry();assert.equal(g.state.mode,'playing');assert.ok(g.state.player.x>c.AstraCombat.arena.gate);
  assert.equal(g.state.mastery.hits,0);assert.equal(g.state.boss.id,'warden');
+});
+
+
+test('all boss entrances freeze combat and records, then preserve the first telegraph',()=>{
+ const {g,c}=setup();
+ for(const def of c.AstraBosses.list){
+  g.start({stage:'gauntlet'});g._spawnBoss(def.id);const s=g.state,b=s.boss,p=s.player;
+  const attack=b.attack,timer=b.timer,hp=p.hp,bhp=b.hp,time=s.timeElapsed,x=p.x;
+  g.setInput('saber',true);g.setInput('right',true);g._spawn(p.x,p.y,0,0,'enemy',false,1);
+  for(let n=0;n<90;n++)g._tick(1/60);
+  assert.ok(s.bossIntro,def.id);assert.equal(b.attack,attack);assert.equal(b.timer,timer);
+  assert.equal(s.timeElapsed,time);assert.equal(p.hp,hp);assert.equal(b.hp,bhp);assert.equal(p.x,x);
+  g.pause();const frozen=s.bossIntro.time;g._tick(2);assert.equal(s.bossIntro.time,frozen);g.resume();
+  for(let n=0;n<10;n++)g._tick(1/60);
+  assert.equal(s.bossIntro,null);assert.equal(b.attack,attack);assert.equal(b.timer,timer);
+  s.bullets=[];g._tick(1/60);assert.ok(s.timeElapsed>time);assert.ok(b.timer<timer);
+ }
+});
+test('practice arrival is brief and a retry restarts it; next boss clears old attacks',()=>{
+ const {g}=setup();g.startPractice('coilhead','needles');assert.equal(g.state.bossIntro.duration,.6);
+ for(let n=0;n<37;n++)g._tick(1/60);assert.equal(g.state.bossIntro,null);
+ g.restartPractice();assert.equal(g.state.bossIntro.time,0);
+ g.start({stage:'gauntlet'});g.state.bullets.push({team:'enemy'});g.state.player.saberTime=1;
+ g._nextBoss();assert.equal(g.state.boss.id,'tidebreaker');assert.equal(g.state.bossIntro.time,0);
+ assert.equal(g.state.bullets.length,0);assert.equal(g.state.player.saberTime,0);
 });

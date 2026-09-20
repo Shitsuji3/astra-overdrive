@@ -16,8 +16,28 @@ P._masteryPower=function(power,kind){var s=this.state,m=s.mastery,b=s.boss,p=s.p
  if(b&&kind==='rising'&&b.y<b.baseY-20){mult*=1.25;note(s,m.counterSerial===serial?'COUNTER + AIR x1.875':'AIR BREAK x1.25');}
  return power*mult;
 };
-var tick=P._tick;P._tick=function(dt){var s=this.state;if(s.mode==='playing'&&s.mastery){s.mastery.ready=Math.max(0,s.mastery.ready-dt);s.mastery.notice=Math.max(0,s.mastery.notice-dt);}tick.call(this,dt);};
-var spawn=P._spawnBoss;P._spawnBoss=function(id){var b=spawn.call(this,id),s=this.state;b.masteryStart=s.timeElapsed||0;b.masteryHits=s.mastery?s.mastery.hits:0;return b;};
+// Intro time is separate from combat time: records and attack windups do not run here.
+var tick=P._tick;P._tick=function(dt){var s=this.state;
+ if(s.mode==='playing'&&s.bossIntro){var intro=s.bossIntro;
+  if(!s.boss||s.boss.down){s.bossIntro=null;}else{
+   intro.time=Math.min(intro.duration,intro.time+dt);s.player.animTime+=dt;
+   this.pressed={};this.mouseInput.pendingShoot=false;this.mouseInput.pendingSaber=false;
+   if(!intro.landed&&intro.time>=intro.duration*.46){intro.landed=true;this._emit('sound',{name:'boss'});}
+   if(intro.time>=intro.duration){s.bossIntro=null;this._clearMouse();this.input={};this.keys={};this.pressed={};
+    this._jumpHeld=!!this.padInput.jump;this._dashHeld=!!this.padInput.dash;this._saberHeld=!!this.padInput.saber;this._shootHeld=!!this.padInput.shoot;
+    s.boss.masteryStart=s.timeElapsed||0;s.message='';s.messageTimer=0;}
+   return;
+  }
+ }
+ if(s.mode==='playing'&&s.mastery){s.mastery.ready=Math.max(0,s.mastery.ready-dt);s.mastery.notice=Math.max(0,s.mastery.notice-dt);}tick.call(this,dt);
+};
+var spawn=P._spawnBoss;P._spawnBoss=function(id){var b=spawn.call(this,id),s=this.state,p=s.player;
+ b.masteryStart=s.timeElapsed||0;b.masteryHits=s.mastery?s.mastery.hits:0;
+ s.bossIntro={time:0,duration:s.practice?.6:1.65,landed:false};s.bullets=[];s.particles=[];s.shake=0;s.flash=0;s.message='';s.messageTimer=0;
+ p.x=Math.max(C.arena.gate,Math.min(Math.max(p.x,b.x-260),b.x-p.w-100));s.camera.x=Math.max(0,Math.min(this.worldWidth-640,p.x-230));p.y=310-p.h;p.vx=0;p.vy=0;p.onGround=true;p.facing=1;p.dashTime=0;p.saberTime=0;p.saberCombo=0;p.shootPoseTime=0;p.risingHold=0;p.risingWind=0;p.jumpBuffer=0;
+ this._clearMouse();if(s.mastery){s.mastery.ready=0;s.mastery.notice=0;s.mastery.counterSerial=null;}
+ return b;
+};
 var down=P._bossDown;P._bossDown=function(b){var s=this.state,m=s.mastery;if(!b.down&&m){
  var result={id:b.id,name:b.name,time:Math.max(.001,(s.timeElapsed||0)-(b.masteryStart||0)),hits:m.hits-(b.masteryHits||0),difficulty:this.difficulty||'normal',practice:!!s.practice};
  m.clears.push(result);this._emit('boss-record',result);
