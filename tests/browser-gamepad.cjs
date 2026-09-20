@@ -38,32 +38,22 @@ const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE || 'playwright');
     check('pad retries practice immediately',await page.evaluate(()=>game.state.mode==='playing'&&game.state.player.hp===8));
     await tap('start');await page.locator('#overlay [data-action=title]').click();
 
-    await tap('down');await tap('down');await tap('down');
-
-    await tap('down');
-    check('pad down walks the title menu past the hidden item', await focused() === 'guide');
-    await tap('up');
-    check('pad up walks back', await focused() === 'stage-select');
-
+    check('title has exactly three choices',await page.locator('#title .menu-item').count()===3);
+    await tap('down');await tap('a');
+    for(let n=0;n<8;n++)await tap('down');
+    check('legacy stages are inside practice',await focused()==='stage-select');
     await tap('a');
     check('pad A opens stage select', await shown('#stage-select'));
-    const before = await page.evaluate(() => document.activeElement.dataset.stage);
-    await tap('right');
-    const after = await page.evaluate(() => document.activeElement.dataset.stage);
-    check('pad right moves the stage cursor', !!after && after !== before);
-    await tap('b');
-    check('pad B backs out of stage select', await shown('#title') && !await shown('#stage-select'));
-    check('and the stage it was on is kept', (await saved()).stage === after);
-    await tap('down');await tap('down');await tap('down');
-
-    await tap('down');
-    check('pad reaches the guide', await focused() === 'guide');
-    await tap('a');
-    check('pad A opens the guide', await shown('#modal'));
-    await tap('b');
-    check('pad B closes the guide and returns to the menu', !await shown('#modal') && await focused() === 'guide');
-
-    await tap('down');
+    const before=await page.evaluate(()=>document.activeElement.dataset.stage);await tap('right');
+    const after=await page.evaluate(()=>document.activeElement.dataset.stage);
+    check('pad right moves stage cursor',!!after&&after!==before);await tap('b');
+    check('stage back returns to practice',await shown('#modal')&&await focused()==='practice-boss');
+    check('selected stage is kept',(await saved()).stage===after);await tap('b');
+    check('practice back returns to title',!await shown('#modal')&&await focused()==='practice-menu');
+    await tap('down');await tap('a');
+    check('pad opens settings and controls',await focused()==='guide');await tap('a');
+    check('pad opens guide',await shown('#modal'));await tap('b');
+    check('guide back returns to help choices',await focused()==='guide');await tap('down');
     check('pad reaches settings', await focused() === 'settings');
     await tap('a');
     check('pad A opens settings', await shown('#modal') && await shown('#music'));
@@ -84,11 +74,10 @@ const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE || 'playwright');
     check('pad A toggles MUTE', await page.evaluate(w => document.querySelector('#mute').checked === !w, muted));
     await tap('a');
     await tap('b');
-    check('pad B closes settings and returns to the menu', !await shown('#modal') && await focused() === 'settings');
+    check('settings back returns to help choices',await shown('#modal')&&await focused()==='guide');
+    await tap('b');
 
-    await tap('up'); await tap('up');
-    check('pad walks back up to STAGE SELECT', await focused() === 'stage-select');
-    await tap('a');
+    await tap('up');await tap('a');for(let n=0;n<8;n++)await tap('down');await tap('a');
     check('stage select precedes launch', await shown('#stage-select'));
     await hold('a', true); await page.waitForTimeout(120);
     check('nothing starts while A is still down', await shown('#stage-select'));

@@ -23,11 +23,14 @@ const screenshotDir = path.join(root, 'qa');
     checked('START MISSION is removed', await page.locator('[data-action=start]').count() === 0);
     // Boss rush is the primary entry; legacy stage select remains available.
     checked('menu skips hidden items', await page.evaluate(() => document.activeElement.dataset.action === 'boss-rush'));
-    for(let i=0;i<4;i++)await page.keyboard.press('ArrowDown');
-    checked('menu keeps walking to the guide', await page.evaluate(() => document.activeElement.dataset.action === 'guide'));
+    for(let i=0;i<2;i++)await page.keyboard.press('ArrowDown');
+    checked('menu keeps walking to the guide', await page.evaluate(() => document.activeElement.dataset.action === 'help-menu'));
+    await page.keyboard.press('Enter');
     await page.keyboard.press('Enter');
     checked('keyboard opens guide', await page.locator('#modal').isVisible());
     await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+    await page.locator('[data-action=practice-menu]').click();
     await page.locator('[data-action=stage-select]').click();
     await page.locator('[data-action=launch-stage]').first().click();
     await page.keyboard.down('d'); await page.waitForTimeout(450); await page.keyboard.up('d');
