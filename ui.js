@@ -2,7 +2,7 @@
 var modalReturn=null;var $=function(s){return document.querySelector(s)},title=$('#title'),shell=$('#game-shell'),overlay=$('#overlay'),modal=$('#modal'),picker=$('#stage-select'),menu=[].slice.call(document.querySelectorAll('.menu-item')),selected=0,game=null,key='astra-overdrive-save',settings={};try{settings=JSON.parse(localStorage.getItem(key)||'{}')||{}}catch(e){}
 function save(){try{localStorage.setItem(key,JSON.stringify(settings))}catch(e){}}
 function hud(s){if(!s)return;var el=document.querySelector('#hud-time');if(!el)return;var t=Math.floor(s.timeElapsed||0);el.textContent=String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')}function active(n){var v=menu.filter(function(b){return !b.hidden});selected=(n+v.length)%v.length;menu.forEach(function(b,i){var yes=!b.hidden&&v.indexOf(b)===selected;b.classList.toggle('active',yes);if(yes)b.focus()})}
-function guide(){modalReturn=document.activeElement;modal.hidden=false;$('#modal-content').innerHTML='<div class="eyebrow">PILOT MANUAL</div><h2>操作ガイド</h2><table class="guide-table"><tr><th>操作</th><th>キーボード</th><th>ゲームパッド</th></tr><tr><td>移動</td><td>A / D　← / →</td><td>左スティック</td></tr><tr><td>ジャンプ</td><td>Space / Z</td><td>A</td></tr><tr><td>ダッシュ</td><td>Shift / X</td><td>B</td></tr><tr><td>射撃</td><td>J または左クリック（離すと1発）</td><td>X</td></tr><tr><td>セイバー</td><td>K または右クリック</td><td>Y</td></tr><tr><td>溜め突き</td><td>K 長押し→READYで離す</td><td>Y 長押し</td></tr><tr><td>斬り上げ</td><td>↑ / W ＋ セイバー</td><td>上 ＋ Y</td></tr><tr><td>扇状弾（地上）</td><td>↓ / S ＋ セイバー長押し→離す（最大3段）</td><td>下 ＋ Y 長押し→離す</td></tr><tr><td>壁蹴り</td><td>壁につかまり＋ジャンプ</td><td>壁際＋A</td></tr></table><p>ESC / P / Start　ポーズ</p><p>メニュー：十字キー / 左スティックで選択、A で決定、B で戻る（設定のスライダーは左右）</p>'}
+function guide(){modalReturn=document.activeElement;modal.hidden=false;$('#modal-content').innerHTML='<div class="eyebrow">PILOT MANUAL</div><h2>操作ガイド</h2><table class="guide-table"><tr><th>操作</th><th>キーボード</th><th>ゲームパッド</th></tr><tr><td>移動</td><td>A / D　← / →</td><td>左スティック</td></tr><tr><td>ジャンプ</td><td>Space / Z</td><td>A</td></tr><tr><td>ダッシュ</td><td>Shift / X</td><td>B</td></tr><tr><td>射撃</td><td>J または左クリック（離すと1発）</td><td>X</td></tr><tr><td>セイバー</td><td>K または右クリック</td><td>Y</td></tr><tr><td>溜め突き</td><td>K 長押し→READYで離す</td><td>Y 長押し</td></tr><tr><td>斬り上げ</td><td>↑ / W ＋ セイバー</td><td>上 ＋ Y</td></tr><tr><td>扇状弾（地上）</td><td>↓ / S ＋ セイバー長押し→離す（最大3段）</td><td>下 ＋ Y 長押し→離す</td></tr><tr><td>壁蹴り</td><td>壁につかまり＋ジャンプ</td><td>壁際＋A</td></tr></table><p>弾を斬ると1.5秒間COUNTER READY。次の近接攻撃が1.5倍。ボスの隙に溜め突き、空中の敵に斬り上げで各1.25倍。扇状弾は上方の広範囲へ。</p><p>ESC / P / Start　ポーズ</p><p>メニュー：十字キー / 左スティックで選択、A で決定、B で戻る（設定のスライダーは左右）</p>'}
 function settingsModal(){modalReturn=document.activeElement;modal.hidden=false;var m=settings.music===undefined?.45:settings.music,s=settings.sfx===undefined?.7:settings.sfx;$('#modal-content').innerHTML='<div class="eyebrow">SYSTEM CONFIG</div><h2>システム設定</h2><label class="settings-row">BGM <input id="music" type="range" min="0" max="100" value="'+Math.round(m*100)+'"></label><label class="settings-row">SE <input id="sfx" type="range" min="0" max="100" value="'+Math.round(s*100)+'"></label><label class="settings-row">MUTE <input id="mute" type="checkbox" '+(settings.muted?'checked':'')+'></label><label class="settings-row">EASY MODE <input id="easy" type="checkbox" '+(settings.easy?'checked':'')+'></label><label class="settings-row">REDUCED MOTION <input id="motion" type="checkbox" '+(settings.motion?'checked':'')+'></label><button data-action="close">CLOSE</button>';['music','sfx','mute','easy','motion'].forEach(function(id){$('#'+id).onchange=function(){settings.music=+$('#music').value/100;settings.sfx=+$('#sfx').value/100;settings.muted=$('#mute').checked;settings.easy=$('#easy').checked;settings.motion=$('#motion').checked;save();AstraAudio.setMusic(settings.music);AstraAudio.setSfx(settings.sfx);AstraAudio.setMuted(settings.muted);if(game)game.setOptions({reducedMotion:settings.motion})}})}
 function closeModal(){modal.hidden=true;if(modalReturn&&modalReturn.isConnected)modalReturn.focus();else if(game){var b=$('#overlay-actions button');if(b)b.focus()}}
 function stageList(){return (window.AstraStages&&AstraStages.list)||[]}
@@ -10,7 +10,7 @@ function armedStage(){var l=stageList();if(!l.length)return null;
   for(var i=0;i<l.length;i++)if(l[i].id===settings.stage)return l[i];
   return l[0]}
 function clock(t){t=Math.floor(t||0);return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')}
-function recordOf(id){return (settings.records&&settings.records[id])||{}}
+function recordOf(id){return (settings.runRecords&&settings.runRecords[(settings.easy?'easy':'normal')+':'+id])||(settings.records&&settings.records[id])||{}}
 function showArmed(){var a=armedStage(),el=$('#current-stage');if(el&&a)el.textContent='SELECTED // '+a.number+'. '+a.name}
 // The select screen is a board: the missions ring a map of the city the way a campaign map
 // reads. Where a mission sits on the board is here; where it sits on the map is in stages.js.
@@ -149,17 +149,79 @@ function openPicker(){title.hidden=true;picker.hidden=false;buildPicker()}
 // the next launch agree with the last thing that was looked at.
 function closePicker(){if(nodes[pick]){settings.stage=nodes[pick].def.id;save()}picker.hidden=true;title.hidden=false;showArmed();active(0)}
 function pause(){overlay.hidden=false;$('#overlay-kicker').textContent='MISSION CONTROL';$('#overlay-title').textContent='PAUSED';$('#overlay-copy').textContent='MISSION SUSPENDED';$('#overlay-actions').innerHTML='<button data-action="resume">RESUME / 再開</button><button data-action="guide">操作ガイド</button><button data-action="settings">システム設定</button><button data-action="fullscreen">FULLSCREEN</button><button data-action="title">ABORT / タイトルへ</button>'}
+var basePause=pause;pause=function(){basePause();if(game&&game.state.practice)$('#overlay-actions').insertAdjacentHTML('beforeend','<button data-action="practice-retry">練習を最初から</button>');};
 function record(p){
   var id=(p.stage&&p.stage.id)||(armedStage()||{}).id;if(!id)return {};
-  var all=settings.records||(settings.records={}),r=all[id]||(all[id]={});
-  var t=Math.floor(p.timeElapsed||0);
+  var all=settings.runRecords||(settings.runRecords={}),rk=(p.runDifficulty||'normal')+':'+id,r=all[rk]||(all[rk]={});
+  var t=p.timeElapsed||0;
   r.cleared=true;r.bestScore=Math.max(r.bestScore||0,p.score||0);
   if(!r.bestTime||t<r.bestTime)r.bestTime=t;
   save();return r;
 }
-function finish(kind,p){if(kind==='victory'){var best=0;try{best=+localStorage.getItem(key+'-best')||0}catch(e){}best=Math.max(best,p.score||0);try{localStorage.setItem(key+'-best',best)}catch(e){}var r=record(p);var t=Math.floor(p.timeElapsed||0),rank=(p.score||0)>1500?'S':(p.score||0)>800?'A':'B';overlay.hidden=false;$('#overlay-title').textContent='MISSION COMPLETE';$('#overlay-kicker').textContent=((p.stage&&p.stage.name)||'MISSION');$('#overlay-copy').innerHTML='TIME '+clock(t)+'<br>KILLS '+(p.kills||0)+'　SCORE '+(p.score||0)+'<br>STAGE BEST '+(r.bestScore||0)+'　RANK '+rank;$('#overlay-actions').innerHTML='<button data-action="replay">REPLAY / もう一度</button><button data-action="title">TITLE / 戻る</button>'}else{overlay.hidden=false;$('#overlay-title').textContent='SYSTEM FAILURE';$('#overlay-copy').textContent='再起動して作戦を継続しますか？';$('#overlay-actions').innerHTML='<button data-action="retry">RETRY / 再試行</button><button data-action="title">TITLE / 戻る</button>'}}
-function start(){AstraAudio.start();AstraAudio.setPaused(false);title.hidden=true;shell.hidden=false;overlay.hidden=true;modal.hidden=true;if(!game)game=new NeonGame($('#game'),{onEvent:function(t,p){if(t==='charge-state'){AstraAudio.setCharge(p.level);return;}if(t!=='sound')hud(p);if(t==='start'){overlay.hidden=true;AstraAudio.setResultMode(false);AstraAudio.setPaused(false)}if(t==='sound')AstraAudio.sound(p.name,p);if(t==='pause-request'){AstraAudio.setPaused(true);pause()}if(t==='resume'){AstraAudio.setPaused(false);overlay.hidden=true}if(t==='death'){AstraAudio.setResultMode(true);AstraAudio.sound('death')}if(t==='death-ready'){finish('death',p)}if(t==='victory'){AstraAudio.setResultMode(true);AstraAudio.sound('victory');finish('victory',p)}}});window.game=game;game.setOptions({reducedMotion:!!settings.motion});var armed=armedStage();game.start({difficulty:settings.easy?'easy':'normal',character:'astra',stage:armed&&armed.id})}
-document.addEventListener('click',function(e){var b=e.target.closest('[data-action]');if(!b)return;var a=b.dataset.action;if(a==='continue')start();else if(a==='stage-select'){openPicker();AstraAudio.sound('select')}else if(a==='select-back'){closePicker();AstraAudio.sound('move')}else if(a==='launch-stage'){settings.stage=b.dataset.stage;save();picker.hidden=true;showArmed();start()}else if(a==='guide')guide();else if(a==='settings')settingsModal();else if(a==='close'){modal.hidden=true}else if(a==='resume'){overlay.hidden=true;AstraAudio.setPaused(false);game.resume()}else if(a==='retry'){overlay.hidden=true;AstraAudio.setPaused(false);game.retry()}else if(a==='replay'){start()}else if(a==='fullscreen'&&document.documentElement.requestFullscreen){var full=document.documentElement.requestFullscreen();if(full&&full.catch)full.catch(function(){})}else if(a==='title'){AstraAudio.stop();AstraAudio.setPaused(true);overlay.hidden=true;modal.hidden=true;if(game)game.toTitle();shell.hidden=true;picker.hidden=true;title.hidden=false;showArmed();active(0)}});
+
+var lastResult=null;
+function practiceMenu(id){
+ modalReturn=document.activeElement;modal.hidden=false;
+ var list=AstraBosses.list,body='<div class="eyebrow">TRAINING ROOM</div><h2>ボス練習</h2><p>本番の記録には入りません。Rですぐ再戦できます。</p>';
+ if(!id){body+='<div class="training-grid">'+list.map(function(b){return '<button data-action="practice-boss" data-boss="'+b.id+'">'+b.name+'</button>';}).join('')+'</div>';}
+ else{var b=AstraBosses.get(id),moves=Array.from(new Set(AstraCombat.bossRoutine(b).map(function(x){return x.move;})));
+   body+='<h3>'+b.name+'</h3><button data-action="practice-start" data-boss="'+b.id+'">全ての技で練習</button><p>苦手な技を繰り返す</p><div class="training-grid">'+moves.map(function(m){return '<button data-action="practice-start" data-boss="'+b.id+'" data-move="'+m+'">'+(AstraRenderer.moveNames[m]||m.toUpperCase())+'</button>';}).join('')+'</div><button data-action="practice-menu">ボスを選び直す</button>';
+ }
+ $('#modal-content').innerHTML=body;$('#modal-content button').focus();
+}
+function recordsMenu(){
+ modalReturn=document.activeElement;modal.hidden=false;
+ var difficulty=settings.easy?'easy':'normal',all=settings.bossRecords||{};
+ $('#modal-content').innerHTML='<div class="eyebrow">PERSONAL RECORDS / '+difficulty.toUpperCase()+'</div><h2>ボス別戦績</h2><p>◆ NO DAMAGE：一度でもノーダメージで撃破</p><table class="guide-table"><tr><th>ボス</th><th>最速</th><th>勲章</th></tr>'+AstraBosses.list.map(function(b){var r=all[difficulty+':'+b.id];return '<tr><td>'+b.name+'</td><td>'+(r?r.bestTime.toFixed(2)+'s':'—')+'</td><td>'+(r&&r.noDamage?'◆ NO DAMAGE':'—')+'</td></tr>';}).join('')+'</table><p>難易度ごとに保存。練習は対象外です。</p><button data-action="close">戻る</button>';
+ $('#modal-content button').focus();
+}
+function finish(kind,p){
+ if(p.practice){
+  overlay.hidden=false;$('#overlay-kicker').textContent='PRACTICE / '+AstraBosses.get(p.practice.boss).name;
+  $('#overlay-title').textContent=kind==='victory'?'TRAINING COMPLETE':'TRY AGAIN';
+  $('#overlay-copy').textContent='R または再戦で同じボス・技からすぐに練習できます。';
+  $('#overlay-actions').innerHTML='<button data-action="practice-retry">再戦 / RETRY</button><button data-action="title">TITLE</button>';
+  return;
+ }
+ var previous=((settings.runRecords||{})[(p.runDifficulty||'normal')+':'+(p.stage||{}).id]||{}).bestTime;
+ legacyFinish(kind,p);
+ if(kind==='victory'){
+  var m=p.mastery||{hits:0,deflects:0,counters:0,clears:[]},delta=previous===undefined?null:(p.timeElapsed||0)-previous;
+  var rank=m.hits===0?'S':m.hits<=4?'A':m.hits<=10?'B':'C';
+  var extra='<br>HITS '+m.hits+' / DEFLECT '+m.deflects+' / COUNTER '+m.counters;
+  extra+='<br>'+(delta===null?'FIRST CLEAR':delta<0?'NEW BEST '+(-delta).toFixed(2)+'s FASTER':'BEST DIFFERENCE +'+delta.toFixed(2)+'s');
+  if(m.hits===0)extra+='<br>◆ NO DAMAGE';
+  $('#overlay-copy').innerHTML='TIME '+(p.timeElapsed||0).toFixed(2)+'s / RANK '+rank+extra;
+  $('#overlay-actions').insertAdjacentHTML('beforeend','<button data-action="share-result">結果画像を保存</button><button data-action="records">ボス別戦績</button>');
+  lastResult={stage:(p.stage||{}).name||'BOSS RUSH',time:p.timeElapsed||0,rank:rank,hits:m.hits,deflects:m.deflects,counters:m.counters,difficulty:(p.runDifficulty||'normal').toUpperCase(),clears:m.clears.length};
+ }
+}
+function shareResult(){
+ if(!lastResult)return;var r=lastResult,c=document.createElement('canvas');c.width=1200;c.height=630;var x=c.getContext('2d');
+ x.fillStyle='#071820';x.fillRect(0,0,1200,630);x.strokeStyle='#65e5db';x.lineWidth=4;x.strokeRect(28,28,1144,574);
+ x.fillStyle='#65e5db';x.font='bold 34px sans-serif';x.fillText('ASTRA // OVERDRIVE',64,92);
+ x.fillStyle='#f5f4df';x.font='bold 54px sans-serif';x.fillText(r.stage,64,181);x.font='bold 120px sans-serif';x.fillText('RANK '+r.rank,64,324);
+ x.font='30px sans-serif';x.fillText(r.time.toFixed(2)+'s   /   '+r.difficulty+'   /   '+r.clears+' BOSSES',64,400);
+ x.fillText('HITS '+r.hits+'   DEFLECT '+r.deflects+'   COUNTER '+r.counters,64,464);
+ x.fillStyle='#65e5db';x.font='24px sans-serif';x.fillText(r.hits===0?'◆ NO DAMAGE':'NEXT RUN, NEW BEST',64,535);
+ x.font='18px sans-serif';x.fillText('shitsuji3.github.io/astra-overdrive',64,577);
+ var a=document.createElement('a');a.download='ASTRA-result.png';a.href=c.toDataURL('image/png');a.click();
+}
+document.addEventListener('keydown',function(e){
+ if(e.key.toLowerCase()==='r'&&game&&game.state.practice&&modal.hidden&&game.state.mode!=='menu'){
+   e.preventDefault();e.stopImmediatePropagation();overlay.hidden=true;AstraAudio.setResultMode(false);AstraAudio.setPaused(false);game.restartPractice();
+ }
+},true);
+function legacyFinish(kind,p){if(kind==='victory'){var best=0;try{best=+localStorage.getItem(key+'-best')||0}catch(e){}best=Math.max(best,p.score||0);try{localStorage.setItem(key+'-best',best)}catch(e){}var r=record(p);var t=Math.floor(p.timeElapsed||0),rank=(p.score||0)>1500?'S':(p.score||0)>800?'A':'B';overlay.hidden=false;$('#overlay-title').textContent='MISSION COMPLETE';$('#overlay-kicker').textContent=((p.stage&&p.stage.name)||'MISSION');$('#overlay-copy').innerHTML='TIME '+clock(t)+'<br>KILLS '+(p.kills||0)+'　SCORE '+(p.score||0)+'<br>STAGE BEST '+(r.bestScore||0)+'　RANK '+rank;$('#overlay-actions').innerHTML='<button data-action="replay">REPLAY / もう一度</button><button data-action="title">TITLE / 戻る</button>'}else{overlay.hidden=false;$('#overlay-title').textContent='SYSTEM FAILURE';$('#overlay-copy').textContent='再起動して作戦を継続しますか？';$('#overlay-actions').innerHTML='<button data-action="retry">RETRY / 再試行</button><button data-action="title">TITLE / 戻る</button>'}}
+function start(){AstraAudio.start();AstraAudio.setPaused(false);title.hidden=true;shell.hidden=false;overlay.hidden=true;modal.hidden=true;if(!game)game=new NeonGame($('#game'),{onEvent:function(t,p){if(t==='boss-record'){var all=settings.bossRecords||(settings.bossRecords={});AstraMastery.recordBoss(all,p);save();return;}if(t==='charge-state'){AstraAudio.setCharge(p.level);return;}if(t!=='sound')hud(p);if(t==='start'){overlay.hidden=true;AstraAudio.setResultMode(false);AstraAudio.setPaused(false)}if(t==='sound')AstraAudio.sound(p.name,p);if(t==='pause-request'){AstraAudio.setPaused(true);pause()}if(t==='resume'){AstraAudio.setPaused(false);overlay.hidden=true}if(t==='death'){AstraAudio.setResultMode(true);AstraAudio.sound('death')}if(t==='death-ready'){finish('death',p)}if(t==='victory'){AstraAudio.setResultMode(true);AstraAudio.sound('victory');finish('victory',p)}}});window.game=game;game.setOptions({reducedMotion:!!settings.motion});var armed=armedStage();game.start({difficulty:settings.easy?'easy':'normal',character:'astra',stage:armed&&armed.id})}
+document.addEventListener('click',function(e){var b=e.target.closest('[data-action]');if(!b)return;var a=b.dataset.action;if(a==='boss-rush'){settings.stage='gauntlet';save();picker.hidden=true;start();}
+else if(a==='practice-menu')practiceMenu();
+else if(a==='practice-boss')practiceMenu(b.dataset.boss);
+else if(a==='practice-start'){start();game.startPractice(b.dataset.boss,b.dataset.move);}
+else if(a==='practice-retry'){overlay.hidden=true;AstraAudio.setResultMode(false);AstraAudio.setPaused(false);game.restartPractice();}
+else if(a==='records')recordsMenu();
+else if(a==='share-result')shareResult();
+else if(a==='continue')start();else if(a==='stage-select'){openPicker();AstraAudio.sound('select')}else if(a==='select-back'){closePicker();AstraAudio.sound('move')}else if(a==='launch-stage'){settings.stage=b.dataset.stage;save();picker.hidden=true;showArmed();start()}else if(a==='guide')guide();else if(a==='settings')settingsModal();else if(a==='close'){modal.hidden=true}else if(a==='resume'){overlay.hidden=true;AstraAudio.setPaused(false);game.resume()}else if(a==='retry'){overlay.hidden=true;AstraAudio.setPaused(false);game.retry()}else if(a==='replay'){start()}else if(a==='fullscreen'&&document.documentElement.requestFullscreen){var full=document.documentElement.requestFullscreen();if(full&&full.catch)full.catch(function(){})}else if(a==='title'){AstraAudio.stop();AstraAudio.setPaused(true);overlay.hidden=true;modal.hidden=true;if(game)game.toTitle();shell.hidden=true;picker.hidden=true;title.hidden=false;showArmed();active(0)}});
 document.addEventListener('keydown',function(e){if(!modal.hidden){if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeModal()}return}if(!picker.hidden){
   if(e.key==='Escape'){e.preventDefault();closePicker();return}
   if(e.key==='ArrowRight'){e.preventDefault();stepPick(1,0);AstraAudio.sound('move')}

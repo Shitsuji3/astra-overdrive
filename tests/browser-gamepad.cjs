@@ -29,6 +29,16 @@ const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE || 'playwright');
   try {
     await page.goto(process.env.GAME_URL || 'http://127.0.0.1:4173/');
     check('title is up', await shown('#title'));
+    check('boss rush is primary',await focused()==='boss-rush');
+    await tap('down');await tap('a');
+    check('pad opens practice',await shown('#modal'));
+    await tap('a');await tap('a');
+    check('pad starts selected practice boss',await page.evaluate(()=>game.state.practice.boss==='warden'));
+    await tap('start');await tap('up');await tap('a');
+    check('pad retries practice immediately',await page.evaluate(()=>game.state.mode==='playing'&&game.state.player.hp===8));
+    await tap('start');await page.locator('#overlay [data-action=title]').click();
+
+    await tap('down');await tap('down');await tap('down');
 
     await tap('down');
     check('pad down walks the title menu past the hidden item', await focused() === 'guide');
@@ -44,6 +54,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE || 'playwright');
     await tap('b');
     check('pad B backs out of stage select', await shown('#title') && !await shown('#stage-select'));
     check('and the stage it was on is kept', (await saved()).stage === after);
+    await tap('down');await tap('down');await tap('down');
 
     await tap('down');
     check('pad reaches the guide', await focused() === 'guide');
@@ -101,13 +112,14 @@ const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE || 'playwright');
 
     await page.evaluate(() => { game.state.player.x = 800; game.state.player.y = 425; });
     await page.waitForFunction(() => game.state.mode === 'dead');
+    await page.locator('#overlay').waitFor({state:'visible'});
     await tap('a');
     check('pad A on the failure panel retries', await page.evaluate(() => game.state.mode === 'playing') && !await shown('#overlay'));
 
     await tap('start'); await tap('up');
     check('pad up from nothing lands on ABORT, the last button', await focused() === 'title');
     await tap('a');
-    check('pad A on ABORT returns to the title', await shown('#title') && await focused() === 'stage-select');
+    check('pad A on ABORT returns to the title', await shown('#title') && await focused() === 'boss-rush');
 
     assert.deepEqual(errors, []);
     checks.push('no browser errors');

@@ -1,0 +1,40 @@
+const fs=require('fs'),assert=require('node:assert/strict');
+const {chromium}=require(process.env.PLAYWRIGHT_PACKAGE||'C:/Users/situz/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+(async()=>{const br=await chromium.launch({headless:true,executablePath:process.env.CHROME_EXECUTABLE||'C:/Program Files/Google/Chrome/Application/chrome.exe'});try{
+const p=await br.newPage({viewport:{width:1280,height:800},acceptDownloads:true}),errors=[];p.on('pageerror',e=>errors.push(e.message));fs.mkdirSync('qa/mastery',{recursive:true});
+await p.addInitScript(()=>{if(!localStorage.getItem('astra-overdrive-save'))localStorage.setItem('astra-overdrive-save',JSON.stringify({music:.21,records:{'signal-yard':{cleared:true,bestTime:33,bestScore:900}}}));});
+await p.goto(process.env.GAME_URL||'http://127.0.0.1:4173/');await p.waitForTimeout(700);await p.screenshot({path:'qa/mastery/title.png'});
+assert.equal(await p.evaluate(()=>document.activeElement.dataset.action),'boss-rush');
+await p.locator('[data-action=practice-menu]').click();await p.locator('[data-boss=coilhead]').click();await p.waitForTimeout(700);await p.screenshot({path:'qa/mastery/practice-menu.png'});
+await p.locator('[data-action=practice-start][data-move=needles]').click();await p.waitForTimeout(500);
+assert.equal(await p.evaluate(()=>game.state.practice.move),'needles');
+await p.evaluate(()=>{game.state.player.hp=1;});await p.keyboard.press('r');
+assert.equal(await p.evaluate(()=>game.state.player.hp),8);
+await p.waitForTimeout(700);await p.screenshot({path:'qa/mastery/practice.png'});
+await p.keyboard.press('Escape');await p.locator('[data-action=practice-retry]').click();
+assert.equal(await p.evaluate(()=>game.state.mode),'playing');
+await p.evaluate(()=>{game.running=false;cancelAnimationFrame(game.raf);game._bossDown(game.state.boss);game._bossDying(game.state.boss,3);});
+assert.match(await p.locator('#overlay-title').textContent(),/TRAINING COMPLETE/);
+assert.deepEqual(await p.evaluate(()=>JSON.parse(localStorage.getItem('astra-overdrive-save')).bossRecords),{});
+await p.locator('#overlay [data-action=title]').click();await p.locator('[data-action=boss-rush]').click();
+assert.equal(await p.evaluate(()=>game.state.stage.id),'gauntlet');
+await p.evaluate(()=>{game.running=false;cancelAnimationFrame(game.raf);game._spawnBoss('warden');const b=game.state.boss;b.attack='tell-pincer';b.timer=.5;b.tellDuration=.9;game.state.player.x=b.x-100;game.state.camera.x=b.x-370;game.state.message='';AstraRenderer.draw(document.querySelector('canvas').getContext('2d'),game.state);});
+await p.waitForTimeout(700);await p.screenshot({path:'qa/mastery/tell.png'});
+await p.evaluate(()=>{
+ const s=game.state;
+ for(let i=0;i<8;i++){s.timeElapsed+=10;s.boss.hp=0;game._bossDown(s.boss);game._bossDying(s.boss,3);}
+});
+assert.equal(await p.evaluate(()=>game.state.mode),'victory');
+assert.match(await p.locator('#overlay-copy').textContent(),/NO DAMAGE/);
+await p.waitForTimeout(700);await p.screenshot({path:'qa/mastery/result.png'});
+const download=p.waitForEvent('download');await p.locator('[data-action=share-result]').click();const file=await download;await file.saveAs('qa/mastery/share.png');
+assert.equal(fs.readFileSync('qa/mastery/share.png').subarray(1,4).toString(),'PNG');
+await p.locator('#overlay [data-action=records]').click();assert.equal(await p.locator('#modal-content tr').count(),9);
+await p.waitForTimeout(700);await p.screenshot({path:'qa/mastery/records.png'});
+const records=await p.evaluate(()=>JSON.parse(localStorage.getItem('astra-overdrive-save')).bossRecords);
+assert.equal(Object.keys(records).length,8);assert.ok(Object.values(records).every(r=>r.noDamage&&r.clears===1));
+await p.reload();await p.locator('[data-action=records]').click();assert.match(await p.locator('#modal-content').textContent(),/NO DAMAGE/);
+assert.equal(await p.evaluate(()=>JSON.parse(localStorage.getItem('astra-overdrive-save')).records['signal-yard'].bestScore),900);assert.equal(await p.evaluate(()=>JSON.parse(localStorage.getItem('astra-overdrive-save')).music),.21);
+assert.deepEqual(errors,[]);console.log('Practice, immediate retry, normal 8-boss clear, records persistence, PNG download: PASS');
+fs.writeFileSync('qa/mastery/verification.json',JSON.stringify({checks:7,records,errors},null,2));
+}finally{await br.close()}})().catch(e=>{console.error(e);process.exit(1)});

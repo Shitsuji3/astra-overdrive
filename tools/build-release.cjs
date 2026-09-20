@@ -28,7 +28,7 @@ const ZIP = path.join(ROOT, 'dist', 'ASTRA-OVERDRIVE-web.zip');
 // Copied as they are. index.html must sit at the root of the bundle.
 const VERBATIM = [
   'index.html', 'style.css', 'manifest.webmanifest',
-  'game.js', 'render.js', 'audio.js', 'ui.js',
+  'game.js', 'render.js', 'audio.js', 'ui.js', 'mastery.js',
   'assets/bosses.js', 'assets/stages.js', 'assets/run-rig-v6.js', 'assets/saber-rig.js', 'assets/enemies-v2.js',
   'assets/charge-sounds.js', 'assets/saber-sound.js',
   'assets/stage1-bgm.mp3',

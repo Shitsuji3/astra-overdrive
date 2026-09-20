@@ -376,7 +376,7 @@ function bossArtTarget(b,time,reduced){
  var a=0,kick=0,tt=m?m.t||0:0;
  if(tell){
    var def=g.AstraBosses&&g.AstraBosses.get(b.id),pat=g.AstraCombat&&g.AstraCombat.bossPatterns[name];
-   var span=(pat?pat.tell:1)*(def&&def.tempo||1),u=C(1-(b.timer||0)/span,0,1);
+   var span=b.tellDuration||((pat?pat.tell:1)*(def&&def.tempo||1)),u=C(1-(b.timer||0)/span,0,1);
    a=u*u*(3-2*u);
  }else{
    a=1;
@@ -776,8 +776,22 @@ draw=function(c,s){
   if(s.checkpoint&&s.checkpoint.active){var cx=gx(s,s.checkpoint.x);G(c,cx,s.checkpoint.y-18,20,P.cyan,.2);R(c,cx-2,s.checkpoint.y-18,4,18,P.steel);R(c,cx-5,s.checkpoint.y-20,10,4,P.cyan);T(c,'CP',cx-7,s.checkpoint.y-31,7,P.cyan)}
   if(s.flash>0&&!s.reducedMotion){c.save();c.globalAlpha=Math.min(.85,s.flash);c.fillStyle='#ffffff';c.fillRect(0,0,W,H);c.restore()}
   if(s.mode==='playing'&&s.message&&s.messageTimer>0){R(c,180,62,280,24,P.ink);L(c,180,62,460,62,P.amber,1);T(c,s.message,320,70,8,P.white,'center')}
-  hud(c,s)
-};g.AstraRenderer={draw:draw,bossArtTarget:bossArtTarget,bossMeshPoint:bossMeshPoint}})(window);
+  hud(c,s);
+  if(s.mastery&&s.mode==='playing'){
+    var mm=s.mastery;c.save();
+    if(s.practice)T(c,'PRACTICE / R: RESTART',16,56,8,P.cyan);
+    if(mm.ready>0){T(c,'COUNTER READY',16,70,8,P.amber);R(c,16,83,96*mm.ready/1.5,3,P.amber);}
+    else if(mm.notice>0)T(c,mm.text,16,70,8,P.cyan);
+    var mb=s.boss;
+    if(mb&&mb.active&&!mb.down){
+      var tell=String(mb.attack||'').indexOf('tell-')===0,key=tell?mb.attack.slice(5):'';
+      if(tell&&g.AstraMastery){var hint=g.AstraMastery.hints[key]||'WATCH THE ATTACK';
+        R(c,186,94,268,20,P.ink);T(c,hint,320,98,8,P.amber,'center');
+        R(c,188,113,264*(1-C(mb.timer/(mb.tellDuration||1),0,1)),2,P.amber);
+      }else if(mb.attack==='rest'){T(c,'OPEN / THRUST BONUS',320,98,8,P.cyan,'center');}
+    }c.restore();
+  }
+};g.AstraRenderer={draw:draw,moveNames:BOSS_MOVE_NAMES,bossArtTarget:bossArtTarget,bossMeshPoint:bossMeshPoint}})(window);
 
 
 

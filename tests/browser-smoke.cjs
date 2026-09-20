@@ -21,9 +21,9 @@ const screenshotDir = path.join(root, 'qa');
     checked('clean title screen', await page.locator('#title').isVisible() && !await page.locator('#modal').isVisible());
     await page.screenshot({ path: path.join(screenshotDir, 'title.png') });
     checked('START MISSION is removed', await page.locator('[data-action=start]').count() === 0);
-    // STAGE SELECT is the initial visible menu entry.
-    checked('menu skips hidden items', await page.evaluate(() => document.activeElement.dataset.action === 'stage-select'));
-    await page.keyboard.press('ArrowDown');
+    // Boss rush is the primary entry; legacy stage select remains available.
+    checked('menu skips hidden items', await page.evaluate(() => document.activeElement.dataset.action === 'boss-rush'));
+    for(let i=0;i<4;i++)await page.keyboard.press('ArrowDown');
     checked('menu keeps walking to the guide', await page.evaluate(() => document.activeElement.dataset.action === 'guide'));
     await page.keyboard.press('Enter');
     checked('keyboard opens guide', await page.locator('#modal').isVisible());
