@@ -37,3 +37,5 @@
 
 ## 最新変更：8ボスの登場演出（2026-09-20）
 通常1.65秒・練習0.6秒。降下/滑空/転送など8体別に登場、名前とENGAGE表示後に初手予兆。双方の戦闘と記録時間を止め、安全距離へ配置。軽減設定・ポーズ対応。詳細work/BOSS-ENTRANCE-20260920.md。npm test182件＋既存チェック、build:ci、8体の描画と戦闘復帰QA成功。今回の演出はGitHub未push。
+
+公開確認（2026-09-20）：登場演出0e273beまでpush済み。Actions 35503273423 success。公開mastery.jsのbossIntro、render.jsのBOSS_ENTRANCE配信を確認。公開起動テスト18項目合格・ブラウザーエラー0。
