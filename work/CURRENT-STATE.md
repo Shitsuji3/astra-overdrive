@@ -42,3 +42,5 @@
 
 ## 最新変更：UI/UX第1弾（2026-09-20）
 提案1/2/5/10：装甲の遅延ダメージ表示・チャージ/反撃HUD、8ボス肖像進行、敗北HP/被弾技から練習して連戦へ戻る導線、撃破→実回復量→次戦の表示。既存素材・攻撃値維持。詳細work/RUSH-UX-20260920.md。npm test186件＋既存チェック、build:ci、起動18/パッド39、専用UI QA成功。今回のUI/UX変更はGitHub未push。
+
+公開確認（2026-09-20）：UI/UX第1弾1d7414fまでpush済み。Actions 35513704028 success。公開ui.jsのdefeat-practice、render.jsのrushPortraits配信を確認。公開起動18項目合格・ブラウザーエラー0。
