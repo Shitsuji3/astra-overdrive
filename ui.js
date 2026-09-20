@@ -149,7 +149,7 @@ function openPicker(){title.hidden=true;picker.hidden=false;buildPicker()}
 // the next launch agree with the last thing that was looked at.
 function closePicker(){if(nodes[pick]){settings.stage=nodes[pick].def.id;save()}picker.hidden=true;title.hidden=false;showArmed();active(0)}
 function pause(){overlay.hidden=false;$('#overlay-kicker').textContent='MISSION CONTROL';$('#overlay-title').textContent='PAUSED';$('#overlay-copy').textContent='MISSION SUSPENDED';$('#overlay-actions').innerHTML='<button data-action="resume">RESUME / 再開</button><button data-action="guide">操作ガイド</button><button data-action="settings">システム設定</button><button data-action="fullscreen">FULLSCREEN</button><button data-action="title">ABORT / タイトルへ</button>'}
-var basePause=pause;pause=function(){basePause();if(game&&game.state.practice)$('#overlay-actions').insertAdjacentHTML('beforeend','<button data-action="practice-retry">練習を最初から</button>');};
+var basePause=pause;pause=function(){basePause();if(game&&game.state.practice)$('#overlay-actions').insertAdjacentHTML('beforeend','<button data-action="practice-retry">練習を最初から</button>');if(game&&game.state.practice&&practiceFromDefeat)$('#overlay-actions').insertAdjacentHTML('beforeend','<button data-action="rush-return">8体連戦を最初から</button>');};
 function record(p){
   var id=(p.stage&&p.stage.id)||(armedStage()||{}).id;if(!id)return {};
   var all=settings.runRecords||(settings.runRecords={}),rk=(p.runDifficulty||'normal')+':'+id,r=all[rk]||(all[rk]={});
@@ -159,7 +159,7 @@ function record(p){
   save();return r;
 }
 
-var lastResult=null;
+var lastResult=null,practiceFromDefeat=false;
 function practiceMenu(id){
  modalReturn=document.activeElement;modal.hidden=false;
  var list=AstraBosses.list,body='<div class="eyebrow">TRAINING ROOM</div><h2>ボス練習</h2><p>本番の記録には入りません。Rですぐ再戦できます。</p>';
@@ -181,10 +181,17 @@ function finish(kind,p){
   $('#overlay-title').textContent=kind==='victory'?'TRAINING COMPLETE':'TRY AGAIN';
   $('#overlay-copy').textContent='R または再戦で同じボス・技からすぐに練習できます。';
   $('#overlay-actions').innerHTML='<button data-action="practice-retry">再戦 / RETRY</button><button data-action="title">TITLE</button>';
+  if(practiceFromDefeat)$('#overlay-actions').insertAdjacentHTML('beforeend','<button data-action="rush-return">8体連戦を最初から</button>');
   return;
  }
  var previous=((settings.runRecords||{})[(p.runDifficulty||'normal')+':'+(p.stage||{}).id]||{}).bestTime;
  legacyFinish(kind,p);
+ if(kind==='death'&&p.defeat){var loss=p.defeat,source=loss.source||{},move=source.boss===loss.boss&&source.move,valid=move&&AstraCombat.bossRoutine(AstraBosses.get(loss.boss)).some(function(x){return x.move===move;});
+  $('#overlay-kicker').textContent=loss.name||'SYSTEM FAILURE';
+  $('#overlay-copy').innerHTML=(loss.boss?'<span class="defeat-remaining">ボスの残りHP '+loss.remaining+'%</span><br>':'')+'最後の被弾：'+(valid?(AstraRenderer.moveNames[move]||move):source.label||'被弾');
+  if(p.stage&&p.stage.id==='gauntlet')$('#overlay-actions [data-action="retry"]').textContent='8体連戦を最初から';
+  if(loss.boss)$('#overlay-actions').insertAdjacentHTML('beforeend','<button data-action="defeat-practice" data-boss="'+loss.boss+'"'+(valid?' data-move="'+move+'"':'')+'>'+(valid?'この技を練習':'このボスを練習')+'</button>');
+ }
  if(kind==='victory'){
   var m=p.mastery||{hits:0,deflects:0,counters:0,clears:[]},delta=previous===undefined?null:(p.timeElapsed||0)-previous;
   var rank=m.hits===0?'S':m.hits<=4?'A':m.hits<=10?'B':'C';
@@ -217,7 +224,9 @@ function start(){AstraAudio.start();AstraAudio.setPaused(false);title.hidden=tru
 document.addEventListener('click',function(e){var b=e.target.closest('[data-action]');if(!b)return;var a=b.dataset.action;if(a==='boss-rush'){settings.stage='gauntlet';save();picker.hidden=true;start();}
 else if(a==='practice-menu')practiceMenu();
 else if(a==='practice-boss')practiceMenu(b.dataset.boss);
-else if(a==='practice-start'){start();game.startPractice(b.dataset.boss,b.dataset.move);}
+else if(a==='practice-start'){practiceFromDefeat=false;start();game.startPractice(b.dataset.boss,b.dataset.move);}
+else if(a==='defeat-practice'){practiceFromDefeat=true;start();game.startPractice(b.dataset.boss,b.dataset.move);}
+else if(a==='rush-return'){practiceFromDefeat=false;settings.stage='gauntlet';save();start();}
 else if(a==='practice-retry'){overlay.hidden=true;AstraAudio.setResultMode(false);AstraAudio.setPaused(false);game.restartPractice();}
 else if(a==='records')recordsMenu();
 else if(a==='share-result')shareResult();

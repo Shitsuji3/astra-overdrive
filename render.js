@@ -713,7 +713,36 @@ function pixelBolt(c,x0,y0,x1,y1,seed,step,col){var px=x0,py=y0,dx=x1-x0,dy=y1-y
 function saberFlash(p){var api=g.AstraCombat;if(!api||!api.saberChargeShown||!api.thrust)return'';var ch=api.saberChargeShown(p),T=api.thrust;if(ch<T.ready)return'';var since=(ch-T.ready)/T.rate;return since<.05?'brightness(0) invert(1)':since<.11?'brightness(1.8) saturate(.35)':''}
 function saberChargeEffects(c,s,p){var api=g.AstraCombat;if(!p||!api||!api.saberChargeShown||!api.thrust||s.mode==='paused'||s.paused)return;var ch=api.saberChargeShown(p);if(ch<=.12||p.saberCombo===7)return;var T=api.thrust,ready=ch>=T.ready,rm=!!s.reducedMotion,f=p.facing<0?-1:1,cx=gx(s,p.x+p.w/2),cy=p.y+p.h*.55,hx=Math.round(cx+f*12),hy=Math.round(p.y+p.h*.42),step=rm?0:Math.floor((s.time||0)*18),n=ready?5:1+Math.round(Math.min(1,(ch-.12)/(T.ready-.12))*3);c.save();c.imageSmoothingEnabled=false;for(var k=0;k<n;k++){var a=sparkHash(k*7.3,step),b=sparkHash(k*2.9+40,step),ang=a*Math.PI*2,rx=10+5*b,ry=15+5*b,x0=cx+Math.cos(ang)*rx,y0=cy+Math.sin(ang)*ry,x1,y1;if(ready&&k<3){x1=hx;y1=hy}else{var ang2=ang+(b<.5?1:-1)*(.7+.6*a);x1=cx+Math.cos(ang2)*rx;y1=cy+Math.sin(ang2)*ry}pixelBolt(c,x0,y0,x1,y1,k*13+1,step,k%2?'#a8d8f8':'#40a0f8')}if(ready){var r=1+Math.round(ch*1.5);c.fillStyle='#2058d8';c.fillRect(hx-r-1,hy-r,r*2+3,r*2+1);c.fillRect(hx-r,hy-r-1,r*2+1,r*2+3);c.fillStyle='#f8f8f8';c.fillRect(hx-r,hy-r+1,r*2+1,r*2-1);c.fillRect(hx-r+1,hy-r,r*2-1,r*2+1)}c.restore()}
 function draw(c,s){s=s||{};var t=s.time||0;c.save();c.imageSmoothingEnabled=false;var sh=s.shake||0;c.translate((Math.sin(t*70)*sh)|0,(Math.cos(t*53)*sh*.5)|0);background(c,s,t);(s.platforms||[]).forEach(function(p){platform(c,s,p)});(s.pickups||[]).forEach(function(k){if(k.taken)return;var col=k.type==='health'?P.coral:P.cyan,x=gx(s,k.dropped?k.x+9:k.x),y=(k.dropped?k.y+9:k.y)+(k.dropped&&k.rest?Math.sin((s.time||0)*4+k.x*.07)*1.6:0);if(k.dropped){G(c,x,y,13,col,.3);R(c,x-6,y-6,12,12,P.ink);R(c,x-5,y-5,10,10,col);R(c,x-4,y-1,8,2,P.white);R(c,x-1,y-4,2,8,P.white)}else{G(c,x,y,18,col,.25);Q(c,[x,y-7,x+6,y,x,y+7,x-6,y],col)}});(s.enemies||[]).forEach(function(e){foe(c,s,e)});boss(c,s,s.boss);(s.bullets||[]).forEach(function(b){if(fanProjectile(c,s,b)||bossProjectile(c,s,b))return;var x=gx(s,b.x),co=b.team==='player'?P.orange:P.pink;if(b.kind==='wave'){var wr=b.r||7;G(c,x,b.y,wr*3,P.coral,.34);c.save();c.globalAlpha=.9;c.fillStyle=P.coral;c.beginPath();c.ellipse(x,b.y,wr,wr*1.7,0,0,Math.PI*2);c.fill();c.fillStyle=P.amber;c.beginPath();c.ellipse(x,b.y,wr*.45,wr*1.1,0,0,Math.PI*2);c.fill();c.restore()}else if(b.kind==='mine'){var mr=b.r||7,fuse=b.fuse||1.2,left=C(b.life/fuse,0,1),hot=Math.floor((s.time||0)*(7+(1-left)*22))%2;G(c,x,b.y,mr*2.6,hot?P.white:P.coral,.32);c.save();c.fillStyle=P.ink;c.beginPath();c.arc(x,b.y,mr,0,7);c.fill();c.fillStyle=hot?P.white:P.coral;c.beginPath();c.arc(x,b.y,mr*.55,0,7);c.fill();c.restore()}else if(b.kind==='wall'){var br=b.r||6;G(c,x,b.y,br*2.6,P.pink,.3);R(c,x-br,b.y-br*1.5,br*2,br*3,P.pink);R(c,x-br*.4,b.y-br,br*.8,br*2,P.white)}else if(b.kind==='shell'){var sr=b.r||5;G(c,x,b.y,sr*3,P.amber,.34);c.save();c.fillStyle=P.coral;c.beginPath();c.arc(x,b.y,sr,0,7);c.fill();c.fillStyle=P.amber;c.beginPath();c.arc(x,b.y,sr*.5,0,7);c.fill();c.restore()}else{G(c,x,b.y,12,co,.3);R(c,x-(b.r||3),b.y-1,(b.r||3)*2,3,co)}});(s.particles||[]).forEach(function(q){if(bossImpact(c,s,q))return;var a=C(q.life/(q.maxLife||1),0,1),x=gx(s,q.x),z=q.size||2,col=q.color||q.col||P.orange;if(q.type==='flash'){G(c,x,q.y,z,col,a*.85);return}if(q.type==='ring'){c.save();c.globalAlpha=a*.85;c.strokeStyle=col;c.lineWidth=q.width||2;c.beginPath();c.arc(x,q.y,z,0,7);c.stroke();c.restore();return}if(q.type==='smoke'){c.globalAlpha=a*.4;R(c,x-z/2,q.y-z/2,z,z,col);return}c.globalAlpha=a;R(c,x,q.y,z,z,col)});c.globalAlpha=1;if(s.player&&!s.deathFx){if(s.player.dashTime>0)for(var i=1;i<4;i++)player(c,s,{x:s.player.x-s.player.vx*i*3,y:s.player.y,w:s.player.w,facing:s.player.facing,vx:0,onGround:s.player.onGround,animTime:s.player.animTime},true);if(!(s.player.invuln>0&&Math.floor(t*16)%2))player(c,s,s.player,false)}c.restore()}
-function hud(c,s){var p=s.player||{},hp=C((p.hp||0)/(p.maxHp||1),0,1),charge=C(g.AstraCombat&&g.AstraCombat.saberChargeShown?g.AstraCombat.saberChargeShown(p):0,0,1),ready=charge>=((g.AstraCombat&&g.AstraCombat.chargeThreshold)||.55);c.save();c.globalAlpha=.94;R(c,9,9,151,43,P.ink);L(c,9,9,160,9,P.cyan,1);T(c,'ASTRA-07',16,13,8,P.cyan);T(c,'ARMOR',16,25,7,P.white);for(var i=0;i<8;i++){R(c,53+i*12,25,9,11,i<Math.ceil(hp*8)?P.cyan:P.deep);R(c,55+i*12,27,5,7,i<Math.ceil(hp*8)?P.ice:P.ink)}T(c,p.saberCombo===7?'FAN / '+g.AstraCombat.fanLevel(p)+' VOLLEY':'CHARGE',230,12,7,P.white);R(c,230,24,104,8,P.ink);R(c,231,26,102*charge,4,ready?P.amber:P.cyan);if(ready)T(c,charge>=.99?'FULL':p.saberCombo===7?'CHARGING':'READY',338,21,7,charge>=.99?P.white:P.amber);T(c,'SCORE '+String(s.score||0).padStart(7,'0'),W-12,12,8,P.white,'right');T(c,'SECTOR '+(s.section||'SIGNAL YARD'),W-12,25,7,P.cyan,'right');c.restore()}
+var rushPortraits={};
+function rushPortrait(id){if(!rushPortraits[id]){var img=new Image();img.src='assets/bosses/'+id+'-portrait.webp';rushPortraits[id]=img;}return rushPortraits[id];}
+function hud(c,s){
+ var p=s.player||{},combat=g.AstraCombat||{saberChargeShown:function(){return 0;},thrust:{ready:.55},fanLevel:function(){return 1;},stage:{bosses:[]}},hp=Math.max(0,p.hp||0),max=p.maxHp||8,f=s.feedback||{},m=s.mastery||{},charge=C(combat.saberChargeShown(p),0,1),fan=p.saberCombo===7,ready=!fan&&charge>=combat.thrust.ready;
+ c.save();c.globalAlpha=.95;
+ R(c,9,9,184,49,P.ink);L(c,9,9,193,9,P.cyan,1);T(c,'ARMOR',16,14,7,P.cyan);T(c,hp+' / '+max,184,14,7,P.white,'right');
+ for(var i=0;i<max;i++){var xx=16+i*21,full=i<hp,trail=C((f.hpTrail||hp)-i,0,1);R(c,xx,26,17,9,P.deep);if(trail>0)R(c,xx,26,17*trail,9,P.coral);if(full){R(c,xx,26,17,9,hp<=2?P.amber:P.cyan);R(c,xx+2,28,13,2,P.ice);}}
+ T(c,m.ready>0?'COUNTER READY':'COUNTER',16,42,7,m.ready>0?P.amber:P.steel);R(c,112,44,70,3,P.deep);if(m.ready>0)R(c,112,44,70*C(m.ready/1.5,0,1),3,P.amber);
+ R(c,202,9,194,49,P.ink);L(c,202,9,396,9,P.cyan,1);
+ T(c,fan?'FAN / '+combat.fanLevel(p)+' VOLLEY':'THRUST',210,14,7,P.cyan);T(c,fan?(charge>=1?'MAX':'CHARGING'):ready?'READY':'HOLD SABER',387,14,7,ready||charge>=1?P.amber:P.steel,'right');
+ R(c,210,27,178,8,P.deep);R(c,210,27,178*charge,8,ready||charge>=1?P.amber:P.cyan);
+ var mark=fan?.5:combat.thrust.ready;R(c,210+178*mark,26,1,10,P.white);
+ T(c,fan?'1 > 2 > 3 / RELEASE TO FIRE':ready?'RELEASE TO THRUST':'HOLD TO CHARGE',210,42,7,ready?P.amber:P.steel);
+ if(s.stage&&s.stage.id==='gauntlet'&&!s.practice){
+  var order=combat.stage.bosses||[],current=s.bossIndex||0,done=m.clears||[];
+  R(c,404,9,227,49,P.ink);T(c,'RUSH '+Math.min(current+1,order.length)+' / '+order.length,411,14,7,P.cyan);
+  T(c,done.length+' CLEARED',625,14,7,P.white,'right');
+  order.forEach(function(id,n){var x=411+n*27,cleared=done.some(function(r){return r.id===id;}),active=n===current&&!cleared,img=rushPortrait(id);
+   R(c,x-1,25,24,26,active?P.amber:cleared?P.cyan:P.deep);R(c,x,26,22,24,P.ink);c.globalAlpha=cleared?.45:active?1:.4;
+   if(img.complete&&img.naturalWidth)c.drawImage(img,x,26,22,22);else T(c,String(n+1),x+11,31,8,P.white,'center');c.globalAlpha=.95;
+   if(cleared){L(c,x+6,40,x+10,44,P.cyan,2);L(c,x+10,44,x+17,35,P.cyan,2);}else if(active)R(c,x+6,51,10,2,P.amber);else if(n===current+1)T(c,'NEXT',x+11,51,5,P.cyan,'center');
+  });
+ }else{T(c,s.practice?'PRACTICE':'SCORE '+String(s.score||0).padStart(7,'0'),W-12,14,8,P.white,'right');T(c,s.practice?'R / RESTART':'SECTOR '+(s.section||'SIGNAL YARD'),W-12,29,7,P.cyan,'right');}
+ c.restore();
+}
+function recoveryNotice(c,s){var r=s.feedback&&s.feedback.recovery,b=s.boss;if(!r||!b||!b.down||s.mode!=='playing')return;
+ var t=b.downTime||0,heading=t<.65?'FRAME DESTROYED':t<1.45?'ARMOR RESTORED':r.next?'NEXT CHALLENGER':'ALL FRAMES CLEARED';
+ var detail=t<.65?b.name:t<1.45?(r.healed?'LIFE +'+r.healed:'LIFE FULL')+' / '+r.hp+' OF '+r.maxHp:r.next?g.AstraBosses.get(r.next).name:'MISSION COMPLETE';
+ c.save();R(c,190,119,260,44,P.ink);L(c,190,119,450,119,P.cyan,1);T(c,heading,320,127,8,P.cyan,'center');T(c,detail,320,143,10,P.white,'center');c.restore();
+}
 var baseDraw=draw,stageImg=null,stageCanvas=null,playerSheet=null,bossSprite=null,runAtlas=null,saberAtlas=null,assetRetry={stage:0,player:0,boss:0,run:0,saber:0},assetDelay={stage:1000,player:1000,boss:1000,run:1000,saber:1000},assetLoading={stage:false,player:false,boss:false,run:false,saber:false};
 function ensureAsset(name,url){var current=name==='stage'?stageImg:name==='player'?playerSheet:name==='boss'?bossSprite:name==='run'?runAtlas:saberAtlas;if(current&&current.complete&&current.naturalWidth)return;var now=Date.now();if(assetLoading[name]||now<assetRetry[name])return;assetLoading[name]=true;var im=new Image();im.onload=function(){assetLoading[name]=false;assetDelay[name]=1000;if(name==='stage')stageImg=im;else if(name==='player')playerSheet=im;else if(name==='boss')bossSprite=im;else if(name==='run')runAtlas=im;else saberAtlas=im};im.onerror=function(){assetLoading[name]=false;assetRetry[name]=Date.now()+assetDelay[name];assetDelay[name]=Math.min(10000,assetDelay[name]*2)};im.src=url;if(name==='stage')stageImg=im;else if(name==='player')playerSheet=im;else if(name==='boss')bossSprite=im;else if(name==='run')runAtlas=im;else saberAtlas=im}
 // Each boss may bring its own picture. They are small and only one is ever on screen, so a
@@ -800,12 +829,11 @@ draw=function(c,s){
   if(s.flash>0&&!s.reducedMotion){c.save();c.globalAlpha=Math.min(.85,s.flash);c.fillStyle='#ffffff';c.fillRect(0,0,W,H);c.restore()}
   if(s.mode==='playing'&&!s.bossIntro&&s.message&&s.messageTimer>0){R(c,180,62,280,24,P.ink);L(c,180,62,460,62,P.amber,1);T(c,s.message,320,70,8,P.white,'center')}
   hud(c,s);
-  bossEntrance(c,s);
+  bossEntrance(c,s);recoveryNotice(c,s);
   if(s.mastery&&s.mode==='playing'&&!s.bossIntro){
     var mm=s.mastery;c.save();
-    if(s.practice)T(c,'PRACTICE / R: RESTART',16,56,8,P.cyan);
-    if(mm.ready>0){T(c,'COUNTER READY',16,70,8,P.amber);R(c,16,83,96*mm.ready/1.5,3,P.amber);}
-    else if(mm.notice>0)T(c,mm.text,16,70,8,P.cyan);
+
+    if(mm.ready<=0&&mm.notice>0)T(c,mm.text,16,70,8,P.cyan);
     var mb=s.boss;
     if(mb&&mb.active&&!mb.down){
       var tell=String(mb.attack||'').indexOf('tell-')===0,key=tell?mb.attack.slice(5):'';

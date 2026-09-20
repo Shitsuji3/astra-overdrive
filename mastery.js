@@ -2,9 +2,15 @@
 (function(g){'use strict';
 var P=g.NeonGame.prototype,C=g.AstraCombat;
 var hints={pincer:'JUMP WAVES',cannon:'JUMP / CUT BULLETS',clawrush:'KEEP DISTANCE',quake:'LEAVE MARKS',geyser:'LEAVE POOLS',crescent:'JUMP THEN STAND',leapslash:'MOVE THEN JUMP',rain:'LEAVE MARKS',needles:'MOVE / CUT BULLETS',arcbolt:'LEAVE MARKS',swoop:'JUMP PAST',dive:'MOVE AFTER LOCK',breath:'GET BEHIND',eruption:'LEAVE MARKS',tackle:'JUMP PAST',bite:'STEP BACK',voidstep:'TURN AND WATCH',crossorb:'CUT BEFORE SPLIT',voidring:'FIND GAP / CUT',tailbeam:'JUMP BEAM',hornflip:'JUMP PAST',stomp:'JUMP WAVES',anvil:'LEAVE MARK',sawrush:'JUMP / CUT SAW',sawtoss:'WATCH RETURN',embers:'LEAVE MARKS',swing:'WATCH SAW / CUT',crownbeam:'STAND THEN JUMP',barrage:'JUMP THEN STAND',tailspin:'BACK THEN JUMP',pounce:'LEAVE MARK'};
-var reset=P._reset;P._reset=function(mode){reset.call(this,mode);this.state.runDifficulty=this.difficulty||'normal';this.state.mastery={hits:0,deflects:0,counters:0,clears:[],ready:0,notice:0,text:''};};
+var reset=P._reset;P._reset=function(mode){reset.call(this,mode);this.state.runDifficulty=this.difficulty||'normal';this.state.mastery={hits:0,deflects:0,counters:0,clears:[],ready:0,notice:0,text:''};this.state.feedback={hpTrail:this.state.player.hp,hpHold:0,lastHit:null,recovery:null};};
 function note(s,text){s.mastery.text=text;s.mastery.notice=1.1;}
-P._registerHit=function(){var m=this.state.mastery;if(m){m.hits++;m.ready=0;m.counterSerial=null;}};
+P._registerHit=function(source){var s=this.state,m=s.mastery;if(m){m.hits++;m.ready=0;m.counterSerial=null;}if(s.feedback){s.feedback.hpHold=.35;s.feedback.lastHit=source||{label:'被弾'};}};
+// Keep the original move on delayed, split and mine projectiles, even after the boss changes moves.
+function bossSource(b){var move=b&&b.move&&b.move.kind||String(b&&b.attack||'').replace(/^tell-/, '').replace(/^walk-/, '');return{boss:b&&b.id,move:C.bossPatterns[move]?move:null,label:'ボスとの接触'};}
+var spawnShot=P._spawn;P._spawn=function(){var shot=spawnShot.apply(this,arguments);if(shot.team==='enemy'&&this._attackSource)shot.source=Object.assign({},this._attackSource,{label:"敵弾"});return shot;};
+var bossTick=P._boss;P._boss=function(dt){var prev=this._attackSource;this._attackSource=bossSource(this.state.boss);try{return bossTick.call(this,dt);}finally{this._attackSource=prev;}};
+['_bossSplit','_mineBursts'].forEach(function(key){var original=P[key];P[key]=function(projectile){var prev=this._attackSource;this._attackSource=projectile.source;try{return original.call(this,projectile);}finally{this._attackSource=prev;}};});
+var die=P._die;P._die=function(){var s=this.state,b=s.boss;if(s.mode==='playing'){var source=s.player.hp>0?{label:'落下'}:s.feedback.lastHit||{label:'被弾'};s.defeat={boss:b&&b.id,name:b&&b.name,remaining:b?Math.max(0,Math.ceil(b.hp/b.maxHp*100)):null,source:source};}return die.call(this);};
 P._registerDeflect=function(){var s=this.state,m=s.mastery;if(!m)return;if(m.ready<=0)this._emit('sound',{name:'pickup'});m.deflects++;m.ready=1.5;m.sourceSerial=s.player.attackSerial||0;note(s,'COUNTER READY / 1.5s');};
 P._masteryPower=function(power,kind){var s=this.state,m=s.mastery,b=s.boss,p=s.player;if(!m)return power;
  var serial=p.attackSerial||0;
@@ -18,6 +24,7 @@ P._masteryPower=function(power,kind){var s=this.state,m=s.mastery,b=s.boss,p=s.p
 };
 // Intro time is separate from combat time: records and attack windups do not run here.
 var tick=P._tick;P._tick=function(dt){var s=this.state;
+ if(s.mode==='playing'&&s.feedback){var f=s.feedback,hp=Math.max(0,s.player.hp);if(hp>f.hpTrail)f.hpTrail=hp;if(f.hpHold>0)f.hpHold=Math.max(0,f.hpHold-dt);else f.hpTrail=Math.max(hp,f.hpTrail-dt*6);}
  if(s.mode==='playing'&&s.bossIntro){var intro=s.bossIntro;
   if(!s.boss||s.boss.down){s.bossIntro=null;}else{
    intro.time=Math.min(intro.duration,intro.time+dt);s.player.animTime+=dt;
@@ -38,10 +45,10 @@ var spawn=P._spawnBoss;P._spawnBoss=function(id){var b=spawn.call(this,id),s=thi
  this._clearMouse();if(s.mastery){s.mastery.ready=0;s.mastery.notice=0;s.mastery.counterSerial=null;}
  return b;
 };
-var down=P._bossDown;P._bossDown=function(b){var s=this.state,m=s.mastery;if(!b.down&&m){
+var down=P._bossDown;P._bossDown=function(b){var s=this.state,m=s.mastery,first=!b.down,before=s.player.hp;if(first&&m){
  var result={id:b.id,name:b.name,time:Math.max(.001,(s.timeElapsed||0)-(b.masteryStart||0)),hits:m.hits-(b.masteryHits||0),difficulty:this.difficulty||'normal',practice:!!s.practice};
  m.clears.push(result);this._emit('boss-record',result);
- }down.call(this,b);};
+ }down.call(this,b);if(first&&s.feedback&&C.stage.kind==='gauntlet'&&!s.practice){var next=C.stage.bosses[s.bossIndex+1];s.feedback.recovery={boss:b.id,healed:s.player.hp-before,hp:s.player.hp,maxHp:s.player.maxHp,next:next||null};s.feedback.hpTrail=s.player.hp;s.feedback.hpHold=0;}};
 var next=P._nextBoss;P._nextBoss=function(){if(this.state.practice){this.state.nextBossMarker=null;return false;}return next.call(this);};
 var wind=P._bossWind;P._bossWind=function(b,def,move){wind.call(this,b,def,move);b.tellDuration=b.timer;};
 var beat=P._bossBeat;P._bossBeat=function(b,def){var pr=this.state.practice;

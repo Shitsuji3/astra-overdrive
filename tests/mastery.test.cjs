@@ -59,3 +59,28 @@ test('practice arrival is brief and a retry restarts it; next boss clears old at
  g._nextBoss();assert.equal(g.state.boss.id,'tidebreaker');assert.equal(g.state.bossIntro.time,0);
  assert.equal(g.state.bullets.length,0);assert.equal(g.state.player.saberTime,0);
 });
+
+
+test('HP trail holds after damage, decays, freezes while paused and resets on retry',()=>{
+ const {g}=setup(),s=g.state;g._tick(.01);s.player.hp=6;g._registerHit({label:'test'});g._tick(.1);assert.equal(s.feedback.hpTrail,8);
+ g.pause();g._tick(1);assert.equal(s.feedback.hpTrail,8);g.resume();g._boss=()=>{};
+ for(let n=0;n<50;n++)g._tick(1/60);assert.equal(s.feedback.hpTrail,6);
+ g.start({stage:'gauntlet'});assert.equal(g.state.feedback.hpTrail,8);assert.equal(g.state.feedback.lastHit,null);
+});
+test('delayed split and mine bullets retain the original boss move',()=>{
+ const {g}=setup(),s=g.state;g._attackSource={boss:'nullpriest',move:'crossorb'};
+ const parent=g._spawn(100,100,0,0,'enemy',false,1,{split:{n:4,speed:80,r:4}});g._attackSource=null;
+ s.boss.attack='rest';g._bossSplit(parent);assert.equal(s.bullets.at(-1).source.move,'crossorb');
+ g._mineBursts({...parent,burst:3});assert.equal(s.bullets.at(-1).source.move,'crossorb');
+ s.bullets=[];const p=s.player;p.hp=1;p.invuln=0;g._spawn(p.x+10,p.y+10,0,0,'enemy',false,1,{source:{boss:'warden',move:'cannon'}});
+ g._bullets(0);assert.equal(s.mode,'dead');assert.equal(s.defeat.source.move,'cannon');assert.equal(s.defeat.remaining,100);
+});
+test('fall death never reuses a previous move as the cause',()=>{
+ const {g}=setup();g.state.feedback.lastHit={boss:'warden',move:'cannon'};g._die();assert.equal(g.state.defeat.source.label,'落下');assert.equal(g.state.defeat.source.move,undefined);
+});
+test('recovery shows actual healing, full HP and final clear without adding a ninth boss',()=>{
+ const {g}=setup();g.state.player.hp=6;g._bossDown(g.state.boss);assert.equal(g.state.feedback.recovery.healed,2);assert.equal(g.state.feedback.recovery.next,'tidebreaker');
+ g._bossDown(g.state.boss);assert.equal(g.state.feedback.recovery.healed,2);
+ g._spawnBoss('obsidian-crown');g.state.bossIndex=7;g._bossDown(g.state.boss);assert.equal(g.state.feedback.recovery.healed,0);assert.equal(g.state.feedback.recovery.next,null);
+ g.startPractice('warden');g._bossDown(g.state.boss);assert.equal(g.state.feedback.recovery,null);
+});
