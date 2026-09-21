@@ -72,3 +72,7 @@
 
 ## 最新変更：タイトルBGM1・戦闘BGM2（2026-09-21）
 提供bgm1.mp3をassets/title-bgm.mp3、BGM2.mp3をassets/stage1-bgm.mp3に保存。タイトル初期表示/帰還はBGM1、戦闘開始はBGM2。切替で旧曲停止。ポーズ・結果の半音量、音量・ミュート保持。自動再生制限時はpointerdown/keydownで再試行。qa/title-game-bgm.cjsで実音源読込・再生・切替・重複なし・ポーズ半音量・タイトル復帰・ミュート検証成功。build:ci成功。GitHub未push。
+
+
+## 最新変更：BGM基準音量を半分（2026-09-21）
+BGM専用の出力倍率0.5を追加。保存済み音量設定にも反映し、標準出力は0.18→0.09。スライダー・SE音量は維持。ポーズ/結果時はさらに半分。構文・BGM切替QA・build:ci成功。GitHub未push。

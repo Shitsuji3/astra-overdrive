@@ -1,7 +1,7 @@
 {
-  "saved_at": "2026-09-21T22:41:39.704213+09:00",
-  "backup_path": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\dist\\history\\ASTRA-OVERDRIVE-title-game-bgm-20260921-224138.zip",
-  "sha256": "452f5dab8bf0fd7ee44d40e505dadd0595bbc0ace92f607f32a6506a09b28083",
+  "saved_at": "2026-09-21T22:47:00.631119+09:00",
+  "backup_path": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\dist\\history\\ASTRA-OVERDRIVE-bgm-half-volume-20260921-224659.zip",
+  "sha256": "e6553b05ce9abb4ff4cef1f98097522c98d305d0e9c9937f350b4658941dcca3",
   "file_count": 215,
   "files_sha256": {
     ".github/workflows/pages.yml": "071b13a71acc1c211ac730496d81c9888259295ecb86ea3bb07a96c606cd49cd",
@@ -91,7 +91,7 @@
     "assets/web/saber-turn-atlas.webp": "26aed201788846fd4c50050c2558c740a80a95036a1d454d532730749ecf830b",
     "assets/web/stage-city.webp": "015b72972b5a3c96d59b7887a01f891d5154642cfb18ecabbdfba22cb9c2c063",
     "assets/web/title-art.webp": "fbb6abf9559c88aa3d1254a4cbbca33be01ebc134ca7ee8a83236d96b750b092",
-    "audio.js": "aa03fec959c2791dacf737584addbd9f42a84192a0417b5aeb4cacdea22efd22",
+    "audio.js": "2c5bf8efcef69f4300f5303e26159614eaec906fe1d3cf01264679422a1b0814",
     "game.js": "d9d9f5d6fca1755a9713d5510fa141cd23a8222f5d7269ac4d070caa1263ce35",
     "index.html": "cb184a5275fd23f16b044a093dc2455eac92c0fdf46721bfda5e81df4a648fd7",
     "launch-game.bat": "07a27d25bde29032017386e95b38c34aac7e58bbf3f8f3b81105441af8330506",
@@ -205,7 +205,7 @@
     "work/BOSS-RUSH-MASTERY-20260920.md": "7177dfc1ba99c8abe17ba25cdfa1e5b0197ff492a3e8a8f1f84b6585252d328c",
     "work/BOSS-SIGNATURE-20260915.md": "2aa9c0b8d30d5fbe86a98b18d1f9ca6a37aa5a729ffdd5af0d791dd8d97312c0",
     "work/COILHEAD-FLIGHT-20260916.md": "bc3ae62e987cff0ff8f1d9a91db0fd99f4c84156846b3411e860470a1778f395",
-    "work/CURRENT-STATE.md": "9ee2ee4c7ef565b20b5cad86eef48df2f4013ee6254f0db1f28b99afb4d7d603",
+    "work/CURRENT-STATE.md": "118442fabb80954593801375cfa37df9f07890508a41915273481ffded19801b",
     "work/DISPLAY-RESTORE-20260908.md": "bcec9e6b61af337cd1722fc48e9ec89556b1178ac5808325b267c851ed5ecb4b",
     "work/FAN-BURST-20260915.md": "ee7c51ee0e081219474994983a40bb64204b856703e256bb33ac15541cb8e3a3",
     "work/HANDOFF-20260914.md": "d1b768b78ef1aa5976c075a2889ecfb1b51e50c4f41e67c4a36b7cac7a72663c",

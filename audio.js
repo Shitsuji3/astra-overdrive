@@ -5,7 +5,7 @@ function selectTrack(next){if(track!==next&&media){media.pause();media=null}trac
 // Retry browser-blocked autoplay on a user gesture without restarting an active track.
 function unlockMusic(){if(playing&&media&&media.paused)playMedia()}
 g.addEventListener('pointerdown',unlockMusic);g.addEventListener('keydown',unlockMusic);
-function syncMedia(){if(media){media.volume=Math.max(0,Math.min(1,music*master*(paused||resultMode?.5:1)));media.muted=muted}}
+function syncMedia(){if(media){media.volume=Math.max(0,Math.min(1,music*master*.5*(paused||resultMode?.5:1)));media.muted=muted}}
 function playMedia(){try{var p=ensureMedia().play();if(p&&typeof p.catch==='function')p.catch(function(){})}catch(e){}}
 function boot(){if(!ac){ac=new(window.AudioContext||window.webkitAudioContext)();seGain=ac.createGain();seGain.connect(ac.destination)}if(ac.state==='suspended')ac.resume();seGain.gain.value=muted?0:sfx*master;prepareChargeSamples();prepareSaberSample();prepareSaberHitSample()}
 function tone(f,d,type,v){if(muted||!ac)return;var o=ac.createOscillator(),n=ac.createGain(),now=ac.currentTime;o.type=type;o.frequency.value=f;n.gain.setValueAtTime(.0001,now);n.gain.exponentialRampToValueAtTime(Math.min(.3,Math.max(.001,v)),now+.008);n.gain.exponentialRampToValueAtTime(.0001,now+d);o.connect(n).connect(seGain);o.start(now);o.stop(now+d+.02)}
