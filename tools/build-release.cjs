@@ -31,7 +31,7 @@ const VERBATIM = [
   'game.js', 'render.js', 'audio.js', 'ui.js', 'mastery.js',
   'assets/bosses.js', 'assets/stages.js', 'assets/run-rig-v6.js', 'assets/saber-rig.js', 'assets/enemies-v2.js',
   'assets/charge-sounds.js', 'assets/saber-sound.js', 'assets/saber-hit-sound.js',
-  'assets/stage1-bgm.mp3', 'assets/title-core-glow.svg',
+  'assets/stage1-bgm.mp3', 'assets/title-bgm.mp3', 'assets/title-core-glow.svg',
   'assets/brand/icon-32.png', 'assets/brand/icon-192.png', 'assets/brand/icon-512.png',
   'assets/brand/apple-touch-icon.png', 'assets/brand/social-card.jpg',
   // the boss portraits the stage select shows
@@ -156,7 +156,7 @@ if (!CI) pack();
 
 const rows = [...shipped.entries()].sort((a, b) => b[1] - a[1]);
 const total = rows.reduce((sum, row) => sum + row[1], 0);
-const firstLoad = rows.filter(r => !/stage1-bgm/.test(r[0])).reduce((s, r) => s + r[1], 0);
+const firstLoad = rows.filter(r => !/(stage1|title)-bgm/.test(r[0])).reduce((s, r) => s + r[1], 0);
 for (const [file, size] of rows)
   console.log(String(Math.round(size / 1024)).padStart(6) + ' KB  ' + file);
 console.log('');

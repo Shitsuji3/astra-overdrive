@@ -68,3 +68,7 @@
 
 ## 最新変更：バスターと目の発光（2026-09-21）
 タイトルのSVG発光レイヤーにバスター先端の青いレンズと両目のシアン光を追加。胸と同じ4.4秒周期。元画像・配置・ゲームの操作は維持。明暗2枚qa/title-lights-bright.png、title-lights-dim.pngで位置確認、build:ci成功。GitHub未push。
+
+
+## 最新変更：タイトルBGM1・戦闘BGM2（2026-09-21）
+提供bgm1.mp3をassets/title-bgm.mp3、BGM2.mp3をassets/stage1-bgm.mp3に保存。タイトル初期表示/帰還はBGM1、戦闘開始はBGM2。切替で旧曲停止。ポーズ・結果の半音量、音量・ミュート保持。自動再生制限時はpointerdown/keydownで再試行。qa/title-game-bgm.cjsで実音源読込・再生・切替・重複なし・ポーズ半音量・タイトル復帰・ミュート検証成功。build:ci成功。GitHub未push。
