@@ -76,6 +76,7 @@ const screenshotDir = path.join(root, 'qa');
     checked('victory replay starts fresh mission', await page.evaluate(() => game.state.mode === 'playing' && game.state.player.x < 100 && document.querySelector('#overlay').hidden));
     await page.keyboard.press('Escape');
     await page.locator('#overlay [data-action=title]').click();
+    await page.locator('#title [data-action=practice-menu]').click();
     await page.locator('[data-action=stage-select]').click();
     await page.locator('[data-action=launch-stage]').first().click();
     const secondTime = await page.evaluate(() => game.state.timeElapsed);
