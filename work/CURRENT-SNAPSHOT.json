@@ -1,7 +1,7 @@
 {
-  "saved_at": "2026-09-21T22:47:00.631119+09:00",
-  "backup_path": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\dist\\history\\ASTRA-OVERDRIVE-bgm-half-volume-20260921-224659.zip",
-  "sha256": "e6553b05ce9abb4ff4cef1f98097522c98d305d0e9c9937f350b4658941dcca3",
+  "saved_at": "2026-09-21T22:54:51.439758+09:00",
+  "backup_path": "C:\\Users\\situz\\Documents\\ChatGPT\\Astragemes\\dist\\history\\ASTRA-OVERDRIVE-published-title-bgm-20260921-225450.zip",
+  "sha256": "f7b197825a7fb5bed6138a7e71ba908524f663d5e30dd5d70e571c917dedd91b",
   "file_count": 215,
   "files_sha256": {
     ".github/workflows/pages.yml": "071b13a71acc1c211ac730496d81c9888259295ecb86ea3bb07a96c606cd49cd",
@@ -121,7 +121,7 @@
     "qa/combat-engine-review.cjs": "37bf23d34fa4b7356390b6de2f1eadc572d0eab04dd47fe2874e493aadf8e60f",
     "qa/combat-review.cjs": "5e2952c2a7befe460e0d0be167771570586a42fe89fd793ce21f2a179c0aafab",
     "qa/dump-atlas.cjs": "fa76554495a68b949ba35b551045d1e6de22eb4c375ea88d6bf7d82c793ac06c",
-    "qa/explosion-sound.cjs": "b6fd3ea1162e3ec64361b2f8ac650a2adc917682a3a9311e7117733d83148df5",
+    "qa/explosion-sound.cjs": "67695e3d8cf3758e2098e9c3f54442d2c3dae2570da4255e8f525a00b78df8d1",
     "qa/fan-burst.cjs": "07d2807b5d834398816cd0a47d9db07acb5c63cfa88ae639cb793023501932cf",
     "qa/fan-charge.cjs": "94d6cd70389e931f5df4ebdce05d43fe8ffd66a26f47d380e91f27bea31689a7",
     "qa/final-motion-acceptance.cjs": "469bbce2cdf42d1137b4eb790353d6ca5ff82d44c411d199dfb78506a053d454",
@@ -205,7 +205,7 @@
     "work/BOSS-RUSH-MASTERY-20260920.md": "7177dfc1ba99c8abe17ba25cdfa1e5b0197ff492a3e8a8f1f84b6585252d328c",
     "work/BOSS-SIGNATURE-20260915.md": "2aa9c0b8d30d5fbe86a98b18d1f9ca6a37aa5a729ffdd5af0d791dd8d97312c0",
     "work/COILHEAD-FLIGHT-20260916.md": "bc3ae62e987cff0ff8f1d9a91db0fd99f4c84156846b3411e860470a1778f395",
-    "work/CURRENT-STATE.md": "118442fabb80954593801375cfa37df9f07890508a41915273481ffded19801b",
+    "work/CURRENT-STATE.md": "54694e9d6be016d755b6a4436e5d6e08800b3a5d143b74e5e2d0783826a4dc53",
     "work/DISPLAY-RESTORE-20260908.md": "bcec9e6b61af337cd1722fc48e9ec89556b1178ac5808325b267c851ed5ecb4b",
     "work/FAN-BURST-20260915.md": "ee7c51ee0e081219474994983a40bb64204b856703e256bb33ac15541cb8e3a3",
     "work/HANDOFF-20260914.md": "d1b768b78ef1aa5976c075a2889ecfb1b51e50c4f41e67c4a36b7cac7a72663c",
