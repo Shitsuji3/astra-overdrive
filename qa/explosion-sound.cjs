@@ -31,6 +31,8 @@ function stubContext() {
 
 const box = { console, Math, Date, Audio: function () { return { play: () => Promise.resolve() }; } };
 box.window = box;
+// Browser event registration used by BGM autoplay recovery.
+box.addEventListener = () => {};
 box.AudioContext = stubContext;
 vm.createContext(box);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'audio.js'), 'utf8'), box);
