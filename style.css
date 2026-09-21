@@ -115,4 +115,3 @@
 .title-art::after{content:'';position:absolute;inset:0;background:url('assets/title-core-glow.svg') center/cover no-repeat;background-position:inherit;mix-blend-mode:screen;pointer-events:none;animation:title-core-pulse 4.4s ease-in-out infinite;will-change:opacity}
 @keyframes title-core-pulse{0%,100%{opacity:.04}50%{opacity:.9}}
 @media(prefers-reduced-motion:reduce){.title-art::after{animation:none;opacity:.18}}
-html.reduce-title-motion .title-art::after{animation:none;opacity:.18}
