@@ -84,3 +84,19 @@ test('recovery shows actual healing, full HP and final clear without adding a ni
  g._spawnBoss('obsidian-crown');g.state.bossIndex=7;g._bossDown(g.state.boss);assert.equal(g.state.feedback.recovery.healed,0);assert.equal(g.state.feedback.recovery.next,null);
  g.startPractice('warden');g._bossDown(g.state.boss);assert.equal(g.state.feedback.recovery,null);
 });
+
+
+test('saber hit sound needs real damage, combines simultaneous targets and repeats on later hits',()=>{
+ const {g,c}=setup(),s=g.state,p=s.player,b=s.boss,events=[];g.onEvent=(type,data)=>{if(type==='sound'&&data.name==='saber-hit')events.push(data);};c.AstraCombat.saberSweep=()=>null;
+ p.x=b.x-300;p.y=b.y;p.saberCombo=1;g._damageNearby(72,4.5,1);assert.equal(events.length,0);
+ p.x=b.x-25;s.enemies=[{x:b.x,y:b.y,w:20,h:30,hp:100}];g._damageNearby(72,4.5,1);assert.equal(events.length,1);
+ s.time+=.1;p.saberCombo=6;g._damageNearby(108,6.75,1);assert.equal(events.length,2);
+ s.time+=.1;s.enemies=[];b.phaseOut=true;g._damageNearby(108,6.75,1);assert.equal(events.length,2);
+ b.phaseOut=false;b.down=true;g._damageNearby(108,6.75,1);assert.equal(events.length,2);
+});
+test('rising hit layers impact while projectile hits and deflection do not',()=>{
+ const {g,c}=setup(),s=g.state,p=s.player,b=s.boss,events=[];g.onEvent=(type,data)=>{if(type==='sound'&&data.name==='saber-hit')events.push(data);};
+ c.AstraCombat.risingFire=()=>[{}];c.AstraCombat.bladeTouches=()=>true;p.saberTime=.5;p.risingSerial=1;g._risingBites();assert.equal(events.length,1);
+ s.time+=1;g._spawn(b.x+5,b.y+5,0,0,'player',false,1);g._bullets(0);assert.equal(events.length,1);
+ g._saberDeflects=()=>true;g._spawn(p.x,p.y,0,0,'enemy',false,1);g._bullets(0);assert.equal(events.length,1);
+});

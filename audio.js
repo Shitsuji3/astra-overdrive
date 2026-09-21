@@ -3,7 +3,7 @@ var ac=null,master=.4,music=.45,sfx=.7,muted=false,paused=false,playing=false,re
 function ensureMedia(){if(!media){media=new Audio('assets/stage1-bgm.mp3');media.loop=true;media.preload='auto'}return media}
 function syncMedia(){if(media){media.volume=Math.max(0,Math.min(1,music*master*(paused||resultMode?.5:1)));media.muted=muted}}
 function playMedia(){try{var p=ensureMedia().play();if(p&&typeof p.catch==='function')p.catch(function(){})}catch(e){}}
-function boot(){if(!ac){ac=new(window.AudioContext||window.webkitAudioContext)();seGain=ac.createGain();seGain.connect(ac.destination)}if(ac.state==='suspended')ac.resume();seGain.gain.value=muted?0:sfx*master;prepareChargeSamples();prepareSaberSample()}
+function boot(){if(!ac){ac=new(window.AudioContext||window.webkitAudioContext)();seGain=ac.createGain();seGain.connect(ac.destination)}if(ac.state==='suspended')ac.resume();seGain.gain.value=muted?0:sfx*master;prepareChargeSamples();prepareSaberSample();prepareSaberHitSample()}
 function tone(f,d,type,v){if(muted||!ac)return;var o=ac.createOscillator(),n=ac.createGain(),now=ac.currentTime;o.type=type;o.frequency.value=f;n.gain.setValueAtTime(.0001,now);n.gain.exponentialRampToValueAtTime(Math.min(.3,Math.max(.001,v)),now+.008);n.gain.exponentialRampToValueAtTime(.0001,now+d);o.connect(n).connect(seGain);o.start(now);o.stop(now+d+.02)}
 function noise(d,v){if(muted||!ac)return;var b=ac.createBuffer(1,ac.sampleRate*d,ac.sampleRate),a=b.getChannelData(0);for(var i=0;i<a.length;i++)a[i]=(Math.random()*2-1)*Math.pow(1-i/a.length,2);var s=ac.createBufferSource(),n=ac.createGain();n.gain.value=Math.min(.12,v);s.buffer=b;s.connect(n).connect(seGain);s.start()}
 // Cache layered energy blasts: a short muzzle transient, descending plasma
@@ -91,6 +91,18 @@ function explosion(kind){
   source.onended=function(){source.disconnect();gain.disconnect()};
   source.start(now);
 }
+var saberHitSample=null,saberHitLoading=false;
+function prepareSaberHitSample(){
+ if(saberHitSample||saberHitLoading||!ac||!g.AstraSaberHitSample)return;
+ saberHitLoading=true;var raw=atob(g.AstraSaberHitSample),bytes=new Uint8Array(raw.length);
+ for(var i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+ ac.decodeAudioData(bytes.buffer).then(function(b){saberHitSample=b;saberHitLoading=false;},function(){saberHitLoading=false;});
+}
+function saberHitSound(){
+ if(muted||!ac||!saberHitSample)return;
+ var source=ac.createBufferSource();source.buffer=saberHitSample;source.connect(seGain);
+ source.onended=function(){source.disconnect();};source.start();
+}
 var saberSample=null,saberLoading=false;
 function prepareSaberSample(){
   if(saberSample||saberLoading||!ac||!g.AstraSaberSample)return;
@@ -132,5 +144,5 @@ function chargeShot(){
   gain.gain.value=1.1;source.connect(gain).connect(seGain);
   source.onended=function(){source.disconnect();gain.disconnect()};source.start();
 }
-function sound(n,detail){boot();if(n==='thrust'){stopCharge();chargeShot();saberSound(6);return;}if(n==='saber'){saberSound(detail&&detail.combo||1);return;}if(n==='explode'||n==='boom'){explosion(n);return;}if(n==='shot'||n==='charge'){stopCharge();if(n==='charge')chargeShot();else blaster(false);return;}var m={move:[180,.045,'square',.12],select:[440,.09,'square',.18],jump:[220,.1,'square',.14],dash:[90,.12,'sawtooth',.18],hurt:[80,.18,'sawtooth',.2],pickup:[740,.08,'sine',.15],checkpoint:[520,.2,'square',.18],boss:[130,.2,'sawtooth',.2],death:[70,.35,'sawtooth',.2],victory:[660,.25,'square',.2]};var x=m[n]||m.select;tone(x[0],x[1],x[2],x[3])}
+function sound(n,detail){boot();if(n==='saber-hit'){saberHitSound();return;}if(n==='thrust'){stopCharge();chargeShot();saberSound(6);return;}if(n==='saber'){saberSound(detail&&detail.combo||1);return;}if(n==='explode'||n==='boom'){explosion(n);return;}if(n==='shot'||n==='charge'){stopCharge();if(n==='charge')chargeShot();else blaster(false);return;}var m={move:[180,.045,'square',.12],select:[440,.09,'square',.18],jump:[220,.1,'square',.14],dash:[90,.12,'sawtooth',.18],hurt:[80,.18,'sawtooth',.2],pickup:[740,.08,'sine',.15],checkpoint:[520,.2,'square',.18],boss:[130,.2,'sawtooth',.2],death:[70,.35,'sawtooth',.2],victory:[660,.25,'square',.2]};var x=m[n]||m.select;tone(x[0],x[1],x[2],x[3])}
 g.AstraAudio={sound:sound,setCharge:setCharge,start:function(){stopCharge();boot();paused=false;resultMode=false;var m=ensureMedia();m.currentTime=0;playing=true;syncMedia();playMedia()},stop:function(){stopCharge();playing=false;paused=false;resultMode=false;syncMedia();if(media){media.pause();media.currentTime=0}},setMaster:function(v){master=Math.max(0,Math.min(1,Number(v)||0));syncMedia();if(seGain)seGain.gain.value=muted?0:sfx*master},setMusic:function(v){music=Math.max(0,Math.min(1,Number(v)||0));syncMedia()},setSfx:function(v){sfx=Math.max(0,Math.min(1,Number(v)||0));if(seGain)seGain.gain.value=muted?0:sfx*master},setMuted:function(v){muted=!!v;if(muted)stopCharge();if(seGain)seGain.gain.value=muted?0:sfx*master;syncMedia()},setResultMode:function(v){resultMode=!!v;if(resultMode)stopCharge();syncMedia()},setPaused:function(v){paused=!!v;if(paused)stopCharge();syncMedia()}}})(window);
