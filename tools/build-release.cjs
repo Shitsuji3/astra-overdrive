@@ -31,7 +31,7 @@ const VERBATIM = [
   'game.js', 'render.js', 'audio.js', 'ui.js', 'mastery.js',
   'assets/bosses.js', 'assets/stages.js', 'assets/run-rig-v6.js', 'assets/saber-rig.js', 'assets/enemies-v2.js',
   'assets/charge-sounds.js', 'assets/saber-sound.js', 'assets/saber-hit-sound.js',
-  'assets/stage1-bgm.mp3',
+  'assets/stage1-bgm.mp3', 'assets/title-core-glow.svg',
   'assets/brand/icon-32.png', 'assets/brand/icon-192.png', 'assets/brand/icon-512.png',
   'assets/brand/apple-touch-icon.png', 'assets/brand/social-card.jpg',
   // the boss portraits the stage select shows

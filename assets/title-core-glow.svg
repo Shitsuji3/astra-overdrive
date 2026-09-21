@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1672" height="941" viewBox="0 0 1672 941">
+  <!-- Coordinates share the original title artwork, so cover/cropping stay aligned. -->
+  <defs>
+    <radialGradient id="halo"><stop stop-color="#ffb34e" stop-opacity=".65"/><stop offset=".4" stop-color="#ff771a" stop-opacity=".3"/><stop offset="1" stop-color="#ff6410" stop-opacity="0"/></radialGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+  </defs>
+  <ellipse cx="1352" cy="461" rx="78" ry="92" fill="url(#halo)"/>
+  <path d="M1345 416 L1361 413 L1375 461 L1350 506 L1337 501 L1327 460 Z" fill="#ffba62" opacity=".65" filter="url(#soft)"/>
+</svg>
