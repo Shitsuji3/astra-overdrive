@@ -23,16 +23,16 @@ const screenshotDir = path.join(root, 'qa');
     checked('START MISSION is removed', await page.locator('[data-action=start]').count() === 0);
     // Boss rush is the primary entry; legacy stage select remains available.
     checked('menu skips hidden items', await page.evaluate(() => document.activeElement.dataset.action === 'boss-rush'));
-    for(let i=0;i<2;i++)await page.keyboard.press('ArrowDown');
+    for(let i=0;i<1;i++)await page.keyboard.press('ArrowDown');
     checked('menu keeps walking to the guide', await page.evaluate(() => document.activeElement.dataset.action === 'help-menu'));
     await page.keyboard.press('Enter');
     await page.keyboard.press('Enter');
     checked('keyboard opens guide', await page.locator('#modal').isVisible());
     await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
-    await page.locator('[data-action=practice-menu]').click();
-    await page.locator('[data-action=stage-select]').click();
-    await page.locator('[data-action=launch-stage]').first().click();
+    await page.locator('#title [data-action=boss-rush]').click();
+    // Use the legacy stage as a controlled combat fixture; it is no longer a title entry.
+    await page.evaluate(()=>{game.start({stage:AstraStages.first});});
     await page.keyboard.down('d'); await page.waitForTimeout(450); await page.keyboard.up('d');
     checked('keyboard movement', await page.evaluate(() => game.state.player.x > 110));
     await page.keyboard.down(' '); await page.waitForTimeout(160); await page.keyboard.up(' ');
@@ -73,12 +73,12 @@ const screenshotDir = path.join(root, 'qa');
     checked('projectile boss kill opens victory', await page.locator('#overlay').isVisible());
     await page.screenshot({ path: path.join(screenshotDir, 'victory.png') });
     await page.locator('[data-action=replay]').click();
-    checked('victory replay starts fresh mission', await page.evaluate(() => game.state.mode === 'playing' && game.state.player.x < 100 && document.querySelector('#overlay').hidden));
+    checked('victory replay starts fresh mission', await page.evaluate(() => game.state.mode === 'playing' && game.state.stage.id === 'gauntlet' && document.querySelector('#overlay').hidden));
     await page.keyboard.press('Escape');
     await page.locator('#overlay [data-action=title]').click();
-    await page.locator('#title [data-action=practice-menu]').click();
-    await page.locator('[data-action=stage-select]').click();
-    await page.locator('[data-action=launch-stage]').first().click();
+    await page.locator('#title [data-action=boss-rush]').click();
+    // Use the legacy stage as a controlled combat fixture; it is no longer a title entry.
+    await page.evaluate(()=>{game.start({stage:AstraStages.first});});
     const secondTime = await page.evaluate(() => game.state.timeElapsed);
     await page.waitForTimeout(150);
     checked('title then second start keeps RAF alive', await page.evaluate(t => game.state.timeElapsed > t, secondTime));
