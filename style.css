@@ -936,6 +936,12 @@ footer span {
   font-size: 1.25em;
   margin-bottom: 10px;
 }
+.defeat-note {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 0.82em;
+  opacity: 0.72;
+}
 
 /* Chest-core breathing light: same image space and cover crop as the title art. */
 .title-art::after {

@@ -110,8 +110,74 @@
         remaining: b ? Math.max(0, Math.ceil((b.hp / b.maxHp) * 100)) : null,
         source: source
       };
+      saveRush(this);
     }
     return die.call(this);
+  };
+  // Carrying on after a defeat in the rush. When the rush is lost after at least one boss has fallen,
+  // where it was lost is kept: the bosses already beaten, the run's time and counts. continueRush()
+  // restarts the fight with the boss that won, at full health, straight from the failure panel or after
+  // practising the move that did it. The run is marked as continued, and ui.js keeps a continued run out
+  // of the rush's best time and score, which only a run done in one go can set. The save is dropped by
+  // a fresh rush, a full restart and a return to the title.
+  function saveRush(game) {
+    var s = game.state,
+      order = C.stage.bosses || [],
+      // lost while the beaten boss was still going down: that one counts, carry on from the next
+      index = (s.bossIndex || 0) + (s.boss && s.boss.down ? 1 : 0),
+      m = s.mastery || {};
+    // losing a practice fight leaves the rush's save alone; losing the rush replaces it
+    if (s.practice) return;
+    game._rushSave = null;
+    if (C.stage.kind !== 'gauntlet' || index < 1 || index >= order.length) return;
+    game._rushSave = {
+      index: index,
+      boss: order[index],
+      difficulty: game.difficulty || 'normal',
+      time: s.timeElapsed || 0,
+      continues: (s.continues || 0) + 1,
+      hits: m.hits || 0,
+      deflects: m.deflects || 0,
+      counters: m.counters || 0,
+      clears: (m.clears || []).slice(),
+      score: s.score || 0,
+      kills: s.kills || 0,
+      shots: s.shots || 0
+    };
+  }
+  // the boss a continue would start with, or null when there is nothing to continue
+  P.rushContinueBoss = function () {
+    var save = this._rushSave;
+    return save ? g.AstraBosses.get(save.boss) : null;
+  };
+  P.dropRushSave = function () {
+    this._rushSave = null;
+  };
+  P.continueRush = function () {
+    var save = this._rushSave;
+    if (!save) return false;
+    this._rushSave = null;
+    this.start({ stage: 'gauntlet', difficulty: save.difficulty });
+    var s = this.state,
+      m = s.mastery;
+    // the run's clock carries on too: timeElapsed is read off it on every step
+    s.time = s.timeElapsed = save.time;
+    s.continues = save.continues;
+    s.score = save.score;
+    s.kills = save.kills;
+    s.shots = save.shots;
+    m.hits = save.hits;
+    m.deflects = save.deflects;
+    m.counters = save.counters;
+    m.clears = save.clears.slice();
+    s.bossIndex = save.index;
+    this._spawnBoss(save.boss);
+    return true;
+  };
+  var toTitle = P.toTitle;
+  P.toTitle = function () {
+    this._rushSave = null;
+    return toTitle.call(this);
   };
   P._registerDeflect = function () {
     var s = this.state,
@@ -349,6 +415,8 @@
       return;
     }
     if (this.state.mode !== 'dead') return;
+    // a restart from the first boss is a new run, so the point to continue from goes
+    this._rushSave = null;
     retry.call(this);
     if (this.state.mode === 'playing') enterArena(this);
   };

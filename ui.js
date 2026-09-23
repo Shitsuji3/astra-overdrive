@@ -408,6 +408,16 @@
       practiceMenu();
     } else active(0);
   }
+  // "Carry on from the boss that won": offered while the rush has a point to continue from (see
+  // mastery.js). first puts it at the head of the panel's buttons.
+  function continueButton(label, first) {
+    var boss = game && game.rushContinueBoss && game.rushContinueBoss();
+    if (!boss) return;
+    $('#overlay-actions').insertAdjacentHTML(
+      first ? 'afterbegin' : 'beforeend',
+      '<button data-action="rush-continue">' + label + ' / ' + boss.name + '</button>'
+    );
+  }
   function pause() {
     overlay.hidden = false;
     $('#overlay-kicker').textContent = 'MISSION CONTROL';
@@ -420,6 +430,7 @@
         'beforeend',
         '<button data-action="practice-retry">練習を最初から</button>'
       );
+    if (game && game.state.practice) continueButton('連戦の続きから', false);
     if (game && game.state.practice && practiceFromDefeat)
       $('#overlay-actions').insertAdjacentHTML(
         'beforeend',
@@ -434,6 +445,10 @@
       r = all[rk] || (all[rk] = {});
     var t = p.timeElapsed || 0;
     r.cleared = true;
+    if (p.continues) {
+      save();
+      return r;
+    }
     r.bestScore = Math.max(r.bestScore || 0, p.score || 0);
     if (!r.bestTime || t < r.bestTime) r.bestTime = t;
     save();
@@ -524,6 +539,7 @@
       $('#overlay-copy').textContent = 'R または再戦で同じボス・技からすぐに練習できます。';
       $('#overlay-actions').innerHTML =
         '<button data-action="practice-retry">再戦 / RETRY</button><button data-action="title">TITLE</button>';
+      continueButton('連戦の続きから', false);
       if (practiceFromDefeat)
         $('#overlay-actions').insertAdjacentHTML(
           'beforeend',
@@ -549,8 +565,16 @@
         (loss.boss ? '<span class="defeat-remaining">ボスの残りHP ' + loss.remaining + '%</span><br>' : '') +
         '最後の被弾：' +
         (valid ? AstraRenderer.moveNames[move] || move : source.label || '被弾');
-      if (p.stage && p.stage.id === 'gauntlet')
+      if (p.stage && p.stage.id === 'gauntlet') {
         $('#overlay-actions [data-action="retry"]').textContent = '8体連戦を最初から';
+        if (game && game.rushContinueBoss && game.rushContinueBoss()) {
+          continueButton('続きから', true);
+          $('#overlay-copy').insertAdjacentHTML(
+            'beforeend',
+            '<br><span class="defeat-note">続きから：倒したボスはそのまま、負けたボスから満タンで再開（連戦の最速記録には残りません）</span>'
+          );
+        }
+      }
       if (loss.boss)
         $('#overlay-actions').insertAdjacentHTML(
           'beforeend',
@@ -570,11 +594,13 @@
       var extra = '<br>HITS ' + m.hits + ' / DEFLECT ' + m.deflects + ' / COUNTER ' + m.counters;
       extra +=
         '<br>' +
-        (delta === null
-          ? 'FIRST CLEAR'
-          : delta < 0
-            ? 'NEW BEST ' + (-delta).toFixed(2) + 's FASTER'
-            : 'BEST DIFFERENCE +' + delta.toFixed(2) + 's');
+        (p.continues
+          ? 'CONTINUE ×' + p.continues + ' / 最速記録の対象外'
+          : delta === null
+            ? 'FIRST CLEAR'
+            : delta < 0
+              ? 'NEW BEST ' + (-delta).toFixed(2) + 's FASTER'
+              : 'BEST DIFFERENCE +' + delta.toFixed(2) + 's');
       if (m.hits === 0) extra += '<br>◆ NO DAMAGE';
       $('#overlay-copy').innerHTML = 'TIME ' + (p.timeElapsed || 0).toFixed(2) + 's / RANK ' + rank + extra;
       $('#overlay-actions').insertAdjacentHTML(
@@ -589,7 +615,8 @@
         deflects: m.deflects,
         counters: m.counters,
         difficulty: (p.runDifficulty || 'normal').toUpperCase(),
-        clears: m.clears.length
+        clears: m.clears.length,
+        continues: p.continues || 0
       };
     }
   }
@@ -618,7 +645,11 @@
     x.fillText('HITS ' + r.hits + '   DEFLECT ' + r.deflects + '   COUNTER ' + r.counters, 64, 464);
     x.fillStyle = '#65e5db';
     x.font = '24px sans-serif';
-    x.fillText(r.hits === 0 ? '◆ NO DAMAGE' : 'NEXT RUN, NEW BEST', 64, 535);
+    x.fillText(
+      r.continues ? 'CONTINUE ×' + r.continues : r.hits === 0 ? '◆ NO DAMAGE' : 'NEXT RUN, NEW BEST',
+      64,
+      535
+    );
     x.font = '18px sans-serif';
     x.fillText('shitsuji3.github.io/astra-overdrive', 64, 577);
     var a = document.createElement('a');
@@ -652,10 +683,12 @@
       try {
         best = +localStorage.getItem(key + '-best') || 0;
       } catch (e) {}
-      best = Math.max(best, p.score || 0);
-      try {
-        localStorage.setItem(key + '-best', best);
-      } catch (e) {}
+      if (!p.continues) {
+        best = Math.max(best, p.score || 0);
+        try {
+          localStorage.setItem(key + '-best', best);
+        } catch (e) {}
+      }
       var r = record(p);
       var t = Math.floor(p.timeElapsed || 0),
         rank = (p.score || 0) > 1500 ? 'S' : (p.score || 0) > 800 ? 'A' : 'B';
@@ -683,7 +716,7 @@
         '<button data-action="retry">RETRY / 再試行</button><button data-action="title">TITLE / 戻る</button>';
     }
   }
-  function start() {
+  function start(keepRushSave) {
     AstraAudio.start();
     AstraAudio.setPaused(false);
     title.hidden = true;
@@ -733,6 +766,7 @@
         }
       });
     window.game = game;
+    if (!keepRushSave && game.dropRushSave) game.dropRushSave();
     game.setOptions({ reducedMotion: !!settings.motion });
     var armed = armedStage();
     game.start({
@@ -755,12 +789,19 @@
     else if (a === 'practice-boss') practiceMenu(b.dataset.boss);
     else if (a === 'practice-start') {
       practiceFromDefeat = false;
-      start();
+      start(true);
       game.startPractice(b.dataset.boss, b.dataset.move);
     } else if (a === 'defeat-practice') {
       practiceFromDefeat = true;
-      start();
+      start(true);
       game.startPractice(b.dataset.boss, b.dataset.move);
+    } else if (a === 'rush-continue') {
+      practiceFromDefeat = false;
+      overlay.hidden = true;
+      modal.hidden = true;
+      AstraAudio.setResultMode(false);
+      AstraAudio.setPaused(false);
+      if (game) game.continueRush();
     } else if (a === 'rush-return') {
       practiceFromDefeat = false;
       settings.stage = 'gauntlet';
