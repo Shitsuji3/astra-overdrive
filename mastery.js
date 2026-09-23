@@ -269,6 +269,8 @@
     b.masteryStart = s.timeElapsed || 0;
     b.masteryHits = s.mastery ? s.mastery.hits : 0;
     s.bossIntro = { time: 0, duration: s.practice ? 0.6 : 1.65, landed: false };
+    // the intro does not run the step that winds a just-dodge slow-down back up, so none carries into it
+    s.slowmo = 0;
     s.bullets = [];
     s.particles = [];
     s.shake = 0;
