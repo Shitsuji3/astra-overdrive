@@ -1,0 +1,9 @@
+# Generated or data-only files: base64 sound payloads, builds, QA captures and notes.
+assets/charge-sounds.js
+assets/saber-sound.js
+assets/saber-hit-sound.js
+assets/run-rig-v5.js
+release/
+dist/
+qa/
+work/
