@@ -7,7 +7,7 @@ for (const f of ['assets/bosses.js','assets/stages.js','game.js'])
   vm.runInContext(fs.readFileSync(require('path').join(__dirname,'..',f),'utf8'),ctx);
 let draws=0; ctx.AstraRenderer={draw:()=>draws++};
 const canvas={getContext:()=>({})}; const g=new ctx.NeonGame(canvas,{});
-assert.equal(g.state.mode,'menu'); assert.ok(rafs.length,'menu RAF scheduled'); rafs.shift()(16); assert.equal(draws,1,'renderer draws menu');
+assert.equal(g.state.mode,'menu'); assert.ok(rafs.length,'menu RAF scheduled'); rafs.shift()(16); assert.equal(draws,0,'the canvas is hidden behind the title, so the menu is not drawn');
 g.start({difficulty:'easy'}); assert.equal(g.state.player.maxHp,10); g.setInput('dash',true); g._tick(1/60); g.setInput('dash',false); const x=g.state.player.x; g._tick(1/60); assert(g.state.player.x-x>7,'dash sustains speed');
 g.state.player.onGround=true; g.setInput('jump',true); g._tick(1/60); assert(g.state.player.vy<0,'jump'); g.setInput('jump',false);
 g.pause(); const t=g.state.time; g._tick(1); assert.equal(g.state.time,t,'pause freezes simulation'); g.resume();

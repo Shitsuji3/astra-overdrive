@@ -81,3 +81,6 @@ BGM専用の出力倍率0.5を追加。保存済み音量設定にも反映し�
 公開確認（2026-09-21）：696ba42までpush済み。胸・バスター・目の発光、タイトルBGM1/戦闘BGM2、BGM半音量を公開。音声QAのwindowイベント登録スタブ不足を修正しnpm test成功。Actions 35608488260 success。公開起動18項目・エラー0、配信audio.js/SVG確認成功。
 
 引き継ぎ（2026-09-23）：Opus5.5向け work/HANDOFF-OPUS55-20260923.md 作成。ゲーム本体変更なし。直近公開は696ba42、次の実装指示待ち。
+
+## 最新変更：軽量化（2026-09-23、Opus 5.5）
+描画の間引き（タイトル中0回、静止画面・高リフレッシュ画面の重複描画を省略）、ボス変形の描画回数を約44%削減（12×12網と0.2px以内で一致）、自機SVGのcanvas化と暗部の作り置きで毎フレームのfilterを廃止、光の使い回し、画面外の描画省略、画像のdecode後描画と先読み。同じ状態の描画処理は平均0.87→0.51ms。配布13.59→10.04MB（BGMをtools/make-audio.pyで再エンコード、背景・WARDEN・自機シートを描画サイズで出荷、未使用のidle画像を除外）。見た目・操作感・攻撃値は維持。Prettier整形。詳細work/PERF-LIGHTEN-20260923.md。npm test192件、build:ci、起動18・パッド29・マウス11成功（パッドとマウスの既存の不安定なテストを修正）。作業はクローンC:\Users\situz\Desktop\Opus5.5\astra-overdriveのブランチperf/lighter-runtime-and-assets。GitHubにpushしてPRで確認待ち。mainは未変更・未公開。

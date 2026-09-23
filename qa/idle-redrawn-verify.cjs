@@ -8,7 +8,7 @@ const fs=require('fs'),assert=require('node:assert/strict'),{chromium}=require('
   const original=ctx.drawImage.bind(ctx),calls=[];ctx.drawImage=(...args)=>{calls.push({src:args[0].src,d:args.slice(1)});original(...args);};
   let floorError=0,seamError=0,samples=0,minTop=Infinity,maxTop=-Infinity;
   for(const facing of [-1,1])for(let i=0;i<=100;i++){
-   calls.length=0;ctx.clearRect(0,0,160,120);AstraRunRig.draw(ctx,{x:80,y:100,spriteIdle:true,idle:true,phase:i/100,facing,image});
+   calls.length=0;ctx.clearRect(0,0,160,120);AstraRunRig.draw(ctx,{x:80,y:100,spriteIdle:'assets/player-idle-v2.png',idle:true,phase:i/100,facing,image});
    if(calls.length!==2||calls.some(c=>!c.src.endsWith('/assets/player-idle-v2.png')))throw Error('idle must use the cohesive sprite');
    const a=calls[0].d,b=calls[1].d;floorError=Math.max(floorError,Math.abs(b[5]+b[7]));
    seamError=Math.max(seamError,Math.abs(a[5]+a[7]-b[5]));minTop=Math.min(minTop,a[5]);maxTop=Math.max(maxTop,a[5]);samples++;

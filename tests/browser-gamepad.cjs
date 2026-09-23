@@ -28,6 +28,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE || 'playwright');
 
   try {
     await page.goto(process.env.GAME_URL || 'http://127.0.0.1:4173/');
+    // Let the page settle before the first tap. A freshly launched browser stalls for a few hundred
+    // milliseconds right after load (compiling the scripts, decoding the title art), and a 90 ms tap
+    // that falls inside a stall is never polled: the menu then missed the press and this failed at
+    // random, on the old build as well.
+    await page.waitForTimeout(1000);
     check('title is up', await shown('#title'));
     check('boss rush is primary',await focused()==='boss-rush');
     check('title has two choices',await page.locator('#title .menu-item').count()===2);
