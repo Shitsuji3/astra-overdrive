@@ -13,7 +13,7 @@
     idleReady = false,
     idleLoading = false,
     idleRetry = 0;
-  function loadIdle() {
+  function loadIdle(url) {
     if (idleReady || idleLoading || typeof Image === 'undefined' || Date.now() < idleRetry) return;
     idleLoading = true;
     var im = new Image();
@@ -26,10 +26,11 @@
       idleLoading = false;
       idleRetry = Date.now() + 2000;
     };
-    im.src = 'assets/player-idle-v2.png';
+    im.src = url;
   }
-  // Only fetched if something asks for the single-frame idle art; nothing in the game does,
-  // so the download no longer happens on every page load.
+  // Only fetched if something asks for the single-frame idle art; nothing in the game does. The
+  // caller names the file (o.spriteIdle), so the game's own code does not mention it and the
+  // release build does not ship it.
   var BODY = [
     [0, 0],
     [314, 0],
@@ -121,6 +122,11 @@
     for (var i = 1; i < mask.length; i++) ctx.lineTo(mask[i][0] - sourcePivot.x, mask[i][1] - sourcePivot.y);
     ctx.closePath();
     ctx.clip();
+    // The atlas used to reach the canvas straight from its SVG, which the browser always resamples
+    // smoothly whatever the canvas asks for. Its bitmap copy is resampled the same way, so the figure
+    // looks as it always has.
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     var size = origin.x === 0 && origin.y === 0 ? 1254 : 313;
     ctx.drawImage(img, origin.x, origin.y, size, size, -sourcePivot.x, -sourcePivot.y, size, size);
     ctx.restore();
@@ -436,9 +442,9 @@
   function draw(ctx, o) {
     o = o || {};
     // The whole character comes from this rig now. The separately drawn idle sprite stays available
-    // behind o.spriteIdle so the artwork is not lost, but nothing in the game asks for it.
-    if (o.spriteIdle) {
-      loadIdle();
+    // behind o.spriteIdle (its URL) so the artwork is not lost, but nothing in the game asks for it.
+    if (typeof o.spriteIdle === 'string') {
+      loadIdle(o.spriteIdle);
       if (idleReady) return drawIdle(ctx, o);
     }
     var mode = modeOf(o);
@@ -496,9 +502,14 @@
         a.elbow
       );
     }
+    // The far leg is drawn darker, from a darkened copy of the atlas made once. Without that
+    // helper, fall back to the canvas filter, which costs a filter pass on every frame.
     ctx.save();
-    ctx.filter = 'brightness(.78)';
+    var far = g.AstraArt && g.AstraArt.shade(img, 0.78);
+    if (far) img = far;
+    else ctx.filter = 'brightness(.78)';
     limb(p.right);
+    img = o.image;
     ctx.restore();
     ctx.save();
     torsoSpace();

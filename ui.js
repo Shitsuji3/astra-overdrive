@@ -415,10 +415,6 @@
     $('#overlay-copy').textContent = 'MISSION SUSPENDED';
     $('#overlay-actions').innerHTML =
       '<button data-action="resume">RESUME / 再開</button><button data-action="guide">操作ガイド</button><button data-action="settings">システム設定</button><button data-action="fullscreen">FULLSCREEN</button><button data-action="title">ABORT / タイトルへ</button>';
-  }
-  var basePause = pause;
-  pause = function () {
-    basePause();
     if (game && game.state.practice)
       $('#overlay-actions').insertAdjacentHTML(
         'beforeend',
@@ -429,7 +425,7 @@
         'beforeend',
         '<button data-action="rush-return">8体連戦を最初から</button>'
       );
-  };
+  }
   function record(p) {
     var id = (p.stage && p.stage.id) || (armedStage() || {}).id;
     if (!id) return {};
@@ -1037,6 +1033,14 @@
       start: on(9)
     };
   }
+  // Built once: the pad is polled every animation frame, so its tables should not be rebuilt each time.
+  var PAD_DIRECTIONS = [
+      ['up', 0, -1],
+      ['down', 0, 1],
+      ['left', -1, 0],
+      ['right', 1, 0]
+    ],
+    PAD_BUTTONS = ['a', 'b', 'start'];
   function padFrame(now) {
     requestAnimationFrame(padFrame);
     var screen = padScreen(),
@@ -1051,12 +1055,7 @@
       padHeld = {};
       return;
     }
-    [
-      ['up', 0, -1],
-      ['down', 0, 1],
-      ['left', -1, 0],
-      ['right', 1, 0]
-    ].forEach(function (d) {
+    PAD_DIRECTIONS.forEach(function (d) {
       var k = d[0],
         h = padHeld[k];
       if (!s[k]) {
@@ -1072,7 +1071,7 @@
         padMove(screen, d[1], d[2]);
       }
     });
-    ['a', 'b', 'start'].forEach(function (k) {
+    PAD_BUTTONS.forEach(function (k) {
       if (s[k]) {
         if (!padHeld[k]) {
           padHeld[k] = true;
@@ -1112,9 +1111,14 @@
   AstraAudio.setSfx(settings.sfx === undefined ? 0.7 : settings.sfx);
   AstraAudio.setMuted(!!settings.muted);
   setInterval(function () {
-    if (game && game.state) hud(game.state);
+    if (game && game.state && !shell.hidden) hud(game.state);
   }, 250);
   showArmed();
   active(0);
   AstraAudio.startTitle();
+  // Once the title has painted, fetch and decode what the first fight draws, so pressing start
+  // waits on neither the network nor the first frame.
+  setTimeout(function () {
+    if (window.AstraRenderer && AstraRenderer.preload) AstraRenderer.preload();
+  }, 500);
 })();

@@ -1,6 +1,8 @@
 /* ASTRA // OVERDRIVE procedural pixel-art renderer. */
 (function (g) {
   'use strict';
+  // how far outside the screen something may start and still be drawn
+  var CULL = 32;
   var W = 640,
     H = 360;
   var P = {
@@ -52,16 +54,47 @@
   function gx(s, x) {
     return x - ((s.camera && s.camera.x) || 0);
   }
+  // Soft glows are drawn many times a frame: every bullet, pickup and flash has one. Building a
+  // radial gradient for each is the slow way; the same gradient painted once per colour into a small
+  // canvas and drawn scaled looks the same and costs one drawImage.
+  var GLOW_SIZE = 128,
+    glowSprites = {};
+  function glowSprite(col) {
+    if (glowSprites[col] !== undefined) return glowSprites[col];
+    var cv =
+        typeof document !== 'undefined' && document.createElement ? document.createElement('canvas') : null,
+      q = cv && cv.getContext ? cv.getContext('2d') : null;
+    if (!q) return (glowSprites[col] = null);
+    cv.width = cv.height = GLOW_SIZE;
+    var r = GLOW_SIZE / 2,
+      gr = q.createRadialGradient(r, r, 0, r, r, r);
+    gr.addColorStop(0, col);
+    gr.addColorStop(1, 'transparent');
+    q.fillStyle = gr;
+    q.fillRect(0, 0, GLOW_SIZE, GLOW_SIZE);
+    return (glowSprites[col] = cv);
+  }
   function G(c, x, y, r, col, a) {
-    var q = c.createRadialGradient(x, y, 0, x, y, r);
-    q.addColorStop(0, col);
-    q.addColorStop(1, 'transparent');
+    if (!(r > 0)) return;
+    var sprite = glowSprite(col);
     c.globalAlpha = a;
-    c.fillStyle = q;
-    c.fillRect(x - r, y - r, r * 2, r * 2);
+    if (sprite) {
+      // a gradient is smooth whatever the canvas's smoothing setting, so its picture is drawn smoothly
+      var smooth = c.imageSmoothingEnabled;
+      c.imageSmoothingEnabled = true;
+      c.drawImage(sprite, x - r, y - r, r * 2, r * 2);
+      c.imageSmoothingEnabled = smooth;
+    } else {
+      var q = c.createRadialGradient(x, y, 0, x, y, r);
+      q.addColorStop(0, col);
+      q.addColorStop(1, 'transparent');
+      c.fillStyle = q;
+      c.fillRect(x - r, y - r, r * 2, r * 2);
+    }
     c.globalAlpha = 1;
   }
-  function background(c, s, t) {
+  // drawn only while the stage picture has not arrived (see background below)
+  function proceduralBackground(c, s, t) {
     var cam = (s.camera && s.camera.x) || 0,
       gr = c.createLinearGradient(0, 0, 0, H);
     gr.addColorStop(0, '#061722');
@@ -127,6 +160,9 @@
     var x = gx(s, p.x),
       y = p.y,
       h = p.h || 14;
+    // A stage has dozens of platforms and only a few are ever on screen. The margin covers the
+    // screen shake, which moves the whole world by a few pixels.
+    if (x + p.w < -CULL || x > W + CULL) return;
     R(c, x, y, p.w, h, P.ink);
     R(c, x, y, p.w, 4, '#42858a');
     R(c, x, y + 5, p.w, h - 5, '#102a35');
@@ -355,8 +391,7 @@
           shootPoseTime: 0,
           wallDir: 0
         });
-      if (playerSheet && playerSheet.complete && playerSheet.naturalWidth)
-        drawPlayerSprite(ac, { time: 0, camera: { x: 0 }, reducedMotion: reduced }, p);
+      if (ready(playerSheet)) drawPlayerSprite(ac, { time: 0, camera: { x: 0 }, reducedMotion: reduced }, p);
       else player(ac, { time: 0, camera: { x: 0 } }, p, false);
       deathPictures.set(f, art);
     }
@@ -1413,65 +1448,137 @@
       den = Math.max(1, total);
     return { x: x + (dx / den) * floor, y: y + (dy / den) * floor };
   }
+  // One triangle of the deformed picture: the picture drawn through a clip, mapped so the triangle's
+  // three picture points land on its three screen points.
+  function meshCorner(c, p, cx, cy, first) {
+    // A small overlap closes subpixel rasterisation cracks between neighbouring triangles.
+    var dx = p.x - cx,
+      dy = p.y - cy,
+      l = Math.hypot(dx, dy) || 1;
+    if (first) c.moveTo(p.x + (dx / l) * 0.25, p.y + (dy / l) * 0.25);
+    else c.lineTo(p.x + (dx / l) * 0.25, p.y + (dy / l) * 0.25);
+  }
+  function meshTriangle(c, frame, a, b, d) {
+    var ux = b.u - a.u,
+      uy = b.v - a.v,
+      vx = d.u - a.u,
+      vy = d.v - a.v,
+      det = ux * vy - uy * vx,
+      X = b.x - a.x,
+      Y = b.y - a.y,
+      U = d.x - a.x,
+      V = d.y - a.y,
+      aa = (X * vy - U * uy) / det,
+      bb = (Y * vy - V * uy) / det,
+      cc = (U * ux - X * vx) / det,
+      dd = (V * ux - Y * vx) / det,
+      cx = (a.x + b.x + d.x) / 3,
+      cy = (a.y + b.y + d.y) / 3;
+    c.save();
+    c.beginPath();
+    meshCorner(c, a, cx, cy, true);
+    meshCorner(c, b, cx, cy, false);
+    meshCorner(c, d, cx, cy, false);
+    c.closePath();
+    c.clip();
+    c.transform(aa, bb, cc, dd, a.x - aa * a.u - cc * a.v, a.y - bb * a.u - dd * a.v);
+    c.drawImage(frame, 0, 0);
+    c.restore();
+  }
+  // Each triangle is one clipped draw of the whole picture, and those cost about the same whatever
+  // their size, so the number of them is what matters. The mesh is the same 12 x 12 grid as ever,
+  // taken in 2 x 2 blocks: a block where nothing moves joins every other still block in a single
+  // clipped draw; a block whose nine grid points all lie within MESH_TOLERANCE of a picture pixel
+  // of its own two corner triangles is drawn as those two; only blocks that really bend are drawn
+  // at full density. The result matches the full mesh to within that tolerance, which the
+  // triangles' own quarter-pixel overlap already covers, with about 40% fewer draws.
+  var MESH = 12,
+    MESH_TOLERANCE = 0.2;
+  function meshBlockIsFlat(pts, row, i0, j0) {
+    var a = pts[j0 * row + i0],
+      b = pts[j0 * row + i0 + 2],
+      d = pts[(j0 + 2) * row + i0],
+      e = pts[(j0 + 2) * row + i0 + 2];
+    for (var j = 0; j <= 2; j++)
+      for (var i = 0; i <= 2; i++) {
+        var p = pts[(j0 + j) * row + i0 + i],
+          fu = i / 2,
+          fv = j / 2,
+          ex,
+          ey;
+        if (fu + fv <= 1) {
+          ex = a.x + (b.x - a.x) * fu + (d.x - a.x) * fv;
+          ey = a.y + (b.y - a.y) * fu + (d.y - a.y) * fv;
+        } else {
+          ex = e.x + (d.x - e.x) * (1 - fu) + (b.x - e.x) * (1 - fv);
+          ey = e.y + (d.y - e.y) * (1 - fu) + (b.y - e.y) * (1 - fv);
+        }
+        if (Math.abs(p.x - ex) > MESH_TOLERANCE || Math.abs(p.y - ey) > MESH_TOLERANCE) return false;
+      }
+    return true;
+  }
   function bossArtDraw(c, b, frame, x, y, w, h, keep, time, reduced) {
     if (!BOSS_JOINTS[b.id]) return false;
     var angles = bossArtMotion(b, time, reduced);
-    if (
-      angles.slice(0, 3).every(function (a) {
-        return Math.abs(a) < 0.001;
-      })
-    )
+    if (Math.abs(angles[0]) < 0.001 && Math.abs(angles[1]) < 0.001 && Math.abs(angles[2]) < 0.001)
       return false;
-    var nx = 12,
-      ny = 12,
-      points = [],
+    var n = MESH,
+      row = n + 1,
+      pts = new Array(row * row),
       sw = frame.naturalWidth,
-      sh = frame.naturalHeight;
-    for (var iy = 0; iy <= ny; iy++)
-      for (var ix = 0; ix <= nx; ix++) {
-        var u = ix / nx,
-          v = (iy / ny) * keep,
+      sh = frame.naturalHeight,
+      ix,
+      iy,
+      k;
+    for (iy = 0; iy <= n; iy++)
+      for (ix = 0; ix <= n; ix++) {
+        var u = ix / n,
+          v = (iy / n) * keep,
           d = bossMeshPoint(b.id, u, v, angles);
-        points.push({ u: u * sw, v: v * sh, x: x + d.x * w, y: y + d.y * h });
+        pts[iy * row + ix] = {
+          u: u * sw,
+          v: v * sh,
+          x: x + d.x * w,
+          y: y + d.y * h,
+          still: d.x === u && d.y === v
+        };
       }
-    function tri(a, b, d) {
-      var ux = b.u - a.u,
-        uy = b.v - a.v,
-        vx = d.u - a.u,
-        vy = d.v - a.v,
-        det = ux * vy - uy * vx,
-        X = b.x - a.x,
-        Y = b.y - a.y,
-        U = d.x - a.x,
-        V = d.y - a.y,
-        aa = (X * vy - U * uy) / det,
-        bb = (Y * vy - V * uy) / det,
-        cc = (U * ux - X * vx) / det,
-        dd = (V * ux - Y * vx) / det;
-      // A small overlap closes subpixel rasterisation cracks between neighbouring triangles.
-      var cx = (a.x + b.x + d.x) / 3,
-        cy = (a.y + b.y + d.y) / 3;
+    var still = [],
+      flat = [],
+      bent = [];
+    for (iy = 0; iy < n; iy += 2)
+      for (ix = 0; ix < n; ix += 2) {
+        var moves = false;
+        for (k = 0; k < 9 && !moves; k++) moves = !pts[(iy + ((k / 3) | 0)) * row + ix + (k % 3)].still;
+        if (!moves) still.push(ix, iy);
+        else if (meshBlockIsFlat(pts, row, ix, iy)) flat.push(ix, iy);
+        else bent.push(ix, iy);
+      }
+    // the blocks that do not move are the undeformed picture: one clip, one draw
+    if (still.length) {
       c.save();
       c.beginPath();
-      [a, b, d].forEach(function (p, i) {
-        var dx = p.x - cx,
-          dy = p.y - cy,
-          l = Math.hypot(dx, dy) || 1;
-        if (i) c.lineTo(p.x + (dx / l) * 0.25, p.y + (dy / l) * 0.25);
-        else c.moveTo(p.x + (dx / l) * 0.25, p.y + (dy / l) * 0.25);
-      });
-      c.closePath();
+      for (k = 0; k < still.length; k += 2) {
+        var p0 = pts[still[k + 1] * row + still[k]],
+          p1 = pts[(still[k + 1] + 2) * row + still[k] + 2];
+        c.rect(p0.x, p0.y, p1.x - p0.x, p1.y - p0.y);
+      }
       c.clip();
-      c.transform(aa, bb, cc, dd, a.x - aa * a.u - cc * a.v, a.y - bb * a.u - dd * a.v);
-      c.drawImage(frame, 0, 0);
+      c.drawImage(frame, 0, 0, sw, sh, x, y, w, h);
       c.restore();
     }
-    for (var yy = 0; yy < ny; yy++)
-      for (var xx = 0; xx < nx; xx++) {
-        var n = yy * (nx + 1) + xx;
-        tri(points[n], points[n + 1], points[n + nx + 1]);
-        tri(points[n + 1], points[n + nx + 2], points[n + nx + 1]);
-      }
+    for (k = 0; k < flat.length; k += 2) {
+      var tl = flat[k + 1] * row + flat[k];
+      meshTriangle(c, frame, pts[tl], pts[tl + 2], pts[tl + 2 * row]);
+      meshTriangle(c, frame, pts[tl + 2], pts[tl + 2 * row + 2], pts[tl + 2 * row]);
+    }
+    for (k = 0; k < bent.length; k += 2)
+      for (iy = bent[k + 1]; iy < bent[k + 1] + 2; iy++)
+        for (ix = bent[k]; ix < bent[k] + 2; ix++) {
+          var q = iy * row + ix;
+          meshTriangle(c, frame, pts[q], pts[q + 1], pts[q + row]);
+          meshTriangle(c, frame, pts[q + 1], pts[q + row + 1], pts[q + row]);
+        }
     return true;
   }
   var bossPoseMemo = typeof WeakMap === 'function' ? new WeakMap() : null;
@@ -2371,8 +2478,8 @@
       saber = p.saberTime > 0 || held,
       idle = g.AstraCombat && g.AstraCombat.idlePose && g.AstraCombat.idlePose(p);
     if (run || idle || saber) ensureAsset('run', 'assets/player-run-v4.svg');
-    if (saber) ensureAsset('saber', 'assets/player-saber-v2.png');
-    if (saber && g.AstraSaberRig && runAtlas && runAtlas.complete && runAtlas.naturalWidth) {
+    if (saber && !g.AstraSaberRig) ensureAsset('saber', 'assets/player-saber-v2.png');
+    if (saber && g.AstraSaberRig && ready(runAtlas)) {
       c.save();
       c.globalAlpha = p.invuln > 0 && Math.floor((s.time || 0) * 16) % 2 ? 0.45 : 1;
       g.AstraSaberRig.draw(c, {
@@ -2381,7 +2488,7 @@
         facing: p.saberFacing,
         stage: g.AstraCombat.saberStage(p),
         phase: g.AstraCombat.saberPhase(p),
-        image: runAtlas,
+        image: runAtlasImage(),
         reducedMotion: s.reducedMotion,
         fanLevel: g.AstraCombat.fanLevel(p),
         effectTime: s.time
@@ -2390,14 +2497,7 @@
       return;
     }
     var rigMode = g.AstraCombat && g.AstraCombat.rigMode ? g.AstraCombat.rigMode(p) : null;
-    if (
-      rigMode &&
-      rigMode !== 'saber' &&
-      g.AstraRunRig &&
-      runAtlas &&
-      runAtlas.complete &&
-      runAtlas.naturalWidth
-    ) {
+    if (rigMode && rigMode !== 'saber' && g.AstraRunRig && ready(runAtlas)) {
       c.save();
       c.globalAlpha = p.invuln > 0 && Math.floor((s.time || 0) * 16) % 2 ? 0.45 : 1;
       c.translate(gx(s, p.x + p.w / 2), p.y + p.h - 3);
@@ -2411,17 +2511,14 @@
         mode: rigMode,
         rise: g.AstraCombat.rigRise(p),
         aiming: g.AstraCombat.runAim(p),
-        image: runAtlas
+        image: runAtlasImage()
       });
       c.restore();
       return;
     }
-    var atlas =
-        saber && saberAtlas && saberAtlas.complete && saberAtlas.naturalWidth
-          ? saberAtlas
-          : run && runAtlas && runAtlas.complete && runAtlas.naturalWidth
-            ? runAtlas
-            : playerSheet,
+    var atlas = saber && ready(saberAtlas) ? saberAtlas : run && ready(runAtlas) ? runAtlas : playerSheet,
+      // the sheet's cells are 384 x 512 in the 1536-wide master; the shipped copy may be smaller
+      sk = atlas === playerSheet ? playerSheet.naturalWidth / 1536 : 1,
       useSaber = atlas === saberAtlas,
       useRun = atlas === runAtlas,
       fr = useSaber ? g.AstraCombat.saberFrame(p) : useRun ? g.AstraCombat.runFrame(p) : combatFrame(p),
@@ -2451,7 +2548,7 @@
           ? g.AstraCombat.runMetadata.cells
           : null,
       cell = useRun ? g.AstraCombat.runCellOrder[fr] : fr,
-      r = rect ? rect[cell] : [(fr % 4) * 384, Math.floor(fr / 4) * 512, 384, 512],
+      r = rect ? rect[cell] : [(fr % 4) * 384 * sk, Math.floor(fr / 4) * 512 * sk, 384 * sk, 512 * sk],
       center = gx(s, p.x + p.w / 2),
       baseline = p.y + p.h - 3;
     c.save();
@@ -2489,8 +2586,18 @@
         dx = -24,
         dy = -55,
         split = 36;
-      c.drawImage(atlas, r[0], r[1] + split * 8, r[2], (64 - split) * 8, dx, dy + split, 48, 64 - split);
-      c.drawImage(atlas, r[0], r[1], r[2], split * 8, dx, dy + oy, 48, split - oy);
+      c.drawImage(
+        atlas,
+        r[0],
+        r[1] + split * 8 * sk,
+        r[2],
+        (64 - split) * 8 * sk,
+        dx,
+        dy + split,
+        48,
+        64 - split
+      );
+      c.drawImage(atlas, r[0], r[1], r[2], split * 8 * sk, dx, dy + oy, 48, split - oy);
     }
     c.restore();
   }
@@ -2613,7 +2720,8 @@
     }
     c.restore();
   }
-  function draw(c, s) {
+  // Everything but the player's sprite, the boss's picture and the overlays, which draw() adds on top.
+  function drawWorld(c, s) {
     s = s || {};
     var t = s.time || 0;
     c.save();
@@ -2627,10 +2735,11 @@
     (s.pickups || []).forEach(function (k) {
       if (k.taken) return;
       var col = k.type === 'health' ? P.coral : P.cyan,
-        x = gx(s, k.dropped ? k.x + 9 : k.x),
-        y =
-          (k.dropped ? k.y + 9 : k.y) +
-          (k.dropped && k.rest ? Math.sin((s.time || 0) * 4 + k.x * 0.07) * 1.6 : 0);
+        x = gx(s, k.dropped ? k.x + 9 : k.x);
+      if (x < -CULL || x > W + CULL) return;
+      var y =
+        (k.dropped ? k.y + 9 : k.y) +
+        (k.dropped && k.rest ? Math.sin((s.time || 0) * 4 + k.x * 0.07) * 1.6 : 0);
       if (k.dropped) {
         G(c, x, y, 13, col, 0.3);
         R(c, x - 6, y - 6, 12, 12, P.ink);
@@ -2709,6 +2818,7 @@
         x = gx(s, q.x),
         z = q.size || 2,
         col = q.color || q.col || P.orange;
+      if (x + z < -CULL || x - z > W + CULL) return;
       if (q.type === 'flash') {
         G(c, x, q.y, z, col, a * 0.85);
         return;
@@ -2758,6 +2868,9 @@
   function rushPortrait(id) {
     if (!rushPortraits[id]) {
       var img = new Image();
+      img.onload = function () {
+        if (g.AstraArt) g.AstraArt.changed();
+      };
       img.src = 'assets/bosses/' + id + '-portrait.webp';
       rushPortraits[id] = img;
     }
@@ -2902,16 +3015,31 @@
     T(c, detail, 320, 143, 10, P.white, 'center');
     c.restore();
   }
-  var baseDraw = draw,
-    stageImg = null,
-    stageCanvas = null,
+  var stageImg = null,
     playerSheet = null,
     bossSprite = null,
     runAtlas = null,
     saberAtlas = null,
     assetRetry = { stage: 0, player: 0, boss: 0, run: 0, saber: 0 },
     assetDelay = { stage: 1000, player: 1000, boss: 1000, run: 1000, saber: 1000 },
-    assetLoading = { stage: false, player: false, boss: false, run: false, saber: false };
+    assetLoading = { stage: false, player: false, boss: false, run: false, saber: false },
+    Art = g.AstraArt;
+  // Loaded and decoded. An image is only drawn once the browser has unpacked it, so the first frame
+  // that shows it does not stall; the canvases AstraArt makes count as ready.
+  function ready(img) {
+    return Art ? Art.ready(img) : !!(img && img.complete && img.naturalWidth);
+  }
+  // what the rigs draw the figure from: the run atlas's bitmap copy once it exists, else the SVG
+  function runAtlasImage() {
+    return (Art && Art.bitmap(runAtlas, [0.78, 0.72])) || runAtlas;
+  }
+  function setAsset(name, im) {
+    if (name === 'stage') stageImg = im;
+    else if (name === 'player') playerSheet = im;
+    else if (name === 'boss') bossSprite = im;
+    else if (name === 'run') runAtlas = im;
+    else saberAtlas = im;
+  }
   function ensureAsset(name, url) {
     var current =
       name === 'stage'
@@ -2929,13 +3057,18 @@
     assetLoading[name] = true;
     var im = new Image();
     im.onload = function () {
-      assetLoading[name] = false;
-      assetDelay[name] = 1000;
-      if (name === 'stage') stageImg = im;
-      else if (name === 'player') playerSheet = im;
-      else if (name === 'boss') bossSprite = im;
-      else if (name === 'run') runAtlas = im;
-      else saberAtlas = im;
+      var done = function () {
+        assetLoading[name] = false;
+        assetDelay[name] = 1000;
+        // The run atlas is an SVG that the browser would re-render, filter and all, on every draw.
+        // Its bitmap copy, and the darker copies the rigs draw the far limbs with, are queued now
+        // and made in idle moments (see art-cache.js); runAtlasImage() switches to them once made.
+        if (name === 'run' && Art) Art.bitmap(im, [0.78, 0.72]);
+        setAsset(name, im);
+        if (Art) Art.changed();
+      };
+      if (Art) Art.decode(im, done);
+      else done();
     };
     im.onerror = function () {
       assetLoading[name] = false;
@@ -2943,11 +3076,7 @@
       assetDelay[name] = Math.min(10000, assetDelay[name] * 2);
     };
     im.src = url;
-    if (name === 'stage') stageImg = im;
-    else if (name === 'player') playerSheet = im;
-    else if (name === 'boss') bossSprite = im;
-    else if (name === 'run') runAtlas = im;
-    else saberAtlas = im;
+    setAsset(name, im);
   }
   // Each boss may bring its own picture. They are small and only one is ever on screen, so a
   // plain cache keyed by path is enough; a boss with no picture falls back to the shared frame.
@@ -2956,19 +3085,47 @@
     if (!src) return null;
     var slot = bossArt[src];
     if (!slot) {
-      slot = bossArt[src] = { img: new Image(), failed: false };
+      slot = bossArt[src] = { img: new Image(), failed: false, ready: false };
+      slot.img.onload = function () {
+        var done = function () {
+          slot.ready = true;
+          if (Art) Art.changed();
+        };
+        if (Art) Art.decode(slot.img, done);
+        else done();
+      };
       slot.img.onerror = function () {
         slot.failed = true;
       };
       slot.img.src = src;
     }
-    return !slot.failed && slot.img.complete && slot.img.naturalWidth ? slot.img : null;
+    return !slot.failed && slot.ready && slot.img.complete && slot.img.naturalWidth ? slot.img : null;
   }
-  var proceduralBackground = background;
-  background = function (c, s, t) {
+  // While one boss is fought, the next one's picture is fetched and decoded, so it does not arrive
+  // late or stall the frame it first appears in.
+  function preloadNextBoss(s) {
+    var order = g.AstraCombat && g.AstraCombat.stage && g.AstraCombat.stage.bosses,
+      next = order && order[(s.bossIndex || 0) + 1],
+      def = next && g.AstraBosses && g.AstraBosses.get(next);
+    if (def && def.sprite) bossPicture(def.sprite);
+  }
+  // What a fight needs, fetched and decoded while the title screen is up (ui.js asks once it is
+  // shown), so starting a game waits on neither the network nor the first frame.
+  function preload() {
+    ensureAsset('stage', 'assets/stage-city.png');
+    ensureAsset('player', 'assets/player-sheet.png');
+    ensureAsset('boss', 'assets/boss-warden.png');
+    ensureAsset('run', 'assets/player-run-v4.svg');
+    if (g.AstraSaberRig && g.AstraSaberRig.preload) g.AstraSaberRig.preload();
+    // the rush HUD shows every boss's portrait from its first frame
+    var rush =
+      g.AstraStages && g.AstraStages.has && g.AstraStages.has('gauntlet') && g.AstraStages.get('gauntlet');
+    ((rush && rush.bosses) || []).forEach(rushPortrait);
+  }
+  function background(c, s, t) {
     var cam = (s.camera && s.camera.x) || 0;
     ensureAsset('stage', 'assets/stage-city.png');
-    if (stageImg.complete && stageImg.naturalWidth) {
+    if (ready(stageImg)) {
       c.drawImage(stageImg, -32 - ((cam * 0.04) % 64), -18, 768, 432);
       c.fillStyle = 'rgba(4,18,28,.12)';
       c.fillRect(0, 0, W, H);
@@ -2980,7 +3137,7 @@
       return;
     }
     proceduralBackground(c, s, t);
-  };
+  }
   var BOSS_ENTRANCE = {
     warden: { x: 38, y: -90, color: '#ffbd65', kind: 'drop' },
     tidebreaker: { x: 80, y: 0, color: '#69eaff', kind: 'surf' },
@@ -3054,7 +3211,7 @@
     T(c, b.title || '', 320, 102, 7, co, 'center');
     c.restore();
   }
-  draw = function (c, s) {
+  function draw(c, s) {
     s = s || {};
     // Render-only arrival pose; never move the real hitbox or change the first attack.
     if (s.bossIntro && s.boss) {
@@ -3064,41 +3221,42 @@
       });
     }
     ensureAsset('stage', 'assets/stage-city.png');
-    if (!stageCanvas) {
-      stageCanvas = document.createElement('canvas');
-      stageCanvas.width = W;
-      stageCanvas.height = H;
-    }
-    var q = stageCanvas.getContext('2d'),
-      d = s;
+    var d = s;
     ensureAsset('player', 'assets/player-sheet.png');
     ensureAsset('boss', 'assets/boss-warden.png');
     if (s.mode === 'playing') {
       ensureAsset('run', 'assets/player-run-v4.svg');
-      ensureAsset('saber', 'assets/player-saber-v2.png');
+      // The jointed rigs draw every saber pose; the old saber sheet only stands in without them.
+      if (!g.AstraSaberRig) ensureAsset('saber', 'assets/player-saber-v2.png');
+      else if (g.AstraSaberRig.preload) g.AstraSaberRig.preload();
     }
+    var sheetReady = ready(playerSheet),
+      shownBoss = s.boss && s.boss.active ? s.boss : null,
+      ownPicture = shownBoss ? bossPicture(shownBoss.sprite) : null,
+      // a boss with its own picture does not wait for the shared frame to arrive
+      bossFrame = ownPicture || (shownBoss && ready(bossSprite) ? bossSprite : null);
+    if (shownBoss) preloadNextBoss(s);
     if (s.shake) {
       d = Object.assign({}, s, { shake: s.reducedMotion ? 0 : s.shake * 14 });
     }
-    if (s.player && playerSheet.complete && playerSheet.naturalWidth) {
+    if (s.player && sheetReady) {
       d = Object.assign({}, d, { player: null, enemyTarget: s.player });
     }
-    if (s.boss && s.boss.active && bossSprite.complete && bossSprite.naturalWidth) {
+    if (bossFrame) {
       d = Object.assign({}, d, { boss: null });
     }
-    q.clearRect(0, 0, W, H);
-    baseDraw(q, d);
     c.clearRect(0, 0, W, H);
-    c.drawImage(stageCanvas, 0, 0);
-    if (s.player && !s.deathFx && playerSheet.complete && playerSheet.naturalWidth) {
+    drawWorld(c, d);
+    if (s.player && !s.deathFx && sheetReady) {
       drawPlayerSprite(c, s, s.player);
       saberChargeEffects(c, s, s.player);
     }
-    if (s.player && !s.deathFx && s.player.dashTime > 0 && playerSheet.complete && playerSheet.naturalWidth) {
+    if (s.player && !s.deathFx && s.player.dashTime > 0 && sheetReady) {
+      // the sheet's cells are 384 x 512 in the 1536-wide master; the shipped copy may be smaller
       var gp = s.player,
         gf = combatFrame(gp),
-        gsw = 384,
-        gsh = 512;
+        gsw = (384 * playerSheet.naturalWidth) / 1536,
+        gsh = (512 * playerSheet.naturalWidth) / 1536;
       for (var gi = 1; gi < 4; gi++) {
         var gdx = gx(s, gp.x + gp.w / 2) - 24 - (gp.vx || 0) * gi * 0.022;
         c.save();
@@ -3122,7 +3280,7 @@
         c.restore();
       }
     }
-    if (s.boss && s.boss.active && bossSprite.complete && bossSprite.naturalWidth) {
+    if (bossFrame) {
       var bb = s.boss,
         fk = bb.h / 110,
         dw = 140 * fk,
@@ -3134,7 +3292,7 @@
           : bb.attack && String(bb.attack).indexOf('tell-') === 0
             ? Math.sin((s.time || 0) * 18) * 2
             : 0;
-      var own = bossPicture(bb.sprite);
+      var own = ownPicture;
       // fit its own picture around the body it collides with, keeping the picture's proportions
       // The body is the machine's core, not its wingspan, so a picture is sized by height and
       // hung on the middle of it: feet on the body's floor, head a little over the top.
@@ -3167,7 +3325,7 @@
           c.scale(-1, 1);
           bx = 0;
         }
-        var frame = own || bossSprite,
+        var frame = bossFrame,
           // the strip of floor a cut-out still carries would tilt into a slab while it leans, stretch or slide while it
           // crouches or lunges, and hang in the air under it while it flies or leaps; it is left off whenever any is true
           keep =
@@ -3249,9 +3407,10 @@
       }
       c.restore();
     }
-  };
+  }
   g.AstraRenderer = {
     draw: draw,
+    preload: preload,
     moveNames: BOSS_MOVE_NAMES,
     bossArtTarget: bossArtTarget,
     bossMeshPoint: bossMeshPoint

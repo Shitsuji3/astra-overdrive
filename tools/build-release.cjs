@@ -29,7 +29,8 @@ const ZIP = path.join(ROOT, 'dist', 'ASTRA-OVERDRIVE-web.zip');
 const VERBATIM = [
   'index.html', 'style.css', 'manifest.webmanifest',
   'game.js', 'render.js', 'audio.js', 'ui.js', 'mastery.js',
-  'assets/bosses.js', 'assets/stages.js', 'assets/run-rig-v6.js', 'assets/saber-rig.js', 'assets/enemies-v2.js',
+  'assets/art-cache.js', 'assets/bosses.js', 'assets/stages.js', 'assets/run-rig-v6.js', 'assets/saber-rig.js',
+  'assets/enemies-v2.js',
   'assets/charge-sounds.js', 'assets/saber-sound.js', 'assets/saber-hit-sound.js',
   'assets/stage1-bgm.mp3', 'assets/title-bgm.mp3', 'assets/title-core-glow.svg',
   'assets/brand/icon-32.png', 'assets/brand/icon-192.png', 'assets/brand/icon-512.png',

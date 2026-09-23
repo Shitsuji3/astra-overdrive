@@ -83,6 +83,7 @@
       pending = false;
       delay = 1000;
       build();
+      if (g.AstraArt) g.AstraArt.changed();
     };
     image.onerror = function () {
       pending = false;
@@ -140,11 +141,13 @@
     }
     return true;
   }
+  // Fetched when a stage with enemies starts (preload) or when the first enemy is drawn. The boss
+  // rush has no enemies, so it never downloads the atlas.
   g.AstraEnemyArt = {
     draw: draw,
+    preload: load,
     get ready() {
       return !!frames;
     }
   };
-  load();
 })(window);

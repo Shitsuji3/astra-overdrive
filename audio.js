@@ -319,8 +319,11 @@
       stopCharge();
       return;
     }
+    // Called on every simulation step while the saber is held; once the hum is running there is
+    // nothing to set up again.
+    if (charging) return;
     boot();
-    if (charging || !chargeSamples.hold) return;
+    if (!chargeSamples.hold) return;
     var source = ac.createBufferSource(),
       gain = ac.createGain(),
       now = ac.currentTime;

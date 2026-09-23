@@ -9,9 +9,15 @@
     turnLoading = true;
     var im = new Image();
     im.onload = function () {
-      turnAtlas = im;
-      turnReady = true;
-      turnLoading = false;
+      var art = g.AstraArt;
+      var done = function () {
+        turnAtlas = im;
+        turnReady = true;
+        turnLoading = false;
+        if (art) art.changed();
+      };
+      if (art) art.decode(im, done);
+      else done();
     };
     im.onerror = function () {
       turnLoading = false;
@@ -19,7 +25,8 @@
     };
     im.src = 'assets/saber-turn-atlas.png';
   }
-  loadTurn();
+  // Fetched by the renderer's preload once the title has painted, or at the latest on the first swing;
+  // no longer at page load, where it competed with the title art.
   function ease(a, b, x) {
     var u = Math.max(0, Math.min(1, (x - a) / (b - a)));
     return u * u * (3 - 2 * u);
@@ -1158,10 +1165,14 @@
       rig.bonePart(ctx, img, { x: 0, y: 0 }, UPPER, { x: 153, y: 144 }, { x: 139, y: 164 }, shoulder, elbow);
       rig.rightForearm(ctx, img, elbow, hand, true);
     }
-    // The lead leg is the anatomical left, which is the far side: shade it and draw it first.
+    // The lead leg is the anatomical left, which is the far side: shade it and draw it first,
+    // from a darkened copy of the atlas made once (the canvas filter is only the fallback).
     ctx.save();
-    ctx.filter = 'brightness(.72)';
+    var far = g.AstraArt && g.AstraArt.shade(img, 0.72);
+    if (far) img = far;
+    else ctx.filter = 'brightness(.72)';
     leg(p.frontFoot, p.frontFootAngle);
+    img = o.image;
     ctx.restore();
     // The reference keeps the off arm bent below the shoulder during the waist sweep.
     // Raising and extending that elbow instead reads as an unrelated buster aiming pose.
@@ -1315,6 +1326,7 @@
     return out;
   }
   g.AstraSaberRig = {
+    preload: loadTurn,
     pose: pose,
     blade: blade,
     draw: draw,
