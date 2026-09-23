@@ -352,8 +352,42 @@
     };
     source.start();
   }
+  // The just dodge: three bell partials, each a little later and shorter than the one below, over a
+  // short breath of air. Pitched above everything else in the game, so it reads through a fight.
+  function justDodgeSound() {
+    if (muted || !ac) return;
+    var now = ac.currentTime,
+      partials = [
+        [1568, 0, 0.55, 0.14],
+        [2349, 0.025, 0.42, 0.08],
+        [3136, 0.05, 0.3, 0.04]
+      ];
+    partials.forEach(function (q) {
+      var o = ac.createOscillator(),
+        env = ac.createGain(),
+        at = now + q[1];
+      o.type = 'sine';
+      o.frequency.setValueAtTime(q[0] * 1.02, at);
+      o.frequency.exponentialRampToValueAtTime(q[0], at + 0.08);
+      env.gain.setValueAtTime(0.0001, at);
+      env.gain.exponentialRampToValueAtTime(q[3], at + 0.006);
+      env.gain.exponentialRampToValueAtTime(0.0001, at + q[2]);
+      o.connect(env).connect(seGain);
+      o.onended = function () {
+        o.disconnect();
+        env.disconnect();
+      };
+      o.start(at);
+      o.stop(at + q[2] + 0.02);
+    });
+    noise(0.22, 0.05);
+  }
   function sound(n, detail) {
     boot();
+    if (n === 'just-dodge') {
+      justDodgeSound();
+      return;
+    }
     if (n === 'saber-hit') {
       saberHitSound();
       return;

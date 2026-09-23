@@ -3211,6 +3211,93 @@
     T(c, b.title || '', 320, 102, 7, co, 'center');
     c.restore();
   }
+  // The just dodge, answered on screen (game.js _dodges). While the world is slowed a cold tint and a
+  // dark rim close in; a bright after-image is left where the hit would have landed; a ring of light
+  // and eight streaks burst off it; and the words hang over it. Reduced motion leaves out the streaks
+  // and the rim, and keeps the ring small.
+  var DODGE_FX = 0.7,
+    dodgeGhost = null;
+  function justDodgeFx(c, s) {
+    var j = s.justDodge,
+      p = s.player;
+    if (!j || !p) return;
+    var age = (s.time || 0) - j.time;
+    if (age < 0 || age > DODGE_FX) return;
+    var u = age / DODGE_FX,
+      x = gx(s, j.x),
+      y = j.y,
+      reduced = !!s.reducedMotion,
+      J = g.AstraCombat && g.AstraCombat.justDodge,
+      slow = J && s.slowmo > 0 ? Math.min(1, (s.slowmo / J.slow) * 3) : 0,
+      k;
+    c.save();
+    if (slow > 0) {
+      c.globalAlpha = 0.22 * slow;
+      c.fillStyle = '#0b3550';
+      c.fillRect(0, 0, W, H);
+      if (!reduced) {
+        c.globalAlpha = 0.5 * slow;
+        c.strokeStyle = '#02080c';
+        c.lineWidth = 28;
+        c.strokeRect(0, 0, W, H);
+      }
+    }
+    // The after-image: the figure drawn off-screen at the spot, turned into a cold silhouette, then laid
+    // over the scene additively. drawPlayerSprite sets its own opacity, so it cannot be faded in place.
+    if (u < 0.6 && ready(playerSheet) && typeof document !== 'undefined') {
+      if (!dodgeGhost) {
+        dodgeGhost = document.createElement('canvas');
+        dodgeGhost.width = W;
+        dodgeGhost.height = H;
+      }
+      var q = dodgeGhost.getContext('2d');
+      q.clearRect(0, 0, W, H);
+      drawPlayerSprite(
+        q,
+        s,
+        Object.assign({}, p, { x: j.x - p.w / 2, y: j.y - p.h / 2, facing: j.facing, invuln: 0 })
+      );
+      q.save();
+      q.globalCompositeOperation = 'source-atop';
+      q.globalAlpha = 0.7;
+      q.fillStyle = '#7ff6ff';
+      q.fillRect(0, 0, W, H);
+      q.restore();
+      c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = 0.6 * (1 - u / 0.6);
+      c.drawImage(dodgeGhost, 0, 0);
+      c.globalCompositeOperation = 'source-over';
+    }
+    var grow = 1 - Math.pow(1 - u, 3),
+      r = 8 + (reduced ? 26 : 62) * grow;
+    c.globalAlpha = (1 - u) * 0.9;
+    fxArc(c, x, y, r, 0, Math.PI * 2, P.white, 2);
+    fxArc(c, x, y, r * 0.7, 0, Math.PI * 2, P.cyan, 1);
+    if (!reduced)
+      for (k = 0; k < 8; k++) {
+        var an = (k * Math.PI) / 4 + Math.PI / 8,
+          rr = 12 + grow * 92;
+        L(
+          c,
+          x + Math.cos(an) * (rr - 12),
+          y + Math.sin(an) * (rr - 12),
+          x + Math.cos(an) * rr,
+          y + Math.sin(an) * rr,
+          k % 2 ? P.cyan : P.white,
+          2
+        );
+      }
+    // the words
+    var fade = age < 0.45 ? 1 : 1 - (age - 0.45) / (DODGE_FX - 0.45),
+      rise = reduced ? 0 : 8 * (1 - Math.pow(1 - Math.min(1, age / 0.15), 3)),
+      tx = C(x, 50, W - 50),
+      ty = y - 40 - rise;
+    c.globalAlpha = Math.max(0, fade);
+    R(c, tx - 44, ty - 4, 88, 16, P.ink);
+    L(c, tx - 44, ty - 4, tx + 44, ty - 4, P.cyan, 1);
+    T(c, 'JUST DODGE', tx, ty, 9, P.white, 'center');
+    c.restore();
+  }
   function draw(c, s) {
     s = s || {};
     // Render-only arrival pose; never move the real hitbox or change the first attack.
@@ -3365,6 +3452,7 @@
     }
     nextBossMarker(c, s);
     playerBreak(c, s);
+    justDodgeFx(c, s);
     if (s.checkpoint && s.checkpoint.active) {
       var cx = gx(s, s.checkpoint.x);
       G(c, cx, s.checkpoint.y - 18, 20, P.cyan, 0.2);

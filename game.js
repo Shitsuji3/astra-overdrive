@@ -63,6 +63,16 @@
     lungeTo: 0.26,
     reach: 165
   };
+  // Just dodge: dash so that a hit lands within `window` seconds of the dash being pressed (two
+  // frames, the same frame included) and it is not taken. The dodge is answered with `guard` seconds
+  // in which nothing lands, so the attack that was dodged cannot connect a frame later, and with a
+  // short slow-down: `slow` seconds of game time run at `slowScale` of real speed.
+  combat.justDodge = {
+    window: 2 / 60,
+    guard: 0.5,
+    slow: 0.14,
+    slowScale: 0.3
+  };
   // Down+saber: a grounded dome charge, then seven independent upward fan projectiles.
   combat.fan = {
     span: 1.02,
@@ -851,6 +861,22 @@
   NeonGame.prototype._emit = function (t, p) {
     this.onEvent(t, p || this.snapshot());
   };
+  // Asked at the moment a hit would land. True means it does not: either the dash was pressed within
+  // the just-dodge window (the dodge happens now), or an earlier dodge's guard is still up.
+  NeonGame.prototype._dodges = function () {
+    var s = this.state,
+      p = s.player,
+      J = global.AstraCombat.justDodge;
+    if (p.dodgeGuard > 0) return true;
+    if (p.dashAt === undefined || s.time - p.dashAt > J.window + 1e-9) return false;
+    p.dashAt = undefined;
+    p.dodgeGuard = J.guard;
+    s.slowmo = J.slow;
+    s.flash = Math.max(s.flash || 0, 0.3);
+    s.justDodge = { time: s.time, x: p.x + p.w / 2, y: p.y + p.h / 2, facing: p.facing };
+    this._emit('sound', { name: 'just-dodge' });
+    return true;
+  };
   // Drawing is the expensive half of a frame, and the picture only changes when the simulation
   // stepped, the state was replaced or changed mode, the motion setting changed, or an image
   // finished loading (loaders bump AstraArtRevision). The simulation steps at 60 Hz, so on a
@@ -886,7 +912,7 @@
       self.last = now;
       self._pollGamepad();
       if (self.state.mode === 'playing') {
-        self.acc += dt;
+        self.acc += self.state.slowmo > 0 ? dt * global.AstraCombat.justDodge.slowScale : dt;
         while (self.acc >= 1 / 60) {
           self._tick(1 / 60);
           self.acc -= 1 / 60;
@@ -1103,6 +1129,8 @@
     s.messageTimer = Math.max(0, s.messageTimer - dt);
     p.animTime += dt;
     p.invuln = Math.max(0, p.invuln - dt);
+    p.dodgeGuard = Math.max(0, (p.dodgeGuard || 0) - dt);
+    s.slowmo = Math.max(0, (s.slowmo || 0) - dt);
     p.dashCooldown = Math.max(0, p.dashCooldown - dt);
     p.saberTime = Math.max(0, p.saberTime - dt);
     p.coyote = Math.max(0, p.coyote - dt);
@@ -1184,6 +1212,7 @@
     if (!jump && !p.risingUp && p.vy < -150) p.vy += 900 * dt;
     if (dash && !this._dashHeld && p.dashCooldown <= 0) {
       p.risingHold = 0;
+      p.dashAt = s.time;
       p.dashTime = 0.16;
       p.dashCooldown = 0.65;
       p.vx = p.facing * 560;
@@ -1574,7 +1603,7 @@
         this._spawn(e.x, e.y + 10, (p.x < e.x ? -1 : 1) * 170, 0, 'enemy', false, 1);
         e.fireTimer = 1.6;
       }
-      if (hit(p, e) && p.invuln <= 0) {
+      if (hit(p, e) && p.invuln <= 0 && !this._dodges()) {
         p.hp--;
         if (this._registerHit) this._registerHit({ label: '雑魚との接触' });
         p.invuln = 0.9;
@@ -1711,7 +1740,8 @@
               : { x: b.x - b.r, y: b.y - b.r, w: b.r * 2, h: b.r * 2 },
             p
           ) &&
-          p.invuln <= 0
+          p.invuln <= 0 &&
+          !this._dodges()
         ) {
           p.hp--;
           if (this._registerHit) this._registerHit(b.source || { label: '敵弾' });
@@ -3101,7 +3131,7 @@
       } else if (C.bossPatterns[state]) this._bossRest(b, def);
       else this._bossBeat(b, def);
     }
-    if (!b.phaseOut && hit(p, b) && p.invuln <= 0) {
+    if (!b.phaseOut && hit(p, b) && p.invuln <= 0 && !this._dodges()) {
       p.hp -= 2;
       if (this._registerHit) this._registerHit(this._attackSource || { boss: b.id, label: 'ボスとの接触' });
       p.invuln = 1;
