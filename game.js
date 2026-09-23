@@ -851,12 +851,38 @@
   NeonGame.prototype._emit = function (t, p) {
     this.onEvent(t, p || this.snapshot());
   };
+  // Drawing is the expensive half of a frame, and the picture only changes when the simulation
+  // stepped, the state was replaced or changed mode, the motion setting changed, or an image
+  // finished loading (loaders bump AstraArtRevision). The simulation steps at 60 Hz, so on a
+  // 144 Hz screen most animation frames would repeat the previous picture exactly; those are
+  // skipped. In the menu the canvas sits hidden behind the title, so nothing is drawn at all.
+  // A slow heartbeat redraws a still picture anyway, in case something changed it unannounced.
+  var STILL_REDRAW_MS = 250;
+  NeonGame.prototype._needsDraw = function (stepped, now) {
+    var s = this.state,
+      last = this._drawn,
+      art = global.AstraArtRevision || 0;
+    if (s.mode === 'menu') return false;
+    if (
+      !stepped &&
+      last &&
+      last.state === s &&
+      last.mode === s.mode &&
+      last.reduced === !!s.reducedMotion &&
+      last.art === art &&
+      now - last.at < STILL_REDRAW_MS
+    )
+      return false;
+    this._drawn = { state: s, mode: s.mode, reduced: !!s.reducedMotion, art: art, at: now };
+    return true;
+  };
   NeonGame.prototype._loop = function () {
     var self = this;
     if (this.raf) return;
     var frame = function (now) {
       self.raf = 0;
-      var dt = Math.min(0.1, (now - self.last) / 1000);
+      var dt = Math.min(0.1, (now - self.last) / 1000),
+        stepped = false;
       self.last = now;
       self._pollGamepad();
       if (self.state.mode === 'playing') {
@@ -864,10 +890,15 @@
         while (self.acc >= 1 / 60) {
           self._tick(1 / 60);
           self.acc -= 1 / 60;
+          stepped = true;
         }
       }
-      if (self.state.mode === 'dead') self._deathTick(dt);
-      if (global.AstraRenderer && self.canvas && self.canvas.getContext)
+      if (self.state.mode === 'dead') {
+        var fx = self.state.deathFx;
+        if (fx && !fx.done) stepped = true;
+        self._deathTick(dt);
+      }
+      if (global.AstraRenderer && self.canvas && self.canvas.getContext && self._needsDraw(stepped, now))
         global.AstraRenderer.draw(self.canvas.getContext('2d'), self.state);
       if (self.running) self.raf = requestAnimationFrame(frame);
     };
