@@ -32,7 +32,7 @@ const VERBATIM = [
   'assets/art-cache.js', 'assets/bosses.js', 'assets/stages.js', 'assets/run-rig-v6.js', 'assets/saber-rig.js',
   'assets/enemies-v2.js',
   'assets/charge-sounds.js', 'assets/saber-sound.js', 'assets/saber-hit-sound.js',
-  'assets/stage1-bgm.mp3', 'assets/title-bgm.mp3', 'assets/title-core-glow.svg',
+  'assets/title-core-glow.svg',
   'assets/brand/icon-32.png', 'assets/brand/icon-192.png', 'assets/brand/icon-512.png',
   'assets/brand/apple-touch-icon.png', 'assets/brand/social-card.jpg',
   // the boss portraits the stage select shows
@@ -53,8 +53,11 @@ const VERBATIM = [
   'assets/bosses/sparkwidow.webp',
   'assets/bosses/obsidian-crown.webp'
 ];
-// Re-encoded art. The key is what the code asks for; the value is what ships in its place.
+// Re-encoded art and music. The key is what the code asks for; the value is what ships in its place,
+// taken from assets/web/ (tools/make-webp.py for pictures, tools/make-audio.py for the music).
 const REPLACED = {
+  'assets/title-bgm.mp3': 'assets/title-bgm.mp3',
+  'assets/stage1-bgm.mp3': 'assets/stage1-bgm.mp3',
   'assets/title-art.png': 'assets/title-art.webp',
   'assets/stage-city.png': 'assets/stage-city.webp',
   'assets/boss-warden.png': 'assets/boss-warden.webp',
@@ -62,7 +65,6 @@ const REPLACED = {
   'assets/player-sheet.png': 'assets/player-sheet.webp',
   'assets/player-saber-v2.png': 'assets/player-saber-v2.webp',
   'assets/saber-turn-atlas.png': 'assets/saber-turn-atlas.webp',
-  'assets/player-idle-v2.png': 'assets/player-idle-v2.webp',
   // same name either way: the SVG wrapper is identical, only its payload was re-encoded
   'assets/player-run-v4.svg': 'assets/player-run-v4.svg'
 };
@@ -97,10 +99,11 @@ function build() {
   for (const [asked, ships] of Object.entries(REPLACED)) {
     const source = path.join(ROOT, asked);
     const encoded = path.join(ROOT, 'assets', 'web', path.basename(ships));
+    const tool = /.mp3$/.test(asked) ? 'tools/make-audio.py' : 'tools/make-webp.py';
     if (!fs.existsSync(encoded))
-      fail(`${path.relative(ROOT, encoded)} is missing. Run: python tools/make-webp.py`);
+      fail(`${path.relative(ROOT, encoded)} is missing. Run: python ${tool}`);
     if (!CI && fs.existsSync(source) && fs.statSync(source).mtimeMs > fs.statSync(encoded).mtimeMs)
-      fail(`${asked} is newer than its WebP. Run: python tools/make-webp.py`);
+      fail(`${asked} is newer than its re-encoded copy. Run: python ${tool}`);
     putFile(ships, encoded);
     shipped.set(ships, fs.statSync(encoded).size);
   }
