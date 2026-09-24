@@ -618,6 +618,15 @@
     global.addEventListener('keydown', this._keydown);
     global.addEventListener('keyup', this._keyup);
     global.addEventListener('blur', this._blur);
+    // Put away (another tab, a minimised window, a phone's screen switched off), a running fight
+    // pauses, so coming back finds the pause panel rather than a fight that went on without the player.
+    // A phone does not always blur the window first, so this does not rely on blur.
+    this._visibility = function () {
+      var d = global.document;
+      if (d && d.visibilityState === 'hidden' && self.state.mode === 'playing') self.pause();
+    };
+    if (global.document && global.document.addEventListener)
+      global.document.addEventListener('visibilitychange', this._visibility);
   };
   NeonGame.prototype._bindMouse = function () {
     var self = this,
@@ -3236,6 +3245,8 @@
     global.removeEventListener('keydown', this._keydown);
     global.removeEventListener('keyup', this._keyup);
     global.removeEventListener('blur', this._blur);
+    if (global.document && global.document.removeEventListener)
+      global.document.removeEventListener('visibilitychange', this._visibility);
     if (this.canvas && this.canvas.removeEventListener) {
       this.canvas.removeEventListener('mousedown', this._mouseDown);
       this.canvas.removeEventListener('mouseup', this._mouseUp);

@@ -10,6 +10,7 @@
     resultMode = false,
     media = null,
     track = 'game',
+    hidden = false,
     seGain;
   function ensureMedia() {
     if (!media) {
@@ -39,6 +40,37 @@
   }
   g.addEventListener('pointerdown', unlockMusic);
   g.addEventListener('keydown', unlockMusic);
+  // A hidden page is silent. Leaving the tab, minimising the window, switching apps or turning a phone's
+  // screen off hides the page, and both the <audio> element that plays the music and the AudioContext
+  // that plays the effects would carry on in the background. Hidden, the music is paused and the
+  // context suspended; shown again, whatever was playing picks up where it stopped (a pause or result
+  // panel keeps its half volume). pagehide covers a page put away without a visibility change, such as
+  // one kept in the back/forward cache.
+  function pageHidden() {
+    return typeof document !== 'undefined' && document.visibilityState === 'hidden';
+  }
+  function setHidden(next) {
+    if (next === hidden) return;
+    hidden = next;
+    if (hidden) {
+      stopCharge();
+      if (media && !media.paused) media.pause();
+      if (ac && ac.state === 'running') ac.suspend();
+    } else {
+      if (ac && ac.state === 'suspended') ac.resume();
+      if (playing) playMedia();
+    }
+  }
+  if (typeof document !== 'undefined' && document.addEventListener)
+    document.addEventListener('visibilitychange', function () {
+      setHidden(pageHidden());
+    });
+  g.addEventListener('pagehide', function () {
+    setHidden(true);
+  });
+  g.addEventListener('pageshow', function () {
+    setHidden(pageHidden());
+  });
   function syncMedia() {
     if (media) {
       media.volume = Math.max(0, Math.min(1, music * master * 0.5 * (paused || resultMode ? 0.5 : 1)));
@@ -46,6 +78,7 @@
     }
   }
   function playMedia() {
+    if (hidden) return;
     try {
       var p = ensureMedia().play();
       if (p && typeof p.catch === 'function') p.catch(function () {});
@@ -57,7 +90,7 @@
       seGain = ac.createGain();
       seGain.connect(ac.destination);
     }
-    if (ac.state === 'suspended') ac.resume();
+    if (ac.state === 'suspended' && !hidden) ac.resume();
     seGain.gain.value = muted ? 0 : sfx * master;
     prepareChargeSamples();
     prepareSaberSample();
@@ -315,7 +348,7 @@
   }
   function setCharge(level) {
     level = Math.max(0, Math.min(1, Number(level) || 0));
-    if (level < 0.08 || muted || paused || resultMode || !playing) {
+    if (level < 0.08 || muted || paused || resultMode || !playing || hidden) {
       stopCharge();
       return;
     }
