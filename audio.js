@@ -5,6 +5,7 @@
     music = 0.45,
     sfx = 0.7,
     muted = false,
+    hostMuted = false,
     paused = false,
     playing = false,
     resultMode = false,
@@ -61,20 +62,25 @@
       if (playing) playMedia();
     }
   }
-  if (typeof document !== 'undefined' && document.addEventListener)
-    document.addEventListener('visibilitychange', function () {
+  if (!(g.AstraPlatform && g.AstraPlatform.isPlayables)) {
+    if (typeof document !== 'undefined' && document.addEventListener)
+      document.addEventListener('visibilitychange', function () {
+        setHidden(pageHidden());
+      });
+    g.addEventListener('pagehide', function () {
+      setHidden(true);
+    });
+    g.addEventListener('pageshow', function () {
       setHidden(pageHidden());
     });
-  g.addEventListener('pagehide', function () {
-    setHidden(true);
-  });
-  g.addEventListener('pageshow', function () {
-    setHidden(pageHidden());
-  });
+  }
+  function silent() {
+    return muted || hostMuted || hidden;
+  }
   function syncMedia() {
     if (media) {
       media.volume = Math.max(0, Math.min(1, music * master * 0.5 * (paused || resultMode ? 0.5 : 1)));
-      media.muted = muted;
+      media.muted = muted || hostMuted;
     }
   }
   function playMedia() {
@@ -91,13 +97,13 @@
       seGain.connect(ac.destination);
     }
     if (ac.state === 'suspended' && !hidden) ac.resume();
-    seGain.gain.value = muted ? 0 : sfx * master;
+    seGain.gain.value = silent() ? 0 : sfx * master;
     prepareChargeSamples();
     prepareSaberSample();
     prepareSaberHitSample();
   }
   function tone(f, d, type, v) {
-    if (muted || !ac) return;
+    if (silent() || !ac) return;
     var o = ac.createOscillator(),
       n = ac.createGain(),
       now = ac.currentTime;
@@ -111,7 +117,7 @@
     o.stop(now + d + 0.02);
   }
   function noise(d, v) {
-    if (muted || !ac) return;
+    if (silent() || !ac) return;
     var b = ac.createBuffer(1, ac.sampleRate * d, ac.sampleRate),
       a = b.getChannelData(0);
     for (var i = 0; i < a.length; i++) a[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / a.length, 2);
@@ -171,7 +177,7 @@
     return buffer;
   }
   function blaster(charged) {
-    if (muted || !ac) return;
+    if (silent() || !ac) return;
     var source = ac.createBufferSource();
     source.buffer = blastBuffer(charged);
     source.playbackRate.value = charged ? 1 : 0.99 + Math.random() * 0.02;
@@ -241,7 +247,7 @@
   }
   var lastExplosion = -1;
   function explosion(kind) {
-    if (muted || !ac) return;
+    if (silent() || !ac) return;
     var big = kind === 'boom',
       now = ac.currentTime;
     var source = ac.createBufferSource(),
@@ -277,7 +283,7 @@
     );
   }
   function saberHitSound() {
-    if (muted || !ac || !saberHitSample) return;
+    if (silent() || !ac || !saberHitSample) return;
     var source = ac.createBufferSource();
     source.buffer = saberHitSample;
     source.connect(seGain);
@@ -305,7 +311,7 @@
     );
   }
   function saberSound(stage) {
-    if (muted || !ac || !saberSample) return;
+    if (silent() || !ac || !saberSample) return;
     var source = ac.createBufferSource();
     source.buffer = saberSample;
     source.connect(seGain);
@@ -348,7 +354,7 @@
   }
   function setCharge(level) {
     level = Math.max(0, Math.min(1, Number(level) || 0));
-    if (level < 0.08 || muted || paused || resultMode || !playing || hidden) {
+    if (level < 0.08 || silent() || paused || resultMode || !playing || hidden) {
       stopCharge();
       return;
     }
@@ -373,7 +379,7 @@
     source.start(now);
   }
   function chargeShot() {
-    if (muted || !ac || !chargeSamples.fire) return;
+    if (silent() || !ac || !chargeSamples.fire) return;
     var source = ac.createBufferSource(),
       gain = ac.createGain();
     source.buffer = chargeSamples.fire;
@@ -388,7 +394,7 @@
   // The just dodge: three bell partials, each a little later and shorter than the one below, over a
   // short breath of air. Pitched above everything else in the game, so it reads through a fight.
   function justDodgeSound() {
-    if (muted || !ac) return;
+    if (silent() || !ac) return;
     var now = ac.currentTime,
       partials = [
         [1568, 0, 0.55, 0.14],
@@ -416,6 +422,7 @@
     noise(0.22, 0.05);
   }
   function sound(n, detail) {
+    if (hidden) return;
     boot();
     if (n === 'just-dodge') {
       justDodgeSound();
@@ -486,7 +493,7 @@
     setMaster: function (v) {
       master = Math.max(0, Math.min(1, Number(v) || 0));
       syncMedia();
-      if (seGain) seGain.gain.value = muted ? 0 : sfx * master;
+      if (seGain) seGain.gain.value = silent() ? 0 : sfx * master;
     },
     setMusic: function (v) {
       music = Math.max(0, Math.min(1, Number(v) || 0));
@@ -494,14 +501,21 @@
     },
     setSfx: function (v) {
       sfx = Math.max(0, Math.min(1, Number(v) || 0));
-      if (seGain) seGain.gain.value = muted ? 0 : sfx * master;
+      if (seGain) seGain.gain.value = silent() ? 0 : sfx * master;
     },
     setMuted: function (v) {
       muted = !!v;
       if (muted) stopCharge();
-      if (seGain) seGain.gain.value = muted ? 0 : sfx * master;
+      if (seGain) seGain.gain.value = silent() ? 0 : sfx * master;
       syncMedia();
     },
+    setHostMuted: function (v) {
+      hostMuted = !!v;
+      if (hostMuted) stopCharge();
+      if (seGain) seGain.gain.value = silent() ? 0 : sfx * master;
+      syncMedia();
+    },
+    setHostPaused: setHidden,
     setResultMode: function (v) {
       resultMode = !!v;
       if (resultMode) stopCharge();
@@ -513,4 +527,9 @@
       syncMedia();
     }
   };
+  if (g.AstraPlatform)
+    g.AstraPlatform.subscribe(function (hostPaused, enabled) {
+      g.AstraAudio.setHostMuted(!enabled);
+      g.AstraAudio.setHostPaused(hostPaused);
+    });
 })(window);

@@ -29,10 +29,12 @@
     g.AstraArtRevision = (g.AstraArtRevision || 0) + 1;
   }
   function pump() {
+    if (g.AstraPlatform && g.AstraPlatform.paused) return;
     if (waiting || !queue.length) return;
     waiting = true;
     var run = function () {
       waiting = false;
+      if (g.AstraPlatform && g.AstraPlatform.paused) return;
       var job = queue.shift();
       if (job) job();
       pump();
@@ -40,6 +42,10 @@
     if (g.requestIdleCallback) g.requestIdleCallback(run, { timeout: 1000 });
     else g.setTimeout(run, 16);
   }
+  if (g.AstraPlatform)
+    g.AstraPlatform.subscribe(function (paused) {
+      if (!paused) pump();
+    });
   function make(img, paint) {
     var w = img.naturalWidth || img.width || 0,
       h = img.naturalHeight || img.height || 0;

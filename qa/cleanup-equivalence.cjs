@@ -10,6 +10,8 @@ const url = process.env.GAME_URL || 'http://127.0.0.1:4174/';
 const source = new Map();
 for (const f of fs.readdirSync('release', { recursive: true }).filter(f => f.endsWith('.js'))) {
   const name = f.replaceAll('\\', '/');
+  // Added later for Playables; the older ordinary web build has no platform adapter.
+  if (name === 'platform.js') continue;
   source.set(name, cp.execFileSync('git', ['show', baseline + ':' + name], { encoding: 'utf8' }));
 }
 async function sample(browser, original) {

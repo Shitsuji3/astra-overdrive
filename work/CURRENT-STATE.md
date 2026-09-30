@@ -1,8 +1,8 @@
-# 現在地 — 2026-09-30（最新の変更は末尾）
+# 現在地 — 2026-10-01（最新の変更は末尾）
 
 ## 現在の基準
 - 本体: C:\Users\situz\Documents\ChatGPT\Astragemes。サブエージェント禁止。
-- 公開済みゲームコード: d42ac8e（描画軽量化・続きから・ジャストダッシュ・非表示時消音まで）。GitHubから同期済み。今回の追加軽量化はローカルのみ。
+- 公開済みゲームコード: d42ac8e（描画軽量化・続きから・ジャストダッシュ・非表示時消音まで）。GitHubから同期済み。追加軽量化とPlayables準備はローカルのみ。
 - 公開: https://shitsuji3.github.io/astra-overdrive/
 - 最新保存版とSHA: work/CURRENT-SNAPSHOT.jsonのsaved_at、backup_path、sha256を確認。files_sha256全件は照合が必要な時だけ読む。
 - 工場背景、プレイヤー、UI、操作感を維持。簡易表示ならまず4173のサーバーと画像読込を確認。
@@ -101,3 +101,6 @@ BGM専用の出力倍率0.5を追加。保存済み音量設定にも反映し�
 ページが隠れたら（タブ切替・最小化・アプリ切替・画面オフ）BGMと効果音を止め、戻ったら再開。プレイ中ならポーズ画面にする。詳細work/HIDDEN-SILENCE-20260924.md。npm test213件、BGM QA合格、起動18・パッド29・マウス11成功。ブランチfix/silence-when-hidden、PRでマージ待ち（マージまで未公開）。
 
 最新変更（2026-09-30）：GitHub main d42ac8eを取り込み。実行時JSの未使用7か所除去、時計DOMの重複更新削減、配布JSのみ整形圧縮。配布10.06→9.86MiB、JS約24%減。全213テスト＋既存チェック、配布起動18/パッド29/マウス11、273描画と8ボス状態の前後一致成功。詳細work/CODE-CLEANUP-20260930.md。追加軽量化は未push。
+
+## 最新変更：YouTube Playables技術準備（2026-10-01）
+専用英語版release-playablesとdist/ASTRA-OVERDRIVE-playables.zipを追加（49ファイル、展開9.87MiB/ZIP9.48MiB）。公式SDK起動通知、ホスト音声/停止、クラウド設定・記録保存を実装。通常の日本語版・素材・攻撃数値維持。npm test223件＋既存チェック、通常配布18/29/11、SDKモック＋公式CSP、縦横タッチ表示、273描画/8ボス状態一致を確認。公式Test Suiteはローカルiframeが起動待ちで合格未確認。Android/iOS実機と正式審査も未完。参加は招待制。詳細work/PLAYABLES-20261001.md、申請下書きwork/PLAYABLES-APPLICATION-DRAFT.md。GitHub未push、参加申請/公開は未実施。

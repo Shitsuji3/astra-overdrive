@@ -1,4 +1,4 @@
-(function () {
+(async function () {
   'use strict';
   var modalReturn = null,
     modalView = '',
@@ -14,15 +14,10 @@
     menu = [].slice.call(document.querySelectorAll('.menu-item')),
     selected = 0,
     game = null,
-    key = 'astra-overdrive-save',
     settings = {};
-  try {
-    settings = JSON.parse(localStorage.getItem(key) || '{}') || {};
-  } catch (e) {}
+  settings = await AstraPlatform.initialize();
   function save() {
-    try {
-      localStorage.setItem(key, JSON.stringify(settings));
-    } catch (e) {}
+    AstraPlatform.save(settings);
   }
   var hudTime = $('#hud-time');
   function hud(s) {
@@ -60,18 +55,23 @@
       Math.round(m * 100) +
       '"></label><label class="settings-row">SE <input id="sfx" type="range" min="0" max="100" value="' +
       Math.round(s * 100) +
-      '"></label><label class="settings-row">消音 <input id="mute" type="checkbox" ' +
-      (settings.muted ? 'checked' : '') +
-      '></label><label class="settings-row">やさしい難易度 <input id="easy" type="checkbox" ' +
+      '"></label>' +
+      (AstraPlatform.isPlayables
+        ? ''
+        : '<label class="settings-row">消音 <input id="mute" type="checkbox" ' +
+          (settings.muted ? 'checked' : '') +
+          '></label>') +
+      '<label class="settings-row">やさしい難易度 <input id="easy" type="checkbox" ' +
       (settings.easy ? 'checked' : '') +
       '></label><label class="settings-row">画面の揺れを抑える <input id="motion" type="checkbox" ' +
       (settings.motion ? 'checked' : '') +
       '></label><button data-action="close">戻る</button>';
     ['music', 'sfx', 'mute', 'easy', 'motion'].forEach(function (id) {
+      if (!$('#' + id)) return;
       $('#' + id).onchange = function () {
         settings.music = +$('#music').value / 100;
         settings.sfx = +$('#sfx').value / 100;
-        settings.muted = $('#mute').checked;
+        settings.muted = $('#mute') ? $('#mute').checked : false;
         settings.easy = $('#easy').checked;
         settings.motion = $('#motion').checked;
         save();
@@ -607,7 +607,8 @@
       $('#overlay-copy').innerHTML = 'TIME ' + (p.timeElapsed || 0).toFixed(2) + 's / RANK ' + rank + extra;
       $('#overlay-actions').insertAdjacentHTML(
         'beforeend',
-        '<button data-action="share-result">結果画像を保存</button><button data-action="records">ボス別戦績</button>'
+        (AstraPlatform.isPlayables ? '' : '<button data-action="share-result">結果画像を保存</button>') +
+          '<button data-action="records">ボス別戦績</button>'
       );
       lastResult = {
         stage: (p.stage || {}).name || 'BOSS RUSH',
@@ -623,7 +624,7 @@
     }
   }
   function shareResult() {
-    if (!lastResult) return;
+    if (!lastResult || AstraPlatform.isPlayables) return;
     var r = lastResult,
       c = document.createElement('canvas');
     c.width = 1200;
@@ -682,14 +683,10 @@
   function legacyFinish(kind, p) {
     if (kind === 'victory') {
       var best = 0;
-      try {
-        best = +localStorage.getItem(key + '-best') || 0;
-      } catch (e) {}
+      best = AstraPlatform.best;
       if (!p.continues) {
         best = Math.max(best, p.score || 0);
-        try {
-          localStorage.setItem(key + '-best', best);
-        } catch (e) {}
+        AstraPlatform.save(settings, best);
       }
       var r = record(p);
       var t = Math.floor(p.timeElapsed || 0),
@@ -1083,7 +1080,8 @@
     ],
     PAD_BUTTONS = ['a', 'b', 'start'];
   function padFrame(now) {
-    requestAnimationFrame(padFrame);
+    if (AstraPlatform.paused) return;
+    padRaf = requestAnimationFrame(padFrame);
     var screen = padScreen(),
       s = padRead(),
       t = now / 1000;
@@ -1133,7 +1131,7 @@
       else if (!(game && game.state && game.state.mode === 'paused')) padConfirm(screen);
     });
   }
-  requestAnimationFrame(padFrame);
+  var padRaf = requestAnimationFrame(padFrame);
   document.addEventListener(
     'keydown',
     function () {
@@ -1150,16 +1148,36 @@
   );
   AstraAudio.setMusic(settings.music === undefined ? 0.45 : settings.music);
   AstraAudio.setSfx(settings.sfx === undefined ? 0.7 : settings.sfx);
-  AstraAudio.setMuted(!!settings.muted);
-  setInterval(function () {
-    if (game && game.state && !shell.hidden) hud(game.state);
-  }, 250);
+  AstraAudio.setMuted(!AstraPlatform.isPlayables && !!settings.muted);
+  var hudTimer;
+  function startHudTimer() {
+    hudTimer = setInterval(function () {
+      if (game && game.state && !shell.hidden) hud(game.state);
+    }, 250);
+  }
+  startHudTimer();
+  AstraPlatform.subscribe(function (hostPaused) {
+    if (game) game.setHostPaused(hostPaused);
+    if (hostPaused) {
+      cancelAnimationFrame(padRaf);
+      padRaf = 0;
+      clearInterval(hudTimer);
+    } else if (!padRaf) {
+      padHeld = {};
+      padArmed = {};
+      padRaf = requestAnimationFrame(padFrame);
+      startHudTimer();
+    }
+  });
   showArmed();
   active(0);
   AstraAudio.startTitle();
   // Once the title has painted, fetch and decode what the first fight draws, so pressing start
   // waits on neither the network nor the first frame.
-  setTimeout(function () {
-    if (window.AstraRenderer && AstraRenderer.preload) AstraRenderer.preload();
-  }, 500);
+  if (!AstraPlatform.isPlayables)
+    setTimeout(function () {
+      if (window.AstraRenderer && AstraRenderer.preload) AstraRenderer.preload();
+    }, 500);
+  await AstraPlatform.gameReady();
+  if (AstraPlatform.isPlayables) active(selected);
 })();

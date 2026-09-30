@@ -21,7 +21,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 JST = timezone(timedelta(hours=9))
 
 # Folders that hold output rather than the game: rebuilding them is cheaper than storing them.
-SKIP_DIRS = {'.git', 'node_modules', 'release', 'dist', 'qa', '.claude'}
+SKIP_DIRS = {'.git', 'node_modules', 'release', 'release-playables', 'dist', 'qa', '.claude'}
 SKIP_SUFFIX = {'.zip', '.log', '.bak'}
 # Small enough to keep, and the only things under qa/ worth restoring.
 KEEP_QA = ('.cjs', '.py')

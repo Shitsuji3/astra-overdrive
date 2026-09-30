@@ -1,5 +1,7 @@
 # ASTRA // OVERDRIVE
 
+YouTube Playables用の別配布版を用意しています。`npm run build:playables`で英語版とSDK連携を含む`dist/ASTRA-OVERDRIVE-playables.zip`を生成します。`npm run serve:playables`で4175番の確認画面を起動できます。通常のWeb版は日本語のままです。申請手順と検証状況は[Playables準備メモ](work/PLAYABLES-20261001.md)を参照してください。
+
 **遊ぶ → https://Shitsuji3.github.io/astra-overdrive/**
 
 8体連戦の BOSS RUSH をメインにしたブラウザアクションです。タイトルは「ボスラッシュ」と「設定・操作方法」の2つで、開始・再挑戦は闘技場へ直接入ります。1体以上倒してから負けた時は「続きから」で、負けたボスから満タンで再開できます（倒したボス・時間・被弾数は引き継ぎ。練習をはさんでからでも選べます。続きからのクリアは連戦の最速記録とスコアに残りません）。敗北画面の「この技を練習」から PRACTICE に入り、ボスと技を選び直して練習できます（Rキーまたはポーズ画面からすぐに再戦）。従来の9ステージは PRACTICE の「ステージで練習する」に残しています。

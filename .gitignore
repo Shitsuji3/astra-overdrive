@@ -3,6 +3,7 @@ node_modules/
 
 # Built output. Rebuilt from source with: npm run build
 release/
+release-playables/
 dist/
 
 # QA runs: screenshots, captures and recordings, gigabytes of them. The scripts that

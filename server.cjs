@@ -5,6 +5,10 @@ const http = require('http'),
 // "node server.cjs release 4174" serves a build next to the working copy.
 const root = path.resolve(__dirname, process.argv[2] || '.');
 const port = Number(process.argv[3] || process.env.PORT || 4173);
+// Match YouTube's documented iframe policy during local Playables testing.
+const playableCsp = process.argv.includes('--playables')
+  ? "default-src 'none'; script-src 'report-sample' 'self' 'unsafe-eval' 'unsafe-inline' blob: https://www.youtube.com/game_api/v0 https://www.youtube.com/game_api/v0/ https://www.youtube.com/game_api/v1 https://www.youtube.com/game_api/v1/; object-src 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' blob: data:; media-src 'self' blob:; font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com; connect-src 'self' blob: data:; sandbox allow-pointer-lock allow-same-origin allow-scripts; base-uri 'self'; manifest-src 'self'; worker-src 'self' blob:"
+  : null;
 const mime = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -45,11 +49,13 @@ http
         if (!res.headersSent) send(res, 500, 'Read error');
         else res.destroy();
       });
-      res.writeHead(200, {
+      const headers = {
         'Content-Type': mime[path.extname(target).toLowerCase()] || 'application/octet-stream',
         'Content-Length': st.size,
         'Cache-Control': 'no-cache'
-      });
+      };
+      if (playableCsp) headers['Content-Security-Policy'] = playableCsp;
+      res.writeHead(200, headers);
       stream.pipe(res);
     });
   })

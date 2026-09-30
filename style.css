@@ -1,6 +1,21 @@
 [hidden] {
   display: none !important;
 }
+#platform-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  background: #071820;
+  color: #f5f4df;
+}
+.host-paused *,
+.host-paused *::before,
+.host-paused *::after {
+  animation-play-state: paused !important;
+}
 :root {
   --ink: #060b10;
   --cyan: #59e7ed;

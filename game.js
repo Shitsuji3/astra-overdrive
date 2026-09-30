@@ -566,6 +566,7 @@
   NeonGame.prototype._bind = function () {
     var self = this;
     this._keydown = function (e) {
+      if (self.hostPaused) return;
       var k = e.key.toLowerCase();
       if (
         self.state.mode === 'playing' &&
@@ -604,6 +605,7 @@
       self._mapKey(k, true);
     };
     this._keyup = function (e) {
+      if (self.hostPaused) return;
       var k = e.key.toLowerCase();
       self.keys[k] = false;
       if (k === 'escape' || k === 'p') self._pauseLatch = false;
@@ -617,7 +619,8 @@
     };
     global.addEventListener('keydown', this._keydown);
     global.addEventListener('keyup', this._keyup);
-    global.addEventListener('blur', this._blur);
+    if (!(global.AstraPlatform && global.AstraPlatform.isPlayables))
+      global.addEventListener('blur', this._blur);
     // Put away (another tab, a minimised window, a phone's screen switched off), a running fight
     // pauses, so coming back finds the pause panel rather than a fight that went on without the player.
     // A phone does not always blur the window first, so this does not rely on blur.
@@ -625,7 +628,11 @@
       var d = global.document;
       if (d && d.visibilityState === 'hidden' && self.state.mode === 'playing') self.pause();
     };
-    if (global.document && global.document.addEventListener)
+    if (
+      !(global.AstraPlatform && global.AstraPlatform.isPlayables) &&
+      global.document &&
+      global.document.addEventListener
+    )
       global.document.addEventListener('visibilitychange', this._visibility);
   };
   NeonGame.prototype._bindMouse = function () {
@@ -633,6 +640,7 @@
       c = this.canvas;
     if (!c || !c.addEventListener) return;
     this._mouseDown = function (e) {
+      if (self.hostPaused) return;
       if (self.state.mode !== 'playing') return;
       if (e.button === 0) {
         self.mouseInput.shoot = true;
@@ -827,6 +835,7 @@
     }
   };
   NeonGame.prototype.resume = function () {
+    if (this.hostPaused) return;
     if (this.state.mode === 'paused') {
       this.state.mode = 'playing';
       this.last = performance.now();
@@ -854,6 +863,7 @@
   // tap can begin and end between two steps; without the latch that tap is simply never seen.
   // The latch is cleared by the step that reads it, so it can only ever add one frame.
   NeonGame.prototype.setInput = function (a, v) {
+    if (this.hostPaused) return;
     this.input[a] = !!v;
     if (v) this.pressed[a] = true;
   };
@@ -913,9 +923,10 @@
   };
   NeonGame.prototype._loop = function () {
     var self = this;
-    if (this.raf) return;
+    if (this.raf || this.hostPaused) return;
     var frame = function (now) {
       self.raf = 0;
+      if (self.hostPaused) return;
       var dt = Math.min(0.1, (now - self.last) / 1000),
         stepped = false;
       self.last = now;
@@ -938,6 +949,27 @@
       if (self.running) self.raf = requestAnimationFrame(frame);
     };
     this.raf = requestAnimationFrame(frame);
+  };
+  // Freeze without changing the player's pause menu or result screen.
+  NeonGame.prototype.setHostPaused = function (value) {
+    if (this.hostPaused === !!value) return;
+    this.hostPaused = !!value;
+    if (value) {
+      if (this.raf) cancelAnimationFrame(this.raf);
+      this.raf = 0;
+      this.keys = {};
+      this.input = {};
+      this.pressed = {};
+      this._pauseLatch = false;
+      this._padStartLatch = false;
+      this._clearMouse();
+      this._shootHeld = this._saberHeld = this._jumpHeld = this._dashHeld = false;
+      this.state.player.charge = this.state.player.saberCharge = this.state.player.risingHold = 0;
+    } else {
+      this.last = performance.now();
+      this.acc = 0;
+      if (this.running) this._loop();
+    }
   };
   NeonGame.prototype._spawn = function (x, y, vx, vy, team, charged, power, extra) {
     var b = {
