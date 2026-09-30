@@ -24,12 +24,14 @@
       localStorage.setItem(key, JSON.stringify(settings));
     } catch (e) {}
   }
+  var hudTime = $('#hud-time');
   function hud(s) {
     if (!s) return;
-    var el = document.querySelector('#hud-time');
+    var el = hudTime;
     if (!el) return;
     var t = Math.floor(s.timeElapsed || 0);
-    el.textContent = String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
+    var label = String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
+    if (el.textContent !== label) el.textContent = label;
   }
   function active(n) {
     var v = menu.filter(function (b) {
@@ -927,14 +929,12 @@
   );
   document.querySelectorAll('[data-input]').forEach(function (b) {
     var a = b.dataset.input;
-    var press = 0;
     b.addEventListener('pointerdown', function (e) {
       e.preventDefault();
       if (b.setPointerCapture)
         try {
           b.setPointerCapture(e.pointerId);
         } catch (z) {}
-      press++;
       if (a === 'pause') {
         if (game) game.pause();
       } else if (game) game.setInput(a, true);

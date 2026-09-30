@@ -32,8 +32,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      # The game has no dependencies, so there is nothing to install. The tests are plain node
-      # and run in a second; a build that fails them should not reach anybody.
+      # Only build-time tooling; the game still ships without runtime dependencies.
+      - name: Install build tools
+        run: npm ci
       - name: Test
         run: npm test
       - name: Build

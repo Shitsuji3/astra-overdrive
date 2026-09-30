@@ -48,6 +48,7 @@ Windows は `launch-game.bat` をダブルクリック（`index.html` をブラ�
 ## 公開用ビルド
 
 ```
+npm ci                 ビルド用ツールを固定版でインストール（ゲーム実行には不要）
 npm run build          release/ を作り、dist/ASTRA-OVERDRIVE-web.zip に固める
 npm run build:ci       同じものを release/ だけ作る（ビルドサーバー用）
 npm run serve:release  そのビルドを http://127.0.0.1:4174 で配信して確認する

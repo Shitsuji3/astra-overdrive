@@ -2621,16 +2621,6 @@
     }
     return old;
   }
-  function combatMuzzle(s, p) {
-    var api = g.AstraCombat;
-    if (api && typeof api.muzzle === 'function') {
-      var m = api.muzzle(p);
-      if (m && isFinite(m.x) && isFinite(m.y)) return { x: gx(s, m.x), y: m.y };
-    }
-    var left = p.facing < 0,
-      oy = api && typeof api.idleOffset === 'function' ? api.idleOffset(p) : 0;
-    return { x: gx(s, p.x + (left ? p.w - 41 : 41)), y: p.y + 19 + oy };
-  }
   function playerIdleOffset(p) {
     var api = g.AstraCombat;
     return api && typeof api.idleOffset === 'function' ? api.idleOffset(p) : 0;

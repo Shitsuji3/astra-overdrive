@@ -1,8 +1,7 @@
 (function (g) {
   'use strict';
   var TAU = Math.PI * 2,
-    SCALE = 0.2,
-    EXTENT = 11;
+    SCALE = 0.2;
   // The redrawn idle sprite is taller and slimmer than the jointed run/saber atlas. BUILD stretches
   // the jointed rigs to the same proportions so the character does not thicken when he moves or
   // swings. Applied about the feet, so ground contact is unchanged; muzzle() scales to match.
@@ -40,22 +39,6 @@
     [160, 185],
     [160, 126],
     [0, 126]
-  ];
-  var ARM = [
-    [142, 126],
-    [160, 124],
-    [173, 137],
-    [171, 151],
-    [154, 161],
-    [142, 170],
-    [137, 189],
-    [126, 204],
-    [108, 207],
-    [99, 195],
-    [100, 180],
-    [109, 157],
-    [121, 143],
-    [132, 143]
   ];
   var THIGH = [
     [146, 145],
@@ -107,9 +90,6 @@
   ];
   function clamp(v, a, b) {
     return Math.max(a, Math.min(b, v));
-  }
-  function smooth(t) {
-    return t * t * (3 - 2 * t);
   }
   function rigidPart(ctx, img, origin, mask, sourcePivot, destPivot, scale, angle) {
     if (!img || !img.complete || !img.naturalWidth) return;
@@ -228,17 +208,6 @@
     [127, 168],
     [123, 157],
     [132, 146]
-  ];
-  var FOREARM = [
-    [134, 157],
-    [150, 163],
-    [145, 180],
-    [138, 198],
-    [127, 207],
-    [108, 207],
-    [99, 195],
-    [100, 180],
-    [112, 166]
   ];
   // Right forearm ends in a cuff and articulated glove, never the atlas's orange muzzle.
   function rightForearm(ctx, img, elbow, wrist, grip) {

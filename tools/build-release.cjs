@@ -19,6 +19,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const { minify_sync } = require('terser');
 
 const CI = process.argv.includes('--ci');
 const ROOT = path.join(__dirname, '..');
@@ -116,6 +117,15 @@ function build() {
       let body = fs.readFileSync(source, 'utf8');
       for (const [asked, ships] of Object.entries(REPLACED))
         if (asked !== ships) body = body.split(asked).join(ships);
+      // Keep source readable; remove only formatting/comments from shipped JavaScript.
+      // No compression or renaming: timings, public APIs and fallback paths stay intact.
+      if (relative.endsWith('.js')) {
+        body = minify_sync(body, {
+          compress: false,
+          mangle: false,
+          format: { comments: false }
+        }).code + '\n';
+      }
       putText(relative, body);
       shipped.set(relative, Buffer.byteLength(body));
     } else {
