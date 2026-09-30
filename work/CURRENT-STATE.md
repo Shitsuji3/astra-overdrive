@@ -104,3 +104,6 @@ BGM専用の出力倍率0.5を追加。保存済み音量設定にも反映し�
 
 ## 最新変更：YouTube Playables技術準備（2026-10-01）
 専用英語版release-playablesとdist/ASTRA-OVERDRIVE-playables.zipを追加（49ファイル、展開9.87MiB/ZIP9.48MiB）。公式SDK起動通知、ホスト音声/停止、クラウド設定・記録保存を実装。通常の日本語版・素材・攻撃数値維持。npm test223件＋既存チェック、通常配布18/29/11、SDKモック＋公式CSP、縦横タッチ表示、273描画/8ボス状態一致を確認。公式Test Suiteはローカルiframeが起動待ちで合格未確認。Android/iOS実機と正式審査も未完。参加は招待制。詳細work/PLAYABLES-20261001.md、申請下書きwork/PLAYABLES-APPLICATION-DRAFT.md。GitHub未push、参加申請/公開は未実施。
+
+## 修正：Playables単独試遊の消音（2026-10-01）
+SDKのYouTube外での初期消音通知を試遊にも適用していた。実ホスト内のみSDK音声/停止通知を購読し、単独試遊は通常のブラウザー非表示時制御を使う。実SDK・標準Chromeでタイトル/戦闘BGM・セイバーSE・ポーズ半音量を確認、エラー0。npm test224件＋既存チェック、SDKホストモックQAと両配布ビルド成功。4175の試遊画面更新済み。ゲーム数値・素材変更なし、GitHub未push。

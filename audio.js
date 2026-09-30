@@ -62,7 +62,7 @@
       if (playing) playMedia();
     }
   }
-  if (!(g.AstraPlatform && g.AstraPlatform.isPlayables)) {
+  if (!(g.AstraPlatform && g.AstraPlatform.isHosted)) {
     if (typeof document !== 'undefined' && document.addEventListener)
       document.addEventListener('visibilitychange', function () {
         setHidden(pageHidden());

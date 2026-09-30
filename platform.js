@@ -3,8 +3,8 @@
   // This adapter is also used by the ordinary web build; only Playables uses the SDK.
   var sdk = g.ytgame,
     doc = g.document,
-    playable =
-      !!(sdk && sdk.IN_PLAYABLES_ENV) || !!(doc && doc.documentElement.hasAttribute('data-playables')),
+    hosted = !!(sdk && sdk.IN_PLAYABLES_ENV),
+    playable = hosted || !!(doc && doc.documentElement.hasAttribute('data-playables')),
     key = 'astra-overdrive-save',
     data = { version: 1, settings: {}, best: 0 },
     loaded = false,
@@ -12,7 +12,7 @@
     saving = null,
     loading = null,
     paused = false,
-    audioEnabled = !playable || !!(sdk && sdk.system.isAudioEnabled()),
+    audioEnabled = !hosted || sdk.system.isAudioEnabled(),
     listeners = [],
     ready = false,
     loader = null;
@@ -177,6 +177,7 @@
   }
   g.AstraPlatform = {
     isPlayables: playable,
+    isHosted: hosted,
     get paused() {
       return paused;
     },
@@ -226,16 +227,21 @@
     );
   });
   if (sdk) {
-    sdk.system.onAudioEnabledChange(function (enabled) {
-      audioEnabled = !!enabled;
-      emit();
-    });
-    sdk.system.onPause(function () {
-      pause(true);
-    });
-    sdk.system.onResume(function () {
-      pause(false);
-    });
+    // In standalone previews the SDK is a no-op, but its audio subscription can
+    // emit its internal default (false) while isAudioEnabled() reports true.
+    // Only a real SDK host may mute or suspend the game.
+    if (hosted) {
+      sdk.system.onAudioEnabledChange(function (enabled) {
+        audioEnabled = !!enabled;
+        emit();
+      });
+      sdk.system.onPause(function () {
+        pause(true);
+      });
+      sdk.system.onResume(function () {
+        pause(false);
+      });
+    }
     // The host may hide the iframe until this notification; waiting for its RAF can deadlock.
     // The stylesheet and loading overlay are already present. Force layout before notifying.
     if (loader.getBoundingClientRect) loader.getBoundingClientRect();

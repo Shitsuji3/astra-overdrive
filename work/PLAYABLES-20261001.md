@@ -13,7 +13,7 @@
 
 - 起動: 読み込み画面を配置してfirstFrameReadyを通知。クラウド保存の読み込みとタイトル画像のdecodeが終わってからgameReady。ホストがiframeを隠して待つ場合があるので、firstFrameReadyをRAF待ちにしない。
 - 音声: YouTube側のisAudioEnabled/onAudioEnabledChangeを反映。ゲームの音量を上げてもホストのミュートを解除しない。Playablesの設定画面はBGM/SE別音量を残し、全体消音をYouTube側に任せる。
-- 停止: onPauseでゲームRAF・パッドRAF・時計タイマー・CSSアニメーション・画像加工キュー・BGM/SEを停止。入力も無効化。onResumeのみで再開。手動ポーズや結果画面は元のまま。復帰時の誤射を防ぐため保持入力とチャージを解除する。Playablesではvisibilitychange/blur/pagehide/pageshowによる停止・復帰を登録しない。通常Web版の非表示時停止は維持。
+- 停止: onPauseでゲームRAF・パッドRAF・時計タイマー・CSSアニメーション・画像加工キュー・BGM/SEを停止。入力も無効化。onResumeのみで再開。手動ポーズや結果画面は元のまま。復帰時の誤射を防ぐため保持入力とチャージを解除する。実YouTubeホスト内ではvisibilitychange/blur/pagehide/pageshowによる停止・復帰を登録しない。単独試遊と通常Web版の非表示時停止は維持。
 - 保存: SDKのloadDataが成功するまでUI起動とsaveDataを禁止。ボス撃破・記録・設定変更時に保存。失敗した書き込みは保持し、次の保存またはSDK pause/resume時に再試行。書き込みは直列化し、最新データを最後に送る。読み込み失敗は再試行画面にして初期値で上書きしない。
 - データ: `{version:1,settings:{...},best:数値}`。旧Web版の設定JSON形式も読み込める。未知バージョンは上書きしない。PlayablesではlocalStorage/sessionStorageを使用しない。通常版の既存キーは維持。記録と設定を保存し、進行中の戦闘そのものはセッション内に保持する。
 - Playablesでは結果画像のダウンロードボタンを非表示（公式sandboxでダウンロードが許可されない）。通常版は保持。sendScoreは任意APIのため未実装。コンティニュー/難易度を混ぜたランキングを新設しない。
@@ -47,6 +47,12 @@ QAは同梱物ではない。通常Web配布/Pagesは引き続き`npm run build:
 **公式Test Suiteの合格確認は未完。** Codex内ブラウザーで公式ツールのローカルiframeが起動待ちのままとなり、SDKイベントが表示されなかった。原因は特定できていない。0/5の未評価状態を合格/ゲーム不具合と扱わない。単独起動とモック検証を公式審査合格と混同しない。配信ポータルが使える段階で、YouTube Dev Link/Test Suite Linkと実機を使って再確認する。
 
 ## 配信までの手順
+
+### 単独試遊の音声修正（2026-10-01）
+
+実SDKがYouTube外で音声変更の初期通知falseを返し、isAudioEnabled()はtrueでも試遊が消音されていた。IN_PLAYABLES_ENVで実ホストかどうかを判定し、SDKの消音・停止通知は実ホスト内だけで購読する。配布版かどうかとは別にisHostedを公開し、単独試遊では通常のブラウザー非表示時制御を使う。
+
+実SDK・Chrome標準の自動再生制限で、クリック後のタイトルBGM、戦闘BGM、セイバーSE、手動ポーズ中の半音量をqa/standalone-audio.cjsで検証。エラー0。npm test224件＋既存チェック、SDKホストモックQA、通常版/Playables版ビルド成功。試遊画面4175を更新済み。実YouTube内の消音制御は維持し、公式Test Suiteの未確認状態は変わらない。
 
 1. [公式参加希望フォーム](https://developers.google.com/youtube/gaming/playables/support/contact)から参加希望を申請。公開済みデモURLと下書きを利用できる。本人情報と素材の権利確認は本人が記入・確認する。今回は送信していない。
 2. ポータルは招待制。対象チャンネルの参加承認と必要な管理権限が得られたら、ゲーム情報・配布ZIP・サムネイルを登録する。手元の日本語版の既存サムネイルは候補で、ポータルの指定サイズ等に合わせる作業は残る。

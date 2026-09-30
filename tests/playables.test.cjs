@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 
-function setup({ cloud = true, load = async () => '', save = async () => {} } = {}) {
+function setup({ cloud = true, hosted = cloud, load = async () => '', save = async () => {} } = {}) {
   const events = {},
     calls = [],
     frames = new Map(),
@@ -67,7 +67,7 @@ function setup({ cloud = true, load = async () => '', save = async () => {} } = 
   c.window = c;
   if (cloud)
     c.ytgame = {
-      IN_PLAYABLES_ENV: true,
+      IN_PLAYABLES_ENV: hosted,
       game: {
         async loadData() {
           calls.push('load');
@@ -130,6 +130,18 @@ function setup({ cloud = true, load = async () => '', save = async () => {} } = 
 const turns = async () => {
   for (let i = 0; i < 12; i++) await Promise.resolve();
 };
+
+test('standalone Playables preview ignores no-op SDK mute and pause subscriptions', async () => {
+  const s = setup({ hosted: false });
+  const state = [];
+  s.P.subscribe((paused, enabled) => state.push({ paused, enabled }));
+  await s.P.initialize();
+  assert.equal(s.P.isPlayables, true);
+  assert.deepEqual(state, [{ paused: false, enabled: true }]);
+  assert.equal(s.events.audio, undefined);
+  assert.equal(s.events.pause, undefined);
+  assert.equal(s.events.resume, undefined);
+});
 
 test('web settings and legacy best retain the original storage keys', async () => {
   const s = setup({ cloud: false });

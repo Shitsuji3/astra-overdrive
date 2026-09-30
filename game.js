@@ -619,7 +619,7 @@
     };
     global.addEventListener('keydown', this._keydown);
     global.addEventListener('keyup', this._keyup);
-    if (!(global.AstraPlatform && global.AstraPlatform.isPlayables))
+    if (!(global.AstraPlatform && global.AstraPlatform.isHosted))
       global.addEventListener('blur', this._blur);
     // Put away (another tab, a minimised window, a phone's screen switched off), a running fight
     // pauses, so coming back finds the pause panel rather than a fight that went on without the player.
@@ -629,7 +629,7 @@
       if (d && d.visibilityState === 'hidden' && self.state.mode === 'playing') self.pause();
     };
     if (
-      !(global.AstraPlatform && global.AstraPlatform.isPlayables) &&
+      !(global.AstraPlatform && global.AstraPlatform.isHosted) &&
       global.document &&
       global.document.addEventListener
     )
