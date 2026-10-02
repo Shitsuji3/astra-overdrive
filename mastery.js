@@ -36,6 +36,9 @@
     tailspin: 'BACK THEN JUMP',
     pounce: 'LEAVE MARK'
   };
+  Object.keys((g.AstraBosses && g.AstraBosses.extraMoves) || {}).forEach(function (name) {
+    hints[name] = g.AstraBosses.extraMoves[name].hint;
+  });
   var reset = P._reset;
   P._reset = function (mode) {
     reset.call(this, mode);

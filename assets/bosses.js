@@ -7,7 +7,7 @@
                     larger than the player; the picture is drawn around it and hangs over
      sprite         its own artwork. Without one it borrows the shared frame, tinted by look
      look           a canvas filter for the shared frame, used only when there is no sprite
-     routine        the four to six beats it loops forever; pool is derived from it
+     routine        the six to eight beats it loops forever; pool is derived from it
      tempo          multiplies every wind-up: below 1 is faster, above 1 is slower
      flies          { cruise }: it lives in the air, cruise px over the floor, and only lands when a
                     move brings it down
@@ -106,6 +106,202 @@
     'tailspin',
     'pounce'
   ];
+
+  // New weapon contracts shared by the simulation, art, telegraphs and practice UI.
+  var EXTRA = {
+    shears: {
+      owner: 'warden',
+      name: 'CROSS SHEARS',
+      hint: 'JUMP THEN STAND / BACK OFF',
+      from: 'near',
+      rest: 1.1,
+      tell: 1,
+      active: 1.15,
+      pose: 'rear',
+      beats: [0.25, 0.7],
+      fx: 'slash'
+    },
+    siegefan: {
+      owner: 'warden',
+      name: 'SIEGE FAN',
+      hint: 'LEAVE MARKS / CUT SHELLS',
+      from: 'far',
+      rest: 1.1,
+      tell: 1,
+      active: 1.55,
+      pose: 'aim',
+      beats: [0.2, 0.65],
+      fx: 'cannon'
+    },
+    tidalwall: {
+      owner: 'tidebreaker',
+      name: 'TIDAL WALL',
+      hint: 'JUMP THE WATER WALL',
+      from: 'far',
+      rest: 1,
+      tell: 1,
+      active: 1.65,
+      pose: 'rear',
+      beats: [0.3],
+      fx: 'water'
+    },
+    scythewheel: {
+      owner: 'tidebreaker',
+      name: 'SCYTHE WHEEL',
+      hint: 'MOVE BACK / CUT BLADES',
+      from: 'mid',
+      rest: 1,
+      tell: 0.95,
+      active: 1.45,
+      pose: 'crouch',
+      beats: [0.42, 0.95],
+      fx: 'wheel'
+    },
+    stormwing: {
+      owner: 'coilhead',
+      name: 'STORM WING',
+      hint: 'MOVE AFTER LOCK / CUT',
+      from: 'far',
+      rest: 0.9,
+      tell: 1,
+      active: 1.55,
+      pose: 'air',
+      beats: [0.28, 0.7],
+      fx: 'wing'
+    },
+    arcnet: {
+      owner: 'coilhead',
+      name: 'ARC NET',
+      hint: 'WAIT INSIDE THEN STEP OUT',
+      from: 'mid',
+      rest: 0.9,
+      tell: 1.05,
+      active: 1.8,
+      pose: 'charge',
+      beats: [0.58, 1.23],
+      fx: 'electric'
+    },
+    furnace: {
+      owner: 'ashmaw',
+      name: 'FURNACE FAN',
+      hint: 'GET BEHIND / CUT FIREBALLS',
+      from: 'mid',
+      rest: 1.1,
+      tell: 1.05,
+      active: 1.5,
+      pose: 'rear',
+      beats: [0.35],
+      fx: 'mouth'
+    },
+    cinderroll: {
+      owner: 'ashmaw',
+      name: 'CINDER ROLL',
+      hint: 'JUMP PAST / AVOID EMBERS',
+      from: 'far',
+      rest: 1.2,
+      tell: 1,
+      active: 1.5,
+      pose: 'crouch',
+      beats: [0.2, 0.5, 0.8, 1.15],
+      fx: 'roll'
+    },
+    tailtrap: {
+      owner: 'nullpriest',
+      name: 'VOID STING TRAPS',
+      hint: 'LEAVE THE THREE MARKS',
+      from: 'mid',
+      rest: 0.9,
+      tell: 1.15,
+      active: 1.55,
+      pose: 'rear',
+      beats: [0.75],
+      fx: 'tail'
+    },
+    riftgate: {
+      owner: 'nullpriest',
+      name: 'RIFT GATES',
+      hint: 'STAND THEN JUMP',
+      from: 'far',
+      rest: 0.9,
+      tell: 1.15,
+      active: 1.65,
+      pose: 'charge',
+      beats: [0.43, 1.18],
+      fx: 'rift'
+    },
+    faultline: {
+      owner: 'gravelock',
+      name: 'HORN FAULTLINE',
+      hint: 'JUMP / LEAVE THE CRACKS',
+      from: 'mid',
+      rest: 1.3,
+      tell: 1.05,
+      active: 1.75,
+      pose: 'strike',
+      beats: [0.3, 0.65, 1],
+      fx: 'horn'
+    },
+    shellroll: {
+      owner: 'gravelock',
+      name: 'ARMORED ROLL',
+      hint: 'JUMP PAST THE SHELL',
+      from: 'far',
+      rest: 1.3,
+      tell: 1.05,
+      active: 1.65,
+      pose: 'crouch',
+      beats: [0.2, 1.2],
+      fx: 'roll'
+    },
+    silkdrop: {
+      owner: 'sparkwidow',
+      name: 'SILK DROP',
+      hint: 'LEAVE MARK / CUT SAWS',
+      from: 'mid',
+      rest: 0.9,
+      tell: 1.35,
+      active: 1.5,
+      pose: 'crouch',
+      beats: [0.55, 1.15],
+      fx: 'silk'
+    },
+    websaw: {
+      owner: 'sparkwidow',
+      name: 'WEB SAW TRAPS',
+      hint: 'LEAVE MARKS / CUT SAWS',
+      from: 'far',
+      rest: 0.9,
+      tell: 1.3,
+      active: 1.65,
+      pose: 'rear',
+      beats: [0.67, 0.85, 1.03],
+      fx: 'web'
+    },
+    skybomb: {
+      owner: 'obsidian-crown',
+      name: 'SKY SIEGE',
+      hint: 'LEAVE MARKS / CUT SHELLS',
+      from: 'mid',
+      rest: 1,
+      tell: 1.1,
+      active: 1.8,
+      pose: 'crouch',
+      beats: [0.35, 0.65, 1.25],
+      fx: 'cannon'
+    },
+    imperialray: {
+      owner: 'obsidian-crown',
+      name: 'IMPERIAL RAY',
+      hint: 'LEAVE LOCKED BEAM LANES',
+      from: 'far',
+      rest: 1.1,
+      tell: 1.25,
+      active: 2,
+      pose: 'aim',
+      beats: [0.53, 0.85, 1.17],
+      fx: 'royal'
+    }
+  };
 
   var roster = [
     {
@@ -339,6 +535,15 @@
 
   var byId = {};
   roster.forEach(function (b, i) {
+    var extra = Object.keys(EXTRA).filter(function (name) {
+      return EXTRA[name].owner === b.id;
+    });
+    // Preserve the original beats, weaving a new weapon into each half of the loop.
+    extra.forEach(function (name, n) {
+      var e = EXTRA[name];
+      b.routine.splice(n === 0 ? 2 : b.routine.length - 1, 0, { move: name, from: e.from, rest: e.rest });
+      ALL.push(name);
+    });
     b.number = i + 1;
     b.knobs = b.knobs || {};
     // The pool is not a second list to keep in step with the routine: it is read off it, so
@@ -354,6 +559,7 @@
   });
 
   g.AstraBosses = {
+    extraMoves: EXTRA,
     list: roster,
     catalogue: ALL,
     defaults: DEFAULTS,

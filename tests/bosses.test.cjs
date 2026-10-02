@@ -362,7 +362,7 @@ test('signature: SPARKWIDOW swings across the arena on a silk line, grazing the 
   const def = h.bosses.get('sparkwidow');
   const routine = Array.from(def.routine);
   assert.ok(routine.some(x => x.move === 'swing'), 'the swing is in its loop');
-  assert.ok(routine.length <= 6, 'and the loop is still six beats');
+  assert.ok(routine.length <= 8, 'the expanded loop retains its original swing');
   const { g, b } = arena(h, 'sparkwidow');
   const p = g.state.player;
   b.x = C.arena.bossMax;
@@ -531,6 +531,151 @@ test('flight: its volley from the air is aimed down at the player', () => {
 
 // ---- Each boss's own moves ---------------------------------------------------------------------------
 const CLASSIC = ['volley', 'wave', 'dash', 'mortar', 'ring', 'slam', 'mines', 'wall'];
+const ORIGINAL_MOVES = {
+  warden: ['pincer','cannon','clawrush','quake'], tidebreaker: ['geyser','crescent','leapslash','rain'],
+  coilhead: ['needles','arcbolt','swoop','dive'], ashmaw: ['breath','eruption','tackle','bite'],
+  nullpriest: ['voidstep','crossorb','voidring','tailbeam'], gravelock: ['stomp','hornflip','anvil'],
+  sparkwidow: ['sawrush','sawtoss','embers','swing'], 'obsidian-crown': ['barrage','crownbeam','tailspin','pounce']
+};
+test('expanded roster retains every original weapon and adds exactly two owned weapons per boss', () => {
+  const h = harness();
+  const extra = h.bosses.extraMoves;
+  assert.equal(Object.keys(extra).length, 16);
+  for (const b of h.bosses.list) {
+    const old = ORIGINAL_MOVES[b.id], additions = b.pool.filter(name => !old.includes(name));
+    assert.equal(additions.length, 2, b.id);
+    assert.ok(old.every(name => b.pool.includes(name)), b.id + ' retains original attacks');
+    for (const name of additions) {
+      assert.equal(extra[name].owner, b.id);
+      assert.ok(extra[name].hint && extra[name].beats.length && extra[name].name);
+      assert.ok(h.api.bossPatterns[name].tell * b.tempo * .68 >= .45, name + ' remains readable when wounded');
+    }
+  }
+});
+function traceExtra(h, owner, name, facing = -1, dt = 1/60) {
+  const { g, b } = arena(h, owner), A = h.api.arena, p = g.state.player;
+  b.x = (A.bossMin + A.bossMax) / 2;
+  p.x = b.x + facing * 150; p.y = 310 - p.h;
+  const shots = [], spawn = g._spawn;
+  g._spawn = function(...args) { const q = spawn.apply(this, args); if (q.team === 'enemy') shots.push({ ...q }); return q; };
+  g._bossWind(b, h.bosses.get(owner), name);
+  const target = b.tellAim.x;
+  b.timer = 0; g._boss(dt);
+  let high = b.baseY - b.y, distance = 0, start = b.x, frames = 0;
+  for (; String(b.attack) === name && frames < 240; frames++) {
+    g._boss(dt); g._bullets(dt);
+    high = Math.max(high, b.baseY - b.y); distance = Math.max(distance, Math.abs(start - b.x));
+  }
+  assert.equal(String(b.attack), 'rest', name + ' completes');
+  assert.ok(b.timer >= h.api.bossRestFloor, name + ' leaves recovery');
+  return { g, b, shots, high, distance, target };
+}
+test('new crab attacks give a low/high melee sequence and two marked artillery volleys', () => {
+  for (const d of [-1,1]) {
+    const h = harness(), cuts = traceExtra(h, 'warden', 'shears', d).shots.filter(q=>q.style==='sweep');
+    assert.equal(cuts.length,2); assert.ok(cuts.every(q=>q.solid && q.armIn >= .12));
+    assert.ok(cuts[0].y > cuts[1].y + 40); assert.ok(cuts[1].y + cuts[1].hh < 270, 'high claw clears standing player');
+    const shots = traceExtra(h, 'warden', 'siegefan', d).shots;
+    assert.equal(shots.filter(q=>q.kind==='slug').length,6);
+    assert.equal(shots.filter(q=>q.style==='mark' && q.harmless).length,6);
+  }
+});
+test('new mantis attacks send a jumpable solid water wall and blades from an aerial spin', () => {
+  const h = harness();
+  const wall = traceExtra(h,'tidebreaker','tidalwall').shots.find(q=>q.tidal);
+  assert.ok(wall.solid && wall.vx < 0 && wall.y - wall.hh > 310 - 84);
+  assert.ok(wall.y + wall.hh >= 310, 'wall reaches floor');
+  const spin = traceExtra(h,'tidebreaker','scythewheel');
+  assert.ok(spin.high >= 79 && spin.distance > 100);
+  assert.equal(spin.shots.filter(q=>q.kind==='crescent' && q.vy > 0 && !q.solid).length,3);
+});
+test('new wasp attacks flap from higher altitude and leave time to exit the lightning cage', () => {
+  const h = harness(), gust = traceExtra(h,'coilhead','stormwing');
+  assert.equal(gust.shots.filter(q=>q.kind==='needle').length,10);
+  assert.ok(gust.high > 120 && gust.b.fly, 'returns to airborne cruise');
+  const net = traceExtra(h,'coilhead','arcnet').shots.filter(q=>q.style==='bolt').sort((a,b)=>a.x-b.x);
+  assert.equal(net.length,3); assert.ok(net[1].armIn > net[0].armIn + net[0].liveFor + .25);
+  assert.ok(net[1].x-net[0].x >= 80 && net[2].x-net[1].x >=80);
+});
+test('new cinder attacks keep the back safe from fireballs and warn before burning a roll trail', () => {
+  for(const d of [-1,1]) {
+    const h=harness(), fan=traceExtra(h,'ashmaw','furnace',d).shots.filter(q=>q.kind==='ember');
+    assert.equal(fan.length,7); assert.ok(fan.every(q=>q.vx*d>0 && q.vy<0 && q.g>0 && !q.solid));
+    const roll=traceExtra(h,'ashmaw','cinderroll',d);
+    assert.ok(roll.distance>200 && roll.high>17);
+    assert.equal(roll.shots.filter(q=>q.style==='embers' && q.armIn>=.32).length,4);
+  }
+});
+test('new scorpion traps are delayed and portal beams alternate height and direction', () => {
+  const h=harness(), traps=traceExtra(h,'nullpriest','tailtrap').shots.filter(q=>q.style==='voidspike');
+  assert.equal(traps.length,3); assert.ok(traps.every(q=>q.armIn>=.6 && q.hh===36));
+  const gates=traceExtra(h,'nullpriest','riftgate').shots.filter(q=>q.portal);
+  assert.equal(gates.length,2); assert.equal(gates[0].dir,-gates[1].dir);
+  assert.ok(gates[1].low && gates[1].armIn>gates[0].armIn+gates[0].liveFor+.4);
+});
+test('new beetle attacks raise timed stone faults and drive the shell without leaving projectile clutter', () => {
+  const h=harness(), cracks=traceExtra(h,'gravelock','faultline').shots.filter(q=>q.style==='stone');
+  assert.equal(cracks.length,3); assert.ok(cracks[2].armIn > cracks[0].armIn + .6);
+  assert.ok(cracks.every(q=>q.hw===16 && q.hh===34 && q.solid));
+  const roll=traceExtra(h,'gravelock','shellroll');
+  assert.ok(roll.distance >= Math.min(260,(h.api.arena.bossMax-h.api.arena.bossMin)/2)-.1, 'roll covers its path up to the arena boundary');
+  assert.equal(roll.shots.length,0);
+});
+test('new spider attacks rise on silk and release marked ceiling saws with staggered delays', () => {
+  const h=harness(), drop=traceExtra(h,'sparkwidow','silkdrop');
+  assert.ok(drop.high>=119); assert.ok(Math.abs(drop.b.x+drop.b.w/2-drop.target)<1);
+  const saws=drop.shots.filter(q=>q.kind==='saw'); assert.equal(saws.length,2); assert.equal(saws[0].vx,-saws[1].vx);
+  const web=traceExtra(h,'sparkwidow','websaw').shots, suspended=web.filter(q=>q.web);
+  assert.equal(suspended.length,3); assert.ok(suspended.every(q=>q.hold && q.armIn>=.55 && !q.solid));
+  assert.equal(web.filter(q=>q.harmless && q.style==='mark').length,3);
+  assert.ok(suspended[2].armIn>suspended[0].armIn+.3);
+});
+test('new dragon attacks retreat into aerial artillery and lock three separate beam lanes', () => {
+  const h=harness(), sky=traceExtra(h,'obsidian-crown','skybomb');
+  assert.ok(sky.high>=109 && sky.distance>=119);
+  assert.equal(sky.shots.filter(q=>q.kind==='shard').length,4);
+  assert.equal(sky.shots.filter(q=>q.style==='mark').length,4);
+  const rays=traceExtra(h,'obsidian-crown','imperialray').shots.filter(q=>q.style==='pillar');
+  assert.equal(rays.length,3); assert.ok(rays.every(q=>q.armIn>=.45 && q.solid && q.hh>130));
+  assert.ok(rays[2].armIn>rays[0].armIn+.6);
+});
+test('new targeting remains locked after the player leaves the warning, and scripts tolerate 30fps', () => {
+  const h=harness(), {g,b}=arena(h,'nullpriest'), p=g.state.player, A=h.api.arena;
+  b.x=(A.bossMin+A.bossMax)/2; p.x=b.x-80;
+  g._bossWind(b,h.bosses.get(b.id),'tailtrap'); const target=b.tellAim.x;
+  p.x+=140; b.timer=0; g._boss(1/60);
+  for(let i=0;i<12;i++)g._boss(1/60);
+  assert.ok(g.state.bullets.some(q=>q.style==='voidspike' && q.x===target),'moving away does not move the traps');
+  const wallRun=arena(h,'tidebreaker'), wb=wallRun.b, wp=wallRun.g.state.player;
+  wb.x=(A.bossMin+A.bossMax)/2; wp.x=wb.x-120;
+  wallRun.g._bossWind(wb,h.bosses.get(wb.id),'tidalwall');
+  wp.x=wb.x+120; wb.timer=0; wallRun.g._boss(1/60);
+  assert.equal(wb.move.dir,-1,'crossing behind during the warning cannot reverse the water wall');
+  for(const [name,e] of Object.entries(h.bosses.extraMoves)) for(const d of [-1,1]) {
+    const run=traceExtra(h,e.owner,name,d,1/30);
+    assert.ok(Number.isFinite(run.b.x) && Number.isFinite(run.b.y));
+    assert.equal(run.b.phaseOut,false);
+  }
+});
+test('real held-jump physics clears the water wall and the highest point of the cinder roll', () => {
+  const h=harness(), {g,b}=arena(h,'tidebreaker'), p=g.state.player;
+  b.active=false; g.state.enemies=[]; p.invuln=0; p.y=310-p.h; p.onGround=true;
+  // Preserve the real arena: choose a floor position with headroom, rather than
+  // measuring a jump that hits the underside of one of its existing platforms.
+  p.x=Array.from({length:h.api.arena.bossMax-h.api.arena.bossMin},(_,n)=>h.api.arena.bossMin+n)
+    .find(x=>!g.state.platforms.some(q=>q.y<310 && q.x<x+p.w && q.x+q.w>x));
+  assert.ok(Number.isFinite(p.x));
+  g.input.jump=true;
+  let jumpRise=0;
+  for(let i=0;i<24;i++){g._tick(1/60);jumpRise=Math.max(jumpRise,310-p.y-p.h);}
+  assert.ok(jumpRise>76,'a full held jump, rather than an assumed pixel height');
+  const cinder=traceExtra(h,'ashmaw','cinderroll');
+  assert.ok(jumpRise>cinder.b.h+cinder.high+4,'roll has clearance for a normal jump');
+  g._spawn(p.x+p.w/2,274,0,0,'enemy',false,1,{kind:'hazard',style:'geyser',hw:14,hh:36,r:36,solid:true,life:1.2});
+  g._tick(1/60); assert.equal(p.hp,p.maxHp,'jump clears the water wall');
+  for(let i=0;i<40;i++)g._tick(1/60);
+  assert.ok(p.hp<p.maxHp,'the same wall is dangerous after landing');
+});
 function runToRest(g, b, move, each) {
   let frames = 0;
   for (; frames < 60 * 6 && String(b.attack) === move; frames++) {

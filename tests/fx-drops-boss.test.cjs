@@ -121,7 +121,7 @@ test('a boss runs one written loop, and nothing about it is chosen at random',()
   const {api,bosses}=harness();
   for(const def of Array.from(bosses.list)){
     const routine=Array.from(def.routine);
-    assert.ok(routine.length>=4&&routine.length<=6,`${def.id} loops 4 to 6 beats, not ${routine.length}`);
+    assert.ok(routine.length>=6&&routine.length<=8,`${def.id} loops 6 to 8 beats, not ${routine.length}`);
     for(const beat of routine){
       assert.ok(api.bossPatterns[beat.move],`${def.id} names a real attack: ${beat.move}`);
       assert.ok(api.bossBands[beat.from],`${def.id} names a real distance: ${beat.from}`);

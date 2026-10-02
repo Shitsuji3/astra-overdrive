@@ -2,7 +2,7 @@ const fs=require('fs'),assert=require('node:assert/strict');
 const {chromium}=require('C:/Users/situz/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 (async()=>{const br=await chromium.launch({headless:true,executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});try{
  const p=await br.newPage({viewport:{width:1280,height:720}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
- await p.goto('http://127.0.0.1:4173/');await p.locator('[data-action=stage-select]').click();await p.locator('.stage-node.active').click();await p.waitForTimeout(700);
+ await p.goto('http://127.0.0.1:4173/');await p.locator('[data-action=boss-rush]').click();await p.waitForTimeout(700);
  const result=await p.evaluate(async()=>{
   game.running=false;cancelAnimationFrame(game.raf);game.start({stage:'gauntlet'});game.running=false;cancelAnimationFrame(game.raf);
   const ids=['warden','tidebreaker','coilhead','ashmaw','nullpriest','gravelock','sparkwidow','obsidian-crown'];
@@ -11,7 +11,7 @@ const {chromium}=require('C:/Users/situz/.cache/codex-runtimes/codex-primary-run
   const board=document.createElement('canvas');board.width=960;board.height=8*200;const bc=board.getContext('2d');bc.imageSmoothingEnabled=false;
   let maxMs=0,sumMs=0,frames=0,meshes=0,minArea=Infinity;
   for(let n=0;n<ids.length;n++){
-   const b=game._spawnBoss(ids[n]),s=game.state;b.x=400;b.y=b.baseY=250-b.h;s.camera.x=120;s.message='';s.shake=0;s.bullets=[];s.particles=[];s.player.x=100;s.player.invuln=0;
+   const b=game._spawnBoss(ids[n]),s=game.state;s.bossIntro=null;b.x=400;b.y=b.baseY=250-b.h;s.camera.x=120;s.message='';s.shake=0;s.bullets=[];s.particles=[];s.player.x=100;s.player.invuln=0;
    AstraRenderer.draw(c,s);await new Promise(r=>setTimeout(r,150));
    for(let col=0;col<3;col++){
     b.attack=col===0?'rest':col===1?'tell-'+moves[n]:moves[n];b.timer=0;

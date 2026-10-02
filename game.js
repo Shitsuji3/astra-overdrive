@@ -285,6 +285,11 @@
     tailspin: { tell: 0.85, active: 0.9 },
     pounce: { tell: 0.85, active: 1.0 }
   };
+  var bossExtras = (global.AstraBosses && global.AstraBosses.extraMoves) || {};
+  Object.keys(bossExtras).forEach(function (name) {
+    var e = bossExtras[name];
+    combat.bossPatterns[name] = { tell: e.tell, active: e.active };
+  });
   // COILHEAD's dive. It rises lift px over the floor in rise seconds, hunts the player from overhead at
   // track px/s for hover seconds but holds still for the last lock of them, so the drop can be read and
   // sidestepped, falls at fall px/s^2, and sends a short shock out each way where it lands. Then it is
@@ -619,8 +624,7 @@
     };
     global.addEventListener('keydown', this._keydown);
     global.addEventListener('keyup', this._keyup);
-    if (!(global.AstraPlatform && global.AstraPlatform.isHosted))
-      global.addEventListener('blur', this._blur);
+    if (!(global.AstraPlatform && global.AstraPlatform.isHosted)) global.addEventListener('blur', this._blur);
     // Put away (another tab, a minimised window, a phone's screen switched off), a running fight
     // pauses, so coming back finds the pause panel rather than a fight that went on without the player.
     // A phone does not always blur the window first, so this does not rely on blur.
@@ -2564,13 +2568,357 @@
       if (m.t >= dur + 0.25) finish(b, m);
     }
   };
+  // Mark the locked landing point before releasing each shell, including shots after the first volley.
+  function markedLob(game, b, x, y, to, flight, extra) {
+    bossHazard(game, b, to, b.baseY + b.h - 4, 12, 4, 0, flight + 0.15, 'mark', { harmless: true });
+    bossLob(game, b, x, y, to, flight, extra);
+  }
+  function moveSound(game) {
+    game._emit('sound', { name: 'boss' });
+  }
+  Object.assign(BOSS_MOVES, {
+    shears: function (b, m, dt, k) {
+      // One claw sweeps the ankles, then the other passes over a grounded player's head.
+      m.pose = m.t < 0.2 || (m.t > 0.45 && m.t < 0.65) ? 'rear' : 'strike';
+      for (var i = 0; i < 2; i++)
+        if (once(m, 'cut' + i, 0.13 + i * 0.45)) {
+          var cx = b.x + b.w / 2 + m.dir * 72;
+          bossHazard(this, b, cx, b.baseY + b.h - (i ? 66 : 18), 52, 12, 0.12, 0.18, 'sweep', { high: !!i });
+          this._bossImpact(cx, b.baseY + b.h - (i ? 66 : 18), b.id, 28);
+          moveSound(this);
+        }
+      if (m.t >= 1.15) finish(b, m);
+    },
+    siegefan: function (b, m, dt, k) {
+      m.pose = 'aim';
+      for (var v = 0; v < 2; v++)
+        if (once(m, 'fan' + v, 0.2 + v * 0.45)) {
+          for (var i = -1; i <= 1; i++) {
+            var tx = arenaX(k, b, m.tx + i * 88 + v * m.dir * 36);
+            markedLob(this, b, b.x + b.w / 2 + m.dir * 22, b.y + b.h * 0.28, tx, 0.85 + v * 0.1, {
+              r: 7,
+              kind: 'slug'
+            });
+          }
+          m.pose = 'recoil';
+          this._bossImpact(b.x + b.w / 2 + m.dir * 22, b.y + b.h * 0.28, b.id, 22);
+          moveSound(this);
+        }
+      if (m.t >= 1.55) finish(b, m);
+    },
+    tidalwall: function (b, m, dt, k) {
+      m.pose = m.t < 0.3 ? 'rear' : m.t < 0.9 ? 'strike' : null;
+      if (once(m, 'wall', 0.3)) {
+        bossHazard(this, b, b.x + b.w / 2 + m.dir * 45, b.baseY + b.h - 36, 14, 36, 0.15, 2.1, 'geyser', {
+          vx: m.dir * 180,
+          tidal: true
+        });
+        moveSound(this);
+      }
+      if (m.t >= 1.65) finish(b, m);
+    },
+    scythewheel: function (b, m, dt, k) {
+      var u = Math.min(1, m.t / 0.95);
+      b.x = clamp(m.fromX + m.dir * 110 * sstep(u), k.A.bossMin, k.A.bossMax);
+      b.y = b.baseY - 80 * Math.sin(Math.PI * u);
+      b.fly = u < 1;
+      m.pose = u < 1 ? 'spin' : 'strike';
+      m.poseU = u;
+      if (once(m, 'blades', 0.42)) {
+        for (var i = 0; i < 3; i++) {
+          var a = 0.15 + i * 0.33;
+          bossShot(
+            this,
+            b,
+            b.x + b.w / 2 + m.dir * 18,
+            b.y + b.h * 0.5,
+            m.dir * Math.cos(a) * 230,
+            Math.sin(a) * 230,
+            { r: 8, kind: 'crescent', life: 2, pops: true }
+          );
+        }
+        moveSound(this);
+      }
+      if (m.t >= 1.45) {
+        b.y = b.baseY;
+        b.fly = false;
+        finish(b, m);
+      }
+    },
+    stormwing: function (b, m, dt, k) {
+      var u = Math.min(1, m.t / 1.2);
+      b.y = m.fromY - 36 * Math.sin(Math.PI * u);
+      b.fly = true;
+      m.pose = 'air';
+      for (var v = 0; v < 2; v++)
+        if (once(m, 'gust' + v, 0.28 + v * 0.42)) {
+          var cx = b.x + b.w / 2,
+            cy = b.y + b.h * 0.6,
+            a = Math.atan2(m.ty - cy, m.tx - cx);
+          for (var i = -2; i <= 2; i++) {
+            var th = a + i * 0.18 + (v ? 0.09 : -0.09);
+            bossShot(this, b, cx, cy, Math.cos(th) * 235, Math.sin(th) * 235, {
+              r: 4,
+              kind: 'needle',
+              life: 2.3
+            });
+          }
+          moveSound(this);
+        }
+      if (m.t >= 1.55) {
+        b.y = m.fromY;
+        finish(b, m);
+      }
+    },
+    arcnet: function (b, m, dt, k) {
+      m.pose = 'charge';
+      if (once(m, 'cage', 0.08)) {
+        var fy = b.baseY + b.h;
+        for (var i = -1; i <= 1; i++)
+          bossHazard(
+            this,
+            b,
+            arenaX(k, b, m.tx + i * 84),
+            (34 + fy) / 2,
+            9,
+            (fy - 34) / 2,
+            i ? 0.5 : 1.15,
+            i ? 0.35 : 0.28,
+            'bolt'
+          );
+        moveSound(this);
+      }
+      if (m.t >= 1.8) finish(b, m);
+    },
+    furnace: function (b, m, dt, k) {
+      m.pose = m.t < 0.35 ? 'rear' : m.t < 0.85 ? 'strike' : null;
+      if (once(m, 'fire', 0.35)) {
+        var cx = b.x + b.w / 2 + m.dir * 23,
+          cy = b.y + b.h * 0.36;
+        for (var i = 0; i < 7; i++) {
+          var a = ((-80 + i * 10) * Math.PI) / 180;
+          bossShot(this, b, cx, cy, m.dir * Math.cos(a) * 265, Math.sin(a) * 320, {
+            r: 6,
+            kind: 'ember',
+            g: 560,
+            life: 2,
+            floorOnly: true
+          });
+        }
+        this._bossImpact(cx, cy, b.id, 38);
+        moveSound(this);
+      }
+      if (m.t >= 1.5) finish(b, m);
+    },
+    cinderroll: function (b, m, dt, k) {
+      var u = Math.min(1, m.t / 1.15);
+      b.x = clamp(m.fromX + m.dir * 230 * sstep(u), k.A.bossMin, k.A.bossMax);
+      b.y = b.baseY - 18 * Math.sin(Math.PI * u);
+      b.fly = u < 1;
+      m.pose = u < 1 ? 'spin' : 'slam';
+      m.poseU = u;
+      for (var i = 0; i < 4; i++)
+        if (once(m, 'coal' + i, 0.2 + i * 0.3)) {
+          bossHazard(this, b, b.x + b.w / 2 - m.dir * 20, b.baseY + b.h - 7, 14, 7, 0.32, 0.65, 'embers');
+          if (!i) moveSound(this);
+        }
+      if (m.t >= 1.5) {
+        b.y = b.baseY;
+        b.fly = false;
+        finish(b, m);
+      }
+    },
+    tailtrap: function (b, m, dt, k) {
+      m.pose = m.t < 0.25 ? 'rear' : m.t < 1.1 ? 'strike' : null;
+      if (once(m, 'traps', 0.15)) {
+        for (var i = -1; i <= 1; i++)
+          bossHazard(
+            this,
+            b,
+            arenaX(k, b, m.tx + i * 96),
+            b.baseY + b.h - 36,
+            12,
+            36,
+            0.6,
+            0.45,
+            'voidspike'
+          );
+        moveSound(this);
+      }
+      if (m.t >= 1.55) finish(b, m);
+    },
+    riftgate: function (b, m, dt, k) {
+      m.pose = 'charge';
+      if (once(m, 'gates', 0.08)) {
+        var left = k.A.gate + 10,
+          right = k.A.bossMax + b.w - 10,
+          len = right - left,
+          fy = b.baseY + b.h;
+        bossHazard(this, b, (left + right) / 2, fy - 68, len / 2, 7, 0.35, 0.28, 'beam', {
+          dir: m.dir,
+          portal: true
+        });
+        bossHazard(this, b, (left + right) / 2, fy - 16, len / 2, 7, 1.1, 0.24, 'beam', {
+          dir: -m.dir,
+          low: true,
+          portal: true
+        });
+        moveSound(this);
+      }
+      if (m.t >= 1.65) finish(b, m);
+    },
+    faultline: function (b, m, dt, k) {
+      m.pose = m.t < 0.3 ? 'rear' : m.t < 1.25 ? 'strike' : null;
+      if (once(m, 'cracks', 0.12)) {
+        var front = b.x + b.w / 2 + m.dir * b.w * 0.5;
+        for (var i = 0; i < 3; i++)
+          bossHazard(
+            this,
+            b,
+            arenaX(k, b, front + m.dir * (60 + i * 86)),
+            b.baseY + b.h - 34,
+            16,
+            34,
+            0.18 + i * 0.35,
+            0.42,
+            'stone'
+          );
+        this._bossImpact(front, b.baseY + b.h, b.id, 40);
+        moveSound(this);
+      }
+      if (m.t >= 1.75) finish(b, m);
+    },
+    shellroll: function (b, m, dt, k) {
+      var u = Math.min(1, Math.max(0, (m.t - 0.2) / 1));
+      b.x = clamp(m.fromX + m.dir * 260 * sstep(u), k.A.bossMin, k.A.bossMax);
+      m.pose = m.t < 0.2 ? 'crouch' : m.t < 1.2 ? 'spin' : 'slam';
+      m.poseU = u;
+      if (once(m, 'roll', 0.2)) moveSound(this);
+      if (once(m, 'brake', 1.2)) {
+        this._bossImpact(b.x + b.w / 2, b.baseY + b.h, b.id, 50);
+        k.s.shake = Math.max(k.s.shake, 0.35);
+        moveSound(this);
+      }
+      if (m.t >= 1.65) finish(b, m);
+    },
+    silkdrop: function (b, m, dt, k) {
+      if (m.toX === undefined) {
+        m.toX = clamp(m.tx - b.w / 2, k.A.bossMin, k.A.bossMax);
+        m.ax = m.fromX + b.w / 2;
+        bossHazard(this, b, m.toX + b.w / 2, b.baseY + b.h - 4, b.w * 0.85, 4, 0, 1.3, 'mark', {
+          harmless: true
+        });
+      }
+      b.fly = m.t < 1.15;
+      if (m.t < 0.35) {
+        b.y = b.baseY - 120 * sstep(m.t / 0.35);
+        m.pose = 'rear';
+      } else if (m.t < 0.75) {
+        b.x = m.fromX + (m.toX - m.fromX) * sstep((m.t - 0.35) / 0.4);
+        b.y = b.baseY - 120;
+        m.pose = 'air';
+      } else {
+        b.x = m.toX;
+        b.y = b.baseY - 120 * (1 - sstep((m.t - 0.75) / 0.4));
+        m.pose = m.t < 1.15 ? 'strike' : 'slam';
+      }
+      if (once(m, 'saws', 0.55)) {
+        for (var d = -1; d <= 1; d += 2)
+          bossShot(this, b, b.x + b.w / 2, b.y + b.h * 0.6, d * 140, 170, {
+            r: 9,
+            kind: 'saw',
+            g: 250,
+            floorOnly: true,
+            life: 2
+          });
+        moveSound(this);
+      }
+      if (once(m, 'land', 1.15)) {
+        this._bossImpact(b.x + b.w / 2, b.baseY + b.h, b.id, 42);
+        moveSound(this);
+      }
+      if (m.t >= 1.5) {
+        b.y = b.baseY;
+        b.fly = false;
+        finish(b, m);
+      }
+    },
+    websaw: function (b, m, dt, k) {
+      m.pose = m.t < 0.45 ? 'rear' : 'aim';
+      if (once(m, 'web', 0.12)) {
+        for (var i = 0; i < 3; i++) {
+          var x = arenaX(k, b, m.tx + (i - 1) * 100),
+            delay = 0.55 + i * 0.18;
+          bossShot(this, b, x, 60, 0, 200, {
+            r: 9,
+            kind: 'saw',
+            armIn: delay,
+            hold: true,
+            web: true,
+            g: 280,
+            floorOnly: true,
+            life: 2
+          });
+          bossHazard(this, b, x, b.baseY + b.h - 4, 12, 4, 0, delay + 1.1, 'mark', { harmless: true });
+        }
+        moveSound(this);
+      }
+      if (m.t >= 1.65) finish(b, m);
+    },
+    skybomb: function (b, m, dt, k) {
+      var u = Math.min(1, m.t / 1.25);
+      b.x = clamp(m.fromX - m.dir * 120 * sstep(u), k.A.bossMin, k.A.bossMax);
+      b.y = b.baseY - 110 * Math.sin(Math.PI * u);
+      b.fly = u < 1;
+      m.pose = u < 1 ? 'air' : 'recoil';
+      for (var v = 0; v < 2; v++)
+        if (once(m, 'bombs' + v, 0.35 + v * 0.3)) {
+          for (var d = -1; d <= 1; d += 2)
+            markedLob(
+              this,
+              b,
+              b.x + b.w / 2 - m.dir * 8,
+              b.y + b.h * 0.15,
+              arenaX(k, b, m.tx + d * (v ? 42 : 100)),
+              0.9,
+              { r: 8, kind: 'shard' }
+            );
+          moveSound(this);
+        }
+      if (m.t >= 1.8) {
+        b.y = b.baseY;
+        b.fly = false;
+        finish(b, m);
+      }
+    },
+    imperialray: function (b, m, dt, k) {
+      m.pose = 'aim';
+      if (once(m, 'rays', 0.08)) {
+        var fy = b.baseY + b.h;
+        for (var i = 0; i < 3; i++)
+          bossHazard(
+            this,
+            b,
+            arenaX(k, b, m.tx + (i - 1) * 100 * m.dir),
+            (24 + fy) / 2,
+            12,
+            (fy - 24) / 2,
+            0.45 + i * 0.32,
+            0.24,
+            'pillar'
+          );
+        moveSound(this);
+      }
+      if (m.t >= 2) finish(b, m);
+    }
+  });
   combat.bossMoves = BOSS_MOVES;
   // Each pattern fires once, at the moment its wind-up ends. Every number it uses comes from
   // the roster entry, so two bosses sharing an attack still do not play the same.
   NeonGame.prototype._bossFire = function (b, name) {
     var s = this.state,
       p = s.player,
-      dir = p.x < b.x ? -1 : 1,
+      dir = bossExtras[name] && b.tellAim ? b.tellAim.dir : p.x < b.x ? -1 : 1,
       cx = b.x + b.w / 2,
       cy = b.y + b.h / 2,
       floorY = (b.baseY === undefined ? b.y : b.baseY) + b.h,
@@ -2708,6 +3056,12 @@
       b.move = { kind: 'swoop', t: 0, fromY: b.y, dir: dir, done: false };
     } else if (BOSS_MOVES[name]) {
       b.move = { kind: name, t: 0, dir: dir, done: false, fired: {}, pose: null };
+      if (bossExtras[name]) {
+        b.move.tx = b.tellAim ? b.tellAim.x : p.x + p.w / 2;
+        b.move.ty = b.tellAim ? b.tellAim.y : p.y + p.h / 2;
+        b.move.fromX = b.x;
+        b.move.fromY = b.y;
+      }
     } else if (name === 'wall') {
       // a column with exactly one hole in it, which is the whole puzzle
       var rows = knob(b, 'wallRows'),
@@ -3221,6 +3575,7 @@
     b.attack = 'tell-' + move;
     b.phase = def.pool.indexOf(move);
     b.timer = C.bossPatterns[move].tell * C.bossTellScale[b.healthPhase - 1] * (def.tempo || 1);
+    b.tellAim = bossExtras[move] ? { x: p.x + p.w / 2, y: p.y + p.h / 2, dir: p.x < b.x ? -1 : 1 } : null;
     b.facing = p.x < b.x ? -1 : 1;
     b.dashTime = 0;
     this._emit('sound', { name: 'boss' });

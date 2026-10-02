@@ -930,6 +930,49 @@
           );
         }
       }
+    } else if (b.style === 'stone' || b.style === 'voidspike' || b.style === 'pillar') {
+      // The preview covers the complete collision rectangle. Essential warnings remain
+      // visible with reduced motion; only the ornamental shimmer is removed.
+      if (warn) {
+        c.globalAlpha = 0.3 + wu * 0.55;
+        c.strokeStyle = co[0];
+        c.lineWidth = 1;
+        c.setLineDash([4, 4]);
+        c.strokeRect(x - hw, top, hw * 2, hh * 2);
+        c.setLineDash([]);
+        L(c, x - hw - 4, bot - 2, x + hw + 4, bot - 2, P.coral, 2);
+        G(c, x, bot - 3, 14 + wu * 8, co[0], 0.35);
+      } else if (b.style === 'pillar') {
+        c.globalAlpha = 0.4 * out;
+        R(c, x - hw - 3, top, hw * 2 + 6, hh * 2, co[0]);
+        c.globalAlpha = out;
+        R(c, x - hw, top, hw * 2, hh * 2, co[0]);
+        R(c, x - hw * 0.5, top, hw, hh * 2, co[1]);
+        R(c, x - 1, top, 2, hh * 2, P.white);
+        for (i = 0; i < 3; i++) {
+          var ry = top + hh * (0.3 + i * 0.65);
+          c.strokeStyle = co[1];
+          c.lineWidth = 1;
+          c.beginPath();
+          c.ellipse(x, ry, hw + 5, 3, 0, 0, Math.PI * 2);
+          c.stroke();
+        }
+        G(c, x, bot - 5, 28, co[0], 0.5 * out);
+      } else {
+        var stone = b.style === 'stone';
+        c.globalAlpha = out;
+        for (i = 0; i < 3; i++) {
+          var sx = x + (i - 1) * hw * 0.6,
+            sy = top + (i === 1 ? 0 : hh * 0.55);
+          Q(
+            c,
+            [sx - hw * 0.4, bot, sx - hw * 0.35, sy + 14, sx, sy, sx + hw * 0.4, sy + 10, sx + hw * 0.4, bot],
+            stone ? '#6b7e89' : co[0]
+          );
+          L(c, sx, sy + 4, sx - hw * 0.18, bot - 4, stone ? '#d0e5e6' : co[1], 2);
+        }
+        G(c, x, bot - 4, hw * 2, co[0], 0.3 * out);
+      }
     } else if (b.style === 'bolt') {
       if (warn) {
         f = reduced ? 0.6 : 0.3 + 0.6 * wu * Math.abs(Math.sin(t * (12 + 30 * wu)));
@@ -1049,6 +1092,17 @@
         R(c, l0, y - 1, w0, 2, P.white);
         G(c, ox, y, 18, co[1], 0.7 * out);
         G(c, ex, y, 14, co[0], 0.5 * out);
+      }
+      if (b.portal) {
+        c.globalAlpha = warn ? 0.6 : out;
+        c.strokeStyle = co[0];
+        c.lineWidth = 3;
+        for (var end = -1; end <= 1; end += 2) {
+          c.beginPath();
+          c.ellipse(x + end * hw, y, 5, 20, 0, 0, Math.PI * 2);
+          c.stroke();
+          L(c, x + end * hw, y - 12, x + end * hw, y + 12, co[1], 2);
+        }
       }
     } else if (b.style === 'jaws') {
       var gap = hh * (1 - Math.min(1, lu * 1.6));
@@ -1347,6 +1401,11 @@
     tailspin: [0.1, 0.6],
     pounce: [0.75]
   };
+  var EXTRA_BOSS_MOVES = (g.AstraBosses && g.AstraBosses.extraMoves) || {};
+  Object.keys(EXTRA_BOSS_MOVES).forEach(function (name) {
+    BOSS_TELL_POSES[name] = EXTRA_BOSS_MOVES[name].pose;
+    BOSS_ART_BEATS[name] = EXTRA_BOSS_MOVES[name].beats;
+  });
   function bossArtTarget(b, time, reduced) {
     var raw = String(b.attack || ''),
       tell = raw.indexOf('tell-') === 0,
@@ -1380,13 +1439,15 @@
     switch (b.id) {
       case 'warden':
         out = [-q + hit, -q * 0.8 + hit * 0.9, q * 0.22];
-        if (name === 'cannon') out = [q * 0.22 - kick * 0.22, q * 0.15 - kick * 0.16, kick * 0.12];
+        if (name === 'cannon' || name === 'siegefan')
+          out = [q * 0.22 - kick * 0.22, q * 0.15 - kick * 0.16, kick * 0.12];
         break;
       case 'tidebreaker':
         out = [q - hit, q * 0.8 - hit * 1.1, -q * 0.18 + hit * 0.18];
         break;
       case 'coilhead':
         out = [q * 0.4, q - hit, -q * 0.35 + hit * 0.3];
+        if (name === 'stormwing') out[0] = tell ? -q * 0.55 : Math.sin(tt * 16) * a * 0.18;
         break;
       case 'ashmaw':
         out = [-q + hit * 0.55, q * 0.8 - hit * 0.75, -q * 0.45 + hit * 0.5];
@@ -2232,7 +2293,187 @@
       c.stroke();
     }
   };
-  // Six patterns only work if the player can read which one is coming, so each wind-up draws
+  function extraBossTell(c, s, b, k, name) {
+    var e = EXTRA_BOSS_MOVES[name],
+      x = gx(s, k.cx),
+      fy = k.floorY,
+      d = k.dir;
+    var aim = b.tellAim || { x: k.px, y: k.py },
+      tx = aim.x;
+    c.setLineDash([4, 4]);
+    if (name === 'shears') {
+      for (var i = 0; i < 2; i++) {
+        c.strokeStyle = i ? P.amber : P.coral;
+        c.lineWidth = 1;
+        c.strokeRect(x + d * 72 - 52, fy - (i ? 78 : 30), 104, 24);
+      }
+    } else if (name === 'siegefan' || name === 'skybomb') {
+      c.setLineDash([]);
+      for (var v = 0; v < 2; v++)
+        for (var i = -1; i <= 1; i++) {
+          if (name === 'skybomb' && i === 0) continue;
+          var xx = name === 'siegefan' ? tx + i * 88 + v * d * 36 : tx + i * (v ? 42 : 100);
+          tellRing(c, gx(s, tellArenaX(b, xx)), fy - 3, 12, v ? P.amber : P.coral);
+        }
+      tellArrowUp(c, x - d * 12, b.y - 6, P.amber);
+    } else if (name === 'arcnet' || name === 'imperialray' || name === 'tailtrap' || name === 'websaw') {
+      var gap = name === 'arcnet' ? 84 : name === 'tailtrap' ? 96 : 100;
+      for (var i = -1; i <= 1; i++) {
+        var xx = gx(s, tellArenaX(b, tx + i * gap * (name === 'imperialray' ? d : 1)));
+        var top = name === 'tailtrap' ? fy - 72 : name === 'websaw' ? 60 : name === 'imperialray' ? 24 : 34;
+        var half = name === 'imperialray' || name === 'tailtrap' ? 12 : 9;
+        c.strokeStyle = name === 'arcnet' && !i ? P.amber : P.coral;
+        c.strokeRect(xx - half, top, half * 2, fy - top);
+        if (name === 'websaw') {
+          c.setLineDash([]);
+          tellRing(c, xx, 60, 9, P.amber);
+          c.setLineDash([4, 4]);
+        }
+      }
+    } else if (name === 'faultline') {
+      for (var i = 0; i < 3; i++) {
+        var xx = gx(s, tellArenaX(b, k.cx + d * (b.w * 0.5 + 60 + i * 86)));
+        c.strokeStyle = P.coral;
+        c.strokeRect(xx - 16, fy - 68, 32, 68);
+      }
+    } else if (name === 'riftgate') {
+      var A = g.AstraCombat.arena,
+        left = gx(s, A.gate + 10),
+        right = gx(s, A.bossMax + b.w - 10);
+      L(c, left, fy - 68, right, fy - 68, P.amber, 2);
+      L(c, left, fy - 16, right, fy - 16, P.coral, 2);
+      c.setLineDash([]);
+      tellRing(c, left, fy - 68, 12, P.amber);
+      tellRing(c, right, fy - 16, 12, P.coral);
+    } else if (name === 'stormwing') {
+      var ay = aim.y,
+        xx = gx(s, tx),
+        sy = b.y + b.h * 0.6;
+      for (var i = -1; i <= 1; i++) L(c, x, sy, xx, ay + i * 38, P.amber, 1);
+      c.setLineDash([]);
+      tellRing(c, xx, ay, 12, P.coral);
+    } else if (name === 'silkdrop') {
+      var xx = gx(s, tellBodyX(b, tx));
+      c.strokeStyle = P.coral;
+      c.strokeRect(xx - b.w * 0.85, fy - 12, b.w * 1.7, 10);
+      L(c, xx, 42, xx, fy - 12, P.amber, 1);
+      c.setLineDash([]);
+      tellArrowUp(c, x, b.y - 12, P.amber);
+    } else if (name === 'tidalwall') {
+      c.strokeStyle = P.coral;
+      c.strokeRect(x + d * 45 - 14, fy - 72, 28, 72);
+      c.setLineDash([]);
+      for (var i = 0; i < 4; i++) tellChevron(c, x + d * (70 + i * 45), fy - 36, d, 9, P.amber);
+    } else if (name === 'furnace') {
+      for (var i = 0; i < 5; i++) {
+        var a = ((-80 + i * 15) * Math.PI) / 180;
+        L(
+          c,
+          x + d * 23,
+          b.y + b.h * 0.36,
+          x + d * 23 + d * Math.cos(a) * 95,
+          b.y + b.h * 0.36 + Math.sin(a) * 80,
+          P.amber,
+          2
+        );
+      }
+    } else if (e.fx === 'roll' || name === 'scythewheel') {
+      var len = name === 'shellroll' ? 260 : name === 'scythewheel' ? 110 : 230;
+      L(c, x, fy - 18, x + d * len, fy - 18, P.coral, 2);
+      c.setLineDash([]);
+      tellChevron(c, x + d * len, fy - 18, d, 12, P.coral);
+      tellArrowUp(c, x + d * len * 0.5, fy - 30, P.amber);
+    }
+  }
+  function extraBossFx(c, s, b, m, x, dir, co, time, reduced) {
+    var e = EXTRA_BOSS_MOVES[m.kind],
+      fy = b.baseY + b.h,
+      cy = b.y + b.h * 0.4,
+      kick = 0;
+    for (var i = 0; i < e.beats.length; i++) {
+      var elapsed = m.t - e.beats[i];
+      if (elapsed >= 0 && elapsed < 0.25) kick = Math.max(kick, 1 - elapsed / 0.25);
+    }
+    c.globalAlpha = 0.7;
+    if (e.fx === 'slash') {
+      var high = m.t >= 0.58,
+        yy = fy - (high ? 66 : 18),
+        u = C((m.t - (high ? 0.58 : 0.13)) / 0.3, 0, 1);
+      if (u > 0 && u < 1) {
+        c.globalAlpha = 1 - u * 0.65;
+        for (var i = 0; i < 3; i++) {
+          c.strokeStyle = i ? co[0] : P.white;
+          c.lineWidth = 3 - i * 0.7;
+          c.beginPath();
+          c.ellipse(x + dir * 72, yy, 50 - i * 5, 12, dir * -0.12, Math.PI * u, Math.PI * u + Math.PI);
+          c.stroke();
+        }
+      }
+    } else if (e.fx === 'cannon') {
+      bossAirTrail(c, s, b, m, x, dir, co, time, reduced);
+      if (kick) {
+        var mx = x + dir * (m.kind === 'skybomb' ? -8 : 22),
+          my = b.y + b.h * (m.kind === 'skybomb' ? 0.15 : 0.28);
+        G(c, mx, my, 28 * kick, co[0], 0.55);
+        Q(c, [mx, my - 8 * kick, mx + dir * 22 * kick, my, mx, my + 8 * kick], co[1]);
+      }
+    } else if (e.fx === 'wheel' || e.fx === 'roll') {
+      if (m.pose === 'spin') {
+        var ph = reduced ? 0 : m.t * 8;
+        for (var i = 0; i < 3; i++)
+          fxArc(
+            c,
+            x,
+            b.y + b.h * 0.52,
+            b.h * 0.62 + i * 3,
+            ph + i * 2,
+            ph + i * 2 + 1.2,
+            co[i % 2],
+            i ? 1 : 2
+          );
+        bossStreaks(c, b, x, dir, co, reduced, true);
+      }
+    } else if (e.fx === 'silk') {
+      if (m.t < 0.75) {
+        L(c, gx(s, m.ax), 36, x, b.y + 4, co[0], 3);
+        L(c, gx(s, m.ax), 36, x, b.y + 4, P.white, 1);
+      }
+      bossAirTrail(c, s, b, m, x, dir, co, time, reduced);
+    } else if (e.fx === 'web') {
+      (s.bullets || []).forEach(function (q) {
+        if (q.web && q.fxBoss === b.id && q.armIn > 0) {
+          var xx = gx(s, q.x);
+          L(c, xx, 24, xx, q.y - q.r, co[0], 2);
+          L(c, xx, 24, xx, q.y - q.r, P.white, 1);
+        }
+      });
+    } else if (e.fx === 'wing') {
+      var ph = reduced ? 0.4 : Math.sin(m.t * 16);
+      for (var d = -1; d <= 1; d += 2) {
+        fxArc(c, x + d * 20, cy - 10, 18 + ph * 4, d < 0 ? 2 : -1.2, d < 0 ? 4.3 : 1.2, co[1], 2);
+      }
+    } else if (e.fx === 'mouth' && m.t < 0.85) {
+      var mx = x + dir * 23;
+      G(c, mx, cy, 14 + kick * 24, '#ff8a32', 0.5);
+      fxArc(c, mx, cy, 13 + kick * 10, -Math.PI, 0, '#ffe1a0', 2);
+    } else {
+      var hx = e.fx === 'horn' ? x + dir * 24 : x,
+        hy = e.fx === 'horn' ? fy - 10 : cy - 12;
+      G(c, hx, hy, 20 + kick * 18, co[0], 0.3);
+      var ph = reduced ? 0 : time * 2;
+      for (var i = 0; i < 3; i++) fxArc(c, hx, hy, 12 + i * 5, ph + i * 2, ph + i * 2 + 0.9, co[i % 2], 1);
+      if (kick) L(c, hx, hy - 10, hx, hy + 10, co[1], 2);
+    }
+    c.globalAlpha = 1;
+  }
+  Object.keys(EXTRA_BOSS_MOVES).forEach(function (name) {
+    BOSS_MOVE_NAMES[name] = EXTRA_BOSS_MOVES[name].name;
+    BOSS_MOVE_FX[name] = extraBossFx;
+    BOSS_TELLS[name] = function (c, s, b, k) {
+      extraBossTell(c, s, b, k, name);
+    };
+  });
+  // Patterns work only if the player can read which one is coming, so each wind-up draws
   // its own warning where the attack will actually arrive.
   function bossTell(c, s, b) {
     if (!b || !b.active) return;
