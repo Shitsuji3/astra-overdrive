@@ -568,21 +568,17 @@ footer span {
     top: 0;
   }
   .touch-actions [data-input='saber'] {
-    left: calc(var(--touch-unit) * 2);
+    left: 0;
     top: calc(var(--touch-unit) * 0.8);
     border-color: #ff987bac;
   }
   .touch-actions [data-input='dash'] {
-    left: 0;
-    top: calc(var(--touch-unit) * 0.85);
-    width: calc(var(--touch-unit) * 0.9);
-    height: calc(var(--touch-unit) * 0.9);
+    left: calc(var(--touch-unit) * 2);
+    top: calc(var(--touch-unit) * 0.8);
   }
   .touch-actions [data-input='jump'] {
-    left: calc(var(--touch-unit) * 0.96);
+    left: var(--touch-unit);
     top: calc(var(--touch-unit) * 1.5);
-    width: calc(var(--touch-unit) * 1.08);
-    height: calc(var(--touch-unit) * 1.08);
     border-color: #9ce9e9;
   }
   .touch-toolbar {
