@@ -43,7 +43,7 @@
     if (modal.hidden) modalReturn = document.activeElement;
     modal.hidden = false;
     $('#modal-content').innerHTML =
-      '<div class="eyebrow">PILOT MANUAL</div><h2>操作ガイド</h2><table class="guide-table"><tr><th>操作</th><th>キーボード</th><th>ゲームパッド</th></tr><tr><td>移動</td><td>A / D　← / →</td><td>左スティック</td></tr><tr><td>ジャンプ</td><td>Space / Z</td><td>A</td></tr><tr><td>ダッシュ</td><td>Shift / X</td><td>B</td></tr><tr><td>ジャストダッシュ</td><td colspan="2">攻撃が当たる直前（2フレーム以内）にダッシュすると、スロー演出とともにノーダメージ</td></tr><tr><td>射撃</td><td>J または左クリック（離すと1発）</td><td>X</td></tr><tr><td>セイバー</td><td>K または右クリック</td><td>Y</td></tr><tr><td>溜め突き</td><td>K 長押し→READYで離す</td><td>Y 長押し</td></tr><tr><td>斬り上げ</td><td>↑ / W ＋ セイバー</td><td>上 ＋ Y</td></tr><tr><td>扇状弾（地上）</td><td>↓ / S ＋ セイバー長押し→離す（最大3段）</td><td>下 ＋ Y 長押し→離す</td></tr><tr><td>壁蹴り</td><td>壁につかまり＋ジャンプ</td><td>壁際＋A</td></tr></table><p>弾を斬ると1.5秒間COUNTER READY。次の近接攻撃が1.5倍。ボスの隙に溜め突き、空中の敵に斬り上げで各1.25倍。扇状弾は上方の広範囲へ。</p><p>ESC / P / Start　ポーズ</p><p>メニュー：十字キー / 左スティックで選択、A で決定、B で戻る（設定のスライダーは左右）</p>';
+      '<div class="eyebrow">PILOT MANUAL</div><h2>操作ガイド</h2><div class="touch-guide"><h3>スマートフォン</h3><p>左スティックで移動、右のボタンでアクション。方向は指を滑らせて変更できます。</p><p>バスター：離すと1発。セイバー：タップで斬撃、長押ししてREADYで離すと溜め突き。</p><p>スティック上＋セイバーで斬り上げ。地上でスティック下＋セイバー長押し→離すと扇状弾（最大3段）。</p><p>右上でポーズ・全画面。設定でタッチボタンの大きさを変更できます。</p></div><table class="guide-table"><tr><th>操作</th><th>キーボード</th><th>ゲームパッド</th></tr><tr><td>移動</td><td>A / D　← / →</td><td>左スティック</td></tr><tr><td>ジャンプ</td><td>Space / Z</td><td>A</td></tr><tr><td>ダッシュ</td><td>Shift / X</td><td>B</td></tr><tr><td>ジャストダッシュ</td><td colspan="2">攻撃が当たる直前（2フレーム以内）にダッシュすると、スロー演出とともにノーダメージ</td></tr><tr><td>射撃</td><td>J または左クリック（離すと1発）</td><td>X</td></tr><tr><td>セイバー</td><td>K または右クリック</td><td>Y</td></tr><tr><td>溜め突き</td><td>K 長押し→READYで離す</td><td>Y 長押し</td></tr><tr><td>斬り上げ</td><td>↑ / W ＋ セイバー</td><td>上 ＋ Y</td></tr><tr><td>扇状弾（地上）</td><td>↓ / S ＋ セイバー長押し→離す（最大3段）</td><td>下 ＋ Y 長押し→離す</td></tr><tr><td>壁蹴り</td><td>壁につかまり＋ジャンプ</td><td>壁際＋A</td></tr></table><p>弾を斬ると1.5秒間COUNTER READY。次の近接攻撃が1.5倍。ボスの隙に溜め突き、空中の敵に斬り上げで各1.25倍。扇状弾は上方の広範囲へ。</p><p>ESC / P / Start　ポーズ</p><p>メニュー：十字キー / 左スティックで選択、A で決定、B で戻る（設定のスライダーは左右）</p>';
   }
   function settingsModal() {
     if (modal.hidden) modalReturn = document.activeElement;
@@ -65,7 +65,14 @@
       (settings.easy ? 'checked' : '') +
       '></label><label class="settings-row">画面の揺れを抑える <input id="motion" type="checkbox" ' +
       (settings.motion ? 'checked' : '') +
-      '></label><button data-action="close">戻る</button>';
+      '></label><label class="settings-row touch-setting">タッチボタンの大きさ <input id="touch-size" type="range" min="85" max="125" value="' +
+      Math.round(touchScale() * 100) +
+      '"></label><button data-action="close">戻る</button>';
+    $('#touch-size').oninput = function () {
+      settings.touchScale = +this.value / 100;
+      applyTouchScale();
+    };
+    $('#touch-size').onchange = save;
     ['music', 'sfx', 'mute', 'easy', 'motion'].forEach(function (id) {
       if (!$('#' + id)) return;
       $('#' + id).onchange = function () {
@@ -736,6 +743,8 @@
             return;
           }
           if (t !== 'sound') hud(p);
+          if (touchControls && ['start', 'pause-request', 'death', 'victory'].indexOf(t) >= 0)
+            touchControls.reset();
           if (t === 'start') {
             overlay.hidden = true;
             AstraAudio.setResultMode(false);
@@ -924,28 +933,24 @@
     },
     true
   );
-  document.querySelectorAll('[data-input]').forEach(function (b) {
-    var a = b.dataset.input;
-    b.addEventListener('pointerdown', function (e) {
-      e.preventDefault();
-      if (b.setPointerCapture)
-        try {
-          b.setPointerCapture(e.pointerId);
-        } catch (z) {}
-      if (a === 'pause') {
-        if (game) game.pause();
-      } else if (game) game.setInput(a, true);
-    }); // The engine latches the press, so letting go here can be immediate. Holding the button on
-    // for a couple of animation frames used to be the way round a lost tap, and it was not
-    // reliable: animation frames and game steps do not come at the same rate.
-    function release() {
-      if (a === 'pause' || !game) return;
-      game.setInput(a, false);
+  function touchScale() {
+    var scale = Number(settings.touchScale);
+    return Number.isFinite(scale) ? Math.max(0.85, Math.min(1.25, scale)) : 1;
+  }
+  function applyTouchScale() {
+    document.documentElement.style.setProperty('--touch-scale', touchScale());
+    if (touchControls) touchControls.reset();
+  }
+  var touchControls = AstraTouchControls.attach($('.touch-controls'), {
+    getGame: function () {
+      return game;
+    },
+    isEnabled: function () {
+      return !shell.hidden && overlay.hidden && modal.hidden;
     }
-    b.addEventListener('pointerup', release);
-    b.addEventListener('pointercancel', release);
-    b.addEventListener('lostpointercapture', release);
   });
+  applyTouchScale();
+  if (!document.documentElement.requestFullscreen) $('.touch-toolbar [data-action=fullscreen]').hidden = true;
   // A gamepad works every menu the way the keyboard does: the title, stage select, the guide and settings,
   // and the pause and result panels. The D-pad or left stick moves, A confirms, B goes back, and Start
   // confirms on the title and in stage select and closes a modal. Confirm and back act when the button is
@@ -980,7 +985,11 @@
   }
   function padList(screen) {
     if (screen === 'overlay') return [].slice.call(document.querySelectorAll('#overlay-actions button'));
-    var own = [].slice.call(document.querySelectorAll('#modal-content input,#modal-content button'));
+    var own = [].slice
+      .call(document.querySelectorAll('#modal-content input,#modal-content button'))
+      .filter(function (el) {
+        return el.getClientRects().length > 0;
+      });
     return own.length ? own : [modal.querySelector('.close')].filter(Boolean);
   }
   function padStep(screen, dir) {
@@ -1157,6 +1166,7 @@
   }
   startHudTimer();
   AstraPlatform.subscribe(function (hostPaused) {
+    if (hostPaused) touchControls.reset();
     if (game) game.setHostPaused(hostPaused);
     if (hostPaused) {
       cancelAnimationFrame(padRaf);

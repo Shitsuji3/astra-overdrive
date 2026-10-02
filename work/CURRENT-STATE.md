@@ -2,7 +2,7 @@
 
 ## 現在の基準
 - 本体: C:\Users\situz\Documents\ChatGPT\Astragemes。サブエージェント禁止。
-- GitHub保存済み基準: e066a5d（ゲームコードa9bf544、軽量化・Playables準備・試遊音声修正まで）。今回のボス追加16技はローカル保存、未push。
+- GitHub保存済み基準: e066a5d（ゲームコードa9bf544、軽量化・Playables準備・試遊音声修正まで）。ボス追加16技とスマホ操作改善はローカル保存、未push。
 - 公開: https://shitsuji3.github.io/astra-overdrive/
 - 最新保存版とSHA: work/CURRENT-SNAPSHOT.jsonのsaved_at、backup_path、sha256を確認。files_sha256全件は照合が必要な時だけ読む。
 - 工場背景、プレイヤー、UI、操作感を維持。簡易表示ならまず4173のサーバーと画像読込を確認。
@@ -11,6 +11,7 @@
 ## 必要な時に読む資料
 - 全体の詳しい引き継ぎ: work/HANDOFF-20260919.md。
 - ボス追加16技の現在地: work/BOSS-EXTRA-MOVES-20261002.md。旧技はwork/BOSS-MOVES-20260917.md、COILHEAD-FLIGHT-20260916.md、BOSS-SIGNATURE-20260915.md。
+- スマホ操作: work/MOBILE-CONTROLS-20261002.md。左スティック＋右4ボタン、右上ポーズ/対応時全画面。設定で85〜125%調整。touch-controls.jsとgame.jsのtouchInput。
 - 扇状弾: work/FAN-BURST-20260915.mdとgame.jsのcombat.fan。地上↓＋セイバー保持→離す。0.7秒/1.4秒で2段/3段、各7発、威力4.5/6.75/9。
 - 溜め突き/死亡: work/PLAYER-BREAK-THRUST-20260914.md。突きは1ヒット6.75×4。START MISSION削除済み。
 - ゲームパッドの失敗画面テストは演出終了を待つよう修正済み。39項目合格。
@@ -114,3 +115,8 @@ GitHub保存（2026-10-01）：軽量化・Playables準備・単独試遊音声�
 8体へ2技ずつ計16技を追加し、旧31技を保持して計47技。鋏の2連薙ぎ/曲射、水壁/回転鎌、羽ばたき針/時間差落雷、火球扇/炎の転がり、尾の罠/虚空門、角の石柱/甲殻転がり、糸から降下/吊り鋸、空中爆撃/重光線。専用の構え・部位モーション・予兆・攻撃後の隙・回避ヒント・技練習・被弾元記録に接続。新技は予兆開始時の狙いと方向を固定。背景・原画・プレイヤー操作・既存技の数値は維持。サブエージェントなし。
 
 npm test235件＋既存チェック、全47技の通常/演出軽減QA、13,420部位形状、追加16技の左右/軽減と被弾元42弾、8体の通常/低HP計16ループ成功。実際のジャンプ入力で水壁と炎獣の転がりを越えられることも確認。両配布版ビルド成功、配布約9.88MiB/Playables ZIP約9.48MiB。詳細work/BOSS-EXTRA-MOVES-20261002.md、一覧qa/boss-expansion/overview.png。最新バックアップはCURRENT-SNAPSHOT.json。GitHub未push。人の試遊による難易度・好みの調整は引き続き確認待ち。
+
+## 最新変更：スマートフォン操作改善（2026-10-02）
+横一列の9ボタンを、左下の8方向スティック＋右下のジャンプ/ダッシュ/バスター/セイバーへ変更。右上にポーズ/対応ブラウザー全画面。方向のスライド、指ごとの所有、同時押し、短いタップ、長押し特殊技、キャンセル/回転/非表示/停止時の解除に対応。PC入力から分離し、意図しない解除で攻撃を発射しない。横持ち半透明配置、縦持ちは画面と操作欄を分離、safe-area対応、大きさ85〜125%を設定・保存。既存の戦闘値・素材は維持。サブエージェントなし。
+
+npm test242件＋既存チェック、通常配布版の複数タッチQA10項目、幅320pxからタブレットの領域確認、PC起動18/パッド29/マウス11、Playables SDKホストQA8項目成功・ブラウザーエラー0。両ビルド成功、展開9.89MiB/Playables ZIP9.49MiB。詳細work/MOBILE-CONTROLS-20261002.md、qa/mobile-controls/landscape.png・portrait.png。Android/iOS実機の押し心地は未確認。ボス追加16技と今回変更はGitHub未push。最新保存版はCURRENT-SNAPSHOT.json。

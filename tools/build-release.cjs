@@ -41,6 +41,7 @@ const VERBATIM = [
   'render.js',
   'audio.js',
   'ui.js',
+  'touch-controls.js',
   'mastery.js',
   'assets/art-cache.js',
   'assets/bosses.js',

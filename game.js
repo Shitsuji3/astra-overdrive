@@ -551,6 +551,8 @@
     this.height = 360;
     this.worldWidth = 9600;
     this.input = {};
+    this.touchInput = {};
+    this.touchPressed = {};
     this.padInput = {};
     this.mouseInput = {};
     this.pressed = {};
@@ -619,6 +621,7 @@
     this._blur = function () {
       self.keys = {};
       self.input = {};
+      self.cancelTouchInput();
       self._clearMouse();
       if (self.state.mode === 'playing') self.pause();
     };
@@ -707,6 +710,8 @@
   };
   NeonGame.prototype._reset = function (mode) {
     this.input = {};
+    this.touchInput = {};
+    this.touchPressed = {};
     this.padInput = {};
     this.mouseInput = {};
     this.pressed = {};
@@ -833,6 +838,7 @@
   };
   NeonGame.prototype.pause = function () {
     if (this.state.mode === 'playing') {
+      this.cancelTouchInput();
       this._clearMouse();
       this.state.mode = 'paused';
       this.onEvent('pause-request', this.snapshot());
@@ -870,6 +876,34 @@
     if (this.hostPaused) return;
     this.input[a] = !!v;
     if (v) this.pressed[a] = true;
+  };
+  NeonGame.prototype.setTouchInput = function (a, v) {
+    if (this.hostPaused || this.state.mode !== 'playing') return;
+    if (v && !this.touchInput[a]) this.touchPressed[a] = true;
+    this.touchInput[a] = !!v;
+  };
+  // OS cancellation / pause is not a deliberate release of a charged attack.
+  NeonGame.prototype.cancelTouchInput = function (action) {
+    var self = this,
+      p = this.state && this.state.player;
+    (action ? [action] : Object.keys(this.touchInput)).forEach(function (a) {
+      var owned = self.touchInput[a] || self.touchPressed[a];
+      delete self.touchInput[a];
+      delete self.touchPressed[a];
+      if (!owned || !p || self.input[a] || self.padInput[a] || self.mouseInput[a]) return;
+      if (a === 'shoot') {
+        self._shootHeld = false;
+        p.charge = 0;
+      }
+      if (a === 'saber') {
+        self._saberHeld = false;
+        p.saberCharge = 0;
+        if (p.saberCombo === 7 && !p.fanReleased) {
+          p.saberTime = p.saberCombo = p.fanCharge = 0;
+        }
+        self._emit('charge-state', { level: 0 });
+      }
+    });
   };
   NeonGame.prototype.setOptions = function (o) {
     Object.assign(this.options, o || {});
@@ -964,6 +998,7 @@
       this.keys = {};
       this.input = {};
       this.pressed = {};
+      this.cancelTouchInput();
       this._pauseLatch = false;
       this._padStartLatch = false;
       this._clearMouse();
@@ -1193,16 +1228,19 @@
         if (Math.abs(p.vx) < R.drift) p.vx = p.saberFacing * R.drift;
       }
     }
-    var held = this.pressed;
+    var held = Object.assign(this.pressed, this.touchPressed),
+      touch = this.touchInput;
     this.pressed = {};
-    var left = !!(this.input.left || this.padInput.left || held.left),
-      right = !!(this.input.right || this.padInput.right || held.right),
-      up = !!(this.input.up || this.padInput.up || held.up),
-      down = !!(this.input.down || this.padInput.down || held.down),
-      jump = !!(this.input.jump || this.padInput.jump || held.jump),
-      dash = !!(this.input.dash || this.padInput.dash || held.dash),
+    this.touchPressed = {};
+    var left = !!(this.input.left || touch.left || this.padInput.left || held.left),
+      right = !!(this.input.right || touch.right || this.padInput.right || held.right),
+      up = !!(this.input.up || touch.up || this.padInput.up || held.up),
+      down = !!(this.input.down || touch.down || this.padInput.down || held.down),
+      jump = !!(this.input.jump || touch.jump || this.padInput.jump || held.jump),
+      dash = !!(this.input.dash || touch.dash || this.padInput.dash || held.dash),
       shoot = !!(
         this.input.shoot ||
+        touch.shoot ||
         this.padInput.shoot ||
         this.mouseInput.shoot ||
         this.mouseInput.pendingShoot ||
@@ -1210,6 +1248,7 @@
       ),
       saber = !!(
         this.input.saber ||
+        touch.saber ||
         this.padInput.saber ||
         this.mouseInput.saber ||
         this.mouseInput.pendingSaber ||

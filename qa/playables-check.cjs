@@ -144,7 +144,8 @@ window.ytgame = {IN_PLAYABLES_ENV:true,game:{
     await mobile.goto(URL); await mobile.waitForFunction(() => host.calls.includes('ready'));
     await mobile.locator('[data-action=boss-rush]').tap();
     assert.ok(await mobile.locator('[data-input=saber]').isVisible());
-    await mobile.locator('[data-input=right]').tap();
+    const mobileStick = await mobile.locator('.touch-stick').boundingBox();
+    await mobile.locator('.touch-stick').tap({position:{x:mobileStick.width*.82,y:mobileStick.height*.5}});
     await mobile.screenshot({ path: 'qa/playables-mobile.png' });
     results.push('mobile landscape boots with touch controls (desktop emulation)');
     await mobile.setViewportSize({width:390,height:844});
