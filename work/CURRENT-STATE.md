@@ -2,7 +2,7 @@
 
 ## 現在の基準
 - 本体: C:\Users\situz\Documents\ChatGPT\Astragemes。サブエージェント禁止。
-- GitHub保存済み基準: e066a5d（ゲームコードa9bf544、軽量化・Playables準備・試遊音声修正まで）。ボス追加16技とスマホ操作改善はローカル保存、未push。
+- 公開済みゲームコード: 0c4a63f（ボス追加16技、スマホ操作改善、セイバー/ダッシュ交換と4ボタンのサイズ統一まで）。GitHub mainへpush・Pages公開確認済み。
 - 公開: https://shitsuji3.github.io/astra-overdrive/
 - 最新保存版とSHA: work/CURRENT-SNAPSHOT.jsonのsaved_at、backup_path、sha256を確認。files_sha256全件は照合が必要な時だけ読む。
 - 工場背景、プレイヤー、UI、操作感を維持。簡易表示ならまず4173のサーバーと画像読込を確認。
@@ -123,3 +123,5 @@ npm test242件＋既存チェック、通常配布版の複数タッチQA10項�
 
 ## 最新変更：スマホボタン配置とサイズ（2026-10-03）
 ユーザー指定で右側アクション群の左をセイバー、右をダッシュへ交換。ジャンプの1.08倍・ダッシュの0.9倍をなくし、4つのアクションボタンを共通のtouch-unitへ統一。位置変更はCSSのみ、入力・攻撃値は維持。通常/Playables両ビルド成功。配布版のタッチQA10項目、横844×390・縦390×844・最小320×568でサイズ一致と位置、実タップで左セイバー/右ダッシュの動作を確認、ブラウザーエラー0。新規テスト追加なし。画像qa/mobile-controls/landscape.png。バックアップはCURRENT-SNAPSHOT.json。GitHub未push。
+
+公開確認（2026-10-03）：0c4a63fまでmainへpush済み（ボス追加16技、スマホの左スティック/右4ボタン、セイバーとダッシュ交換、4ボタン同サイズ）。Pages Actions 37084239872のbuild/deploy成功。公開index.html/style.css/touch-controls.js/game.js/assets/bosses.js/render.js/mastery.jsがローカル配布版と一致。公開サイトでタッチQA10項目、起動18項目成功・ブラウザーエラー0。Android/iOS実機での押し心地は引き続き未確認。最新保存版はCURRENT-SNAPSHOT.json。
