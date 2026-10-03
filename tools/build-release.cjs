@@ -88,6 +88,8 @@ const REPLACED = {
   'assets/player-sheet.png': 'assets/player-sheet.webp',
   'assets/player-saber-v2.png': 'assets/player-saber-v2.webp',
   'assets/saber-turn-atlas.png': 'assets/saber-turn-atlas.webp',
+  'assets/player-rising-back16-a-v4.png': 'assets/player-rising-back16-a-v4.webp',
+  'assets/player-rising-back16-b-v4.png': 'assets/player-rising-back16-b-v4.webp',
   // same name either way: the SVG wrapper is identical, only its payload was re-encoded
   'assets/player-run-v4.svg': 'assets/player-run-v4.svg'
 };

@@ -38,6 +38,11 @@ IMAGES = [
     ('player-sheet.png', 92, (384, 256), Image.LANCZOS),
     ('player-saber-v2.png', 92, None, None),
     ('saber-turn-atlas.png', 92, None, None),
+    ('player-rising-back-v1.png', 96, None, None),
+    ('player-rising-front-v2.png', 96, None, None),
+    ('player-rising-front-v3.png', 96, None, None),
+    ('player-rising-back16-a-v4.png', 96, None, None),
+    ('player-rising-back16-b-v4.png', 96, None, None),
 ]
 # The run atlas is a PNG carried as base64 inside an SVG that applies a chroma-key filter.
 # Only the payload changes; the wrapper, its size and the filter stay byte-for-byte.

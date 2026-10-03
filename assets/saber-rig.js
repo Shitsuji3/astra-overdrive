@@ -4,6 +4,82 @@
     turnReady = false,
     turnLoading = false,
     turnRetry = 0;
+  var risingAtlases = [
+    { url: 'assets/player-rising-back16-a-v4.png', image: null, ready: false, loading: false, retry: 0 },
+    { url: 'assets/player-rising-back16-b-v4.png', image: null, ready: false, loading: false, retry: 0 }
+  ], risingReady = false;
+  function loadRising() {
+    if (risingReady || typeof Image === 'undefined') return;
+    risingAtlases.forEach(function (entry) {
+      if (entry.ready || entry.loading || Date.now() < entry.retry) return;
+      entry.loading = true;
+      var im = new Image();
+      im.onload = function () {
+        var art = g.AstraArt;
+        function done() {
+          entry.image = im; entry.ready = true; entry.loading = false;
+          risingReady = risingAtlases.every(function (a) { return a.ready; });
+          if (art) art.changed();
+        }
+        if (art) art.decode(im, done);
+        else done();
+      };
+      im.onerror = function () { entry.loading = false; entry.retry = Date.now() + 2000; };
+      im.src = entry.url;
+    });
+  }
+  function preload() {
+    loadTurn();
+    loadRising();
+  }
+  // Sixteen full-body cells follow the user's two-row reference: windup, rear crouch,
+  // rear rise/follow-through, front recovery, open arms. The head still faces the attack.
+  // Anatomical right is the gloved saber hand; only anatomical left is a buster.
+  // Each cell has its own floor/pelvis anchor and measured orange saber emitter. Fire and its
+  // contact outline use that same hilt, rather than the unrelated front-facing arm IK.
+  var RISING_SCALE = 0.108;
+  var risingCells = [
+    { origin: [214, 500], hip: [215, 375], neck: [236, 280], shoulder: [180, 287], hand: [66, 329], back: 0 },
+    { origin: [235, 499], hip: [230, 443], neck: [239, 336], shoulder: [256, 351], hand: [388, 463], back: .8, crop: [0, 255, 410, 257] },
+    { origin: [210, 499], hip: [210, 312], neck: [237, 190], shoulder: [256, 211], hand: [325, 78], back: 1, crop: [20, 0, 364, 512] },
+    { origin: [220, 482], hip: [224, 241], neck: [241, 141], shoulder: [263, 157], hand: [341, 35], back: 1 },
+    { origin: [230, 485], hip: [231, 255], neck: [255, 153], shoulder: [276, 165], hand: [352, 37], back: 1 },
+    { origin: [225, 482], hip: [224, 244], neck: [248, 141], shoulder: [267, 156], hand: [354, 31], back: 1 },
+    { origin: [205, 473], hip: [216, 248], neck: [229, 140], shoulder: [250, 158], hand: [329, 30], back: 1 },
+    { origin: [213, 488], hip: [224, 263], neck: [235, 142], shoulder: [256, 160], hand: [335, 28], back: 1 },
+    { origin: [210, 504], hip: [218, 259], neck: [251, 178], shoulder: [270, 187], hand: [341, 49], back: 1 },
+    { origin: [205, 504], hip: [216, 264], neck: [237, 187], shoulder: [257, 193], hand: [325, 76], back: 1 },
+    { origin: [200, 509], hip: [201, 283], neck: [220, 198], shoulder: [239, 211], hand: [301, 97], back: 1, crop: [0, 0, 340, 512] },
+    { origin: [190, 510], hip: [192, 292], neck: [205, 205], shoulder: [225, 215], hand: [274, 119], back: 1, crop: [-24, 0, 408, 512] },
+    { origin: [213, 483], hip: [229, 252], neck: [245, 177], shoulder: [260, 202], hand: [308, 84], back: 1 },
+    { origin: [200, 483], hip: [220, 261], neck: [229, 192], shoulder: [253, 207], hand: [285, 108], back: 1, crop: [0, 0, 336, 512] },
+    { origin: [200, 489], hip: [207, 263], neck: [206, 178], shoulder: [157, 185], hand: [247, 45], back: 0, crop: [-36, 0, 376, 512] },
+    { origin: [200, 489], hip: [203, 283], neck: [186, 193], shoulder: [149, 205], hand: [-18, 240], back: 0, crop: [-42, 0, 426, 512] }
+  ];
+  var risingEnds = [.045, .115, .18, .25, .32, .39, .46, .53, .60, .67, .73, .79, .85, .92, .965, 1];
+  function risingFrame(stage, t) {
+    if (stage === 5) return 15;
+    for (var i = 0; i < risingEnds.length; i++) if (t < risingEnds[i]) return i;
+    return 15;
+  }
+  function risingPose(stage, t) {
+    var frame = risingFrame(stage, t), cell = risingCells[frame];
+    function at(point) {
+      return { x: (point[0] - cell.origin[0]) * RISING_SCALE,
+        y: (point[1] - cell.origin[1]) * RISING_SCALE - 3 };
+    }
+    // The floor pass, extended rise, release and overhead recovery are separate poses.
+    var angle = frame === 0 ? 3.05 : frame === 1 ? 0.02 : frame >= 14 ? -1.62 : frame === 2 ? -0.66 : -0.71;
+    return { stage: stage, t: t, risingFrame: frame,
+      hip: at(cell.hip), neck: at(cell.neck),
+      shoulder: at(cell.shoulder), hand: at(cell.hand), rearShoulder: at(cell.neck),
+      backTurn: cell.back, angle: angle, lean: 0,
+      spin: stage === 4 ? -0.07 * ease(0.115, 0.26, t) * (1 - ease(0.91, 1, t)) : 0,
+      lift: 0, twist: 0,
+      chestWidth: 1, open: 0, viewTurn: 0, leanRate: 0, driveRate: 0,
+      frontFoot: { x: 5, y: -3 }, rearFoot: { x: -5, y: -3 },
+      frontFootAngle: 0, rearFootAngle: 0 };
+  }
   function loadTurn() {
     if (turnReady || turnLoading || typeof Image === 'undefined' || Date.now() < turnRetry) return;
     turnLoading = true;
@@ -168,27 +244,30 @@
     // five to twenty degrees behind vertical, which is what stops the leap reading as a fall.
     // The last two columns are the extra this one motion needs: spin turns the whole figure
     // about its hip, and lift pulls the feet up off the floor of its own box.
-    // The angle column carries the flame the long way round - out behind at 3.05, down through
-    // the front, and up to a shade past vertical - so the sweep never jumps across the body.
+    // The angle column carries the flame from behind, along the floor, then above the head.
+    // The ascent straightens the legs and keeps the sword hand beside the helmet.
     // time hipX hipY lean handX handY  angle  foot+ foot-  spin  lift
     [
-      [0, 0, -21, 0.12, 2, -22, 2.2, 9, -9, 0, 0],
-      [0.035, -1, -20, -0.1, -10, -27, 3.05, 10, -10, -0.07, 0],
-      [0.085, 2, -15, 0.3, 17, -11, 0.2, 14, -12, 0.05, 0],
-      [0.14, 3, -18, 0.1, 20, -20, -0.66, 9, -8, -0.08, 2],
-      [0.26, 3, -21, -0.02, 19, -26, -0.71, 8, -7, -0.13, 3],
-      [0.46, 3, -22, -0.08, 18, -32, -0.71, 7, -6, -0.21, 3],
-      [0.67, 3, -22, -0.06, 18, -34, -0.73, 7, -6, -0.17, 2],
-      [0.85, 2, -21, -0.12, 16, -31, -0.5, 8, -6, -0.24, 2],
-      [1, 0, -22, 0.02, 8, -30, -1.6, 8, -8, -0.1, 0]
+      [0, 0, -23, 0.02, 7, -27, -0.8, 8, -8, 0, 0],
+      [0.035, -1, -18, 0.08, -10, -25, 3.05, 12, -12, -0.07, 0],
+      [0.05, -1, -15.5, 0.18, -9, -22, 3.05, 14, -14, -0.07, 0],
+      [0.085, 2, -13.5, 0.13, 15, -10, 0.04, 16, -15, 0, 0],
+      [0.14, 2, -22, 0.02, 16, -31, -0.98, 8, -7, -0.1, 1],
+      [0.26, 2, -28, -0.06, 14, -40, -1.04, 6, -5, -0.19, 1],
+      [0.46, 2, -28.5, -0.08, 13, -41, -1.02, 5, -5, -0.23, 0],
+      [0.67, 2, -28, -0.06, 14, -41, -1.05, 6, -5, -0.21, 0],
+      [0.85, 0, -27, -0.04, 10, -40, -1.08, 8, -7, -0.17, 0],
+      [1, 0, -27, -0.02, 5, -40, -1.62, 9, -9, -0.12, 0]
     ],
     // Stage 5 is not an attack. It is the ride down: the sheet's last three frames snap the
     // arms wide as the plume tears off, then hold a short blade overhead all the way to the
     // floor. It runs on its own clock once the rising cut's own span has run out.
     [
-      [0, 0, -20, -0.02, 2, -34, -1.71, 11, -11, -0.14, 1],
-      [0.45, 0, -21, -0.1, 0, -33, -2.18, 9, -9, -0.2, 0],
-      [1, 1, -21, 0.02, 3, -32, -1.36, 8, -8, -0.08, 0]
+      [0, 0, -27, -0.02, 5, -40, -1.62, 9, -9, -0.12, 0],
+      [0.2, 0, -26, -0.04, 4, -38, -1.75, 8, -8, -0.1, 0],
+      [0.5, 0, -23, 0.02, 6, -35, -1.5, 8, -8, -0.04, 0],
+      [0.82, 0, -23, 0.02, 6, -35, -1.5, 8, -8, -0.04, 0],
+      [1, 0, -23, 0.02, 7, -27, -0.8, 8, -8, 0, 0]
     ],
     // Stage 6 is the charged thrust, keyed off the thirty-frame sheet. It is let go from a hold, not
     // chained, so it starts and ends on the standing pose. The body leans in and the arm comes forward
@@ -241,6 +320,7 @@
   function pose(stage, t) {
     stage = clamp(stage | 0, 1, 7);
     t = clamp(t, 0, 1);
+    if (stage === 4 || stage === 5) return risingPose(stage, t);
     var list = keys[stage - 1],
       i = 0;
     while (i < list.length - 2 && t > list[i + 1][0]) i++;
@@ -261,6 +341,11 @@
     // The second slash squares the body up to the camera, so the chest broadens and the shoulders
     // swing right around rather than merely rotating a little.
     var twist = stage === 2 ? ease(0.28, 0.57, t) * (1 - ease(0.86, 1, t)) : 0;
+    // The reference shows the back through the low stance and ascent. Keep this yaw
+    // separate from lean/spin, which only tilt a front-facing sprite in the screen plane.
+    var backTurn = stage === 4
+      ? ease(0.022, 0.064, t) * (1 - 0.2 * ease(0.85, 1, t))
+      : stage === 5 ? 0.8 * (1 - ease(0, 0.3, t)) : 0;
     var chestWidth = 1 + 0.85 * twist;
     // How wide the legs are split drives the rear heel lift, so every stance reads as a lunge.
     var open = clamp((v[7] - v[8] - 30) / 13, 0, 1);
@@ -272,7 +357,7 @@
       };
     }
     var hand = { x: v[4], y: v[5] },
-      shoulder = bodyPoint(3.5 - 15.5 * twist, -9);
+      shoulder = bodyPoint(3.5 - 15.5 * twist - 4 * backTurn, -9);
     // Keep armor lengths stable when a drawn reference hand lies beyond the rig's reach.
     var dx = hand.x - shoulder.x,
       dy = hand.y - shoulder.y,
@@ -287,10 +372,11 @@
       lean: lean,
       hand: hand,
       shoulder: shoulder,
-      neck: bodyPoint(4 - 3.6 * twist, -8.4),
+      neck: bodyPoint(4 - 3.6 * twist - 3 * backTurn, -8.4),
       chestWidth: chestWidth,
       twist: twist,
-      rearShoulder: bodyPoint(-3 + 15.5 * twist, -9),
+      backTurn: backTurn,
+      rearShoulder: bodyPoint(-3 + 15.5 * twist + 7.5 * backTurn, -9),
       angle: v[6],
       open: open,
       viewTurn: stage === 2 ? ease(0.24, 0.49, t) * (1 - ease(0.86, 1, t)) : 0,
@@ -343,11 +429,11 @@
       return { root: spun(p, p.hand), angle: p.angle, length: 26, width: 8, alpha: 0.9 * held };
     }
     if (p.stage !== 4) return null;
-    var grow = ease(0.08, 0.16, p.t),
+    var grow = ease(0.095, 0.135, p.t),
       die = 1 - ease(0.86, 0.94, p.t),
       body = grow * die;
-    var sweep = ease(0.045, 0.08, p.t) * (1 - ease(0.1, 0.145, p.t));
-    var wind = ease(0.006, 0.028, p.t) * (1 - ease(0.045, 0.07, p.t));
+    var sweep = ease(0.045, 0.06, p.t) * (1 - ease(0.10, 0.115, p.t));
+    var wind = ease(0.001, 0.012, p.t) * (1 - ease(0.040, 0.045, p.t));
     // longest as it erupts, settling back over the rise, the way the sheet's does
     var surge = 1 + 0.24 * (1 - ease(0.16, 0.44, p.t));
     // what the plume collapses into, which is what the ride down carries on holding
@@ -355,16 +441,25 @@
     if (body <= 0.01 && sweep <= 0.01 && wind <= 0.01 && held <= 0.01) return null;
     // past the top it lets go of the wrist and keeps going up on its own momentum while the
     // body begins to fall, which is what the sheet's tear-off frame shows
-    var tear = ease(0.76, 0.94, p.t) * (1 - held),
+    var tear = ease(0.68, 0.91, p.t),
       root = spun(p, p.hand);
-    if (tear > 0.01) root = { x: root.x - 5 * tear, y: root.y - 26 * tear };
+    // Arms open after the flame leaves: hold the detached plume above the previous
+    // raised wrist instead of dragging the large flame sideways with the open arm.
+    if (tear > 0.01 && p.t < 0.94) {
+      var raisedPose = risingPose(4, 0.60), raised = spun(raisedPose, raisedPose.hand);
+      root = { x: raised.x + 5 * tear, y: raised.y - 20 * tear };
+    }
     return {
       root: root,
       angle: p.angle,
-      // The solid mass is stubby - about one and a third body heights long against four
-      // fifths wide - and the wisps and embers are what carry the measured extent out to the
-      // reference's 1.9. Setting the band itself to that length made a missile.
-      length: 13 + 72 * body * surge + 30 * sweep + 30 * wind + 13 * held,
+      // Restore the pre-retarget flame dimensions and diagonal forward reach. The new
+      // raised wrist is nearer the body centre; extend the drawn fire by the lost forward
+      // offset too, so its matching contact outline does not shrink with the art anchor.
+      // Keep the last low pass long enough to reach ground targets before the wrist rises.
+      length: 13 + 72 * body * surge + 30 * sweep + 30 * wind + 13 * held +
+        body * Math.max(0, 20 - root.x) / Math.max(0.4, Math.cos(p.angle)) +
+        20 * body * (1 - ease(0.12, 0.20, p.t)) +
+        30 * sweep * ease(0.085, 0.10, p.t),
       width: 7 + 36 * body + 11 * sweep + 8 * wind,
       alpha: Math.min(1, body * 1.25 + sweep + wind + 0.9 * held)
     };
@@ -716,8 +811,8 @@
   // The rising cut's flame counts as out, for hitting, once it is this opaque. Below it the flame is only
   // fading in or out.
   var FIRE_BITES_FROM = 0.35;
-  // How far out the lit cells reach, as a multiple of the edge tables: fireHeat keeps cells to a quarter
-  // past each table edge, and the torn edges swing either side of that.
+  // Match the restored original flame outline, including its torn trailing edges.
+  // The game still adds its existing three-pixel contact tolerance to these slices.
   var FIRE_REACH = 1.25;
   // How many slices across the flame make up its hit shape.
   var FIRE_SLICES = 16;
@@ -1110,10 +1205,60 @@
     }
     ctx.restore();
   }
+  // Rear plates keep the existing cobalt armor, ivory shoulder trim and amber ear light.
+  // The back has a spine panel instead of the chest core; the rear helmet has no face/visor.
+  // Draw these small rigid surfaces in rig coordinates, leaving the source atlases intact.
+  function rearPlate(ctx, points, color) {
+    ctx.beginPath();
+    ctx.moveTo(points[0][0], points[0][1]);
+    for (var i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+  function drawRearTorso(ctx, p) {
+    ctx.save();
+    ctx.translate(p.hip.x, p.hip.y);
+    ctx.rotate(p.lean);
+    // Foreshorten while entering/leaving the back view, then open the shoulder blades.
+    ctx.scale(0.72 + 0.28 * p.backTurn, 1);
+    rearPlate(ctx, [[-6,-10],[-2,-12],[5,-11],[8,-7],[7,-1],[4,2],[-3,1],[-6,-3]], '#0b1831');
+    rearPlate(ctx, [[-5,-9],[-1,-11],[4,-10],[7,-6],[5,-2],[-2,-1],[-5,-4]], '#164b9c');
+    rearPlate(ctx, [[-5,-9],[-2,-11],[-1,-7],[-4,-4]], '#ede0b9');
+    rearPlate(ctx, [[3,-10],[5,-9],[7,-6],[5,-3],[3,-5]], '#c9b68b');
+    rearPlate(ctx, [[-1,-10],[2,-10],[4,-6],[3,-2],[-1,-2],[-3,-5]], '#0876d6');
+    rearPlate(ctx, [[-1,-9],[1,-9],[2,-6],[1,-3],[-1,-3],[-2,-6]], '#0b315f');
+    rearPlate(ctx, [[-1,-9],[0,-9],[1,-6],[0,-3],[-1,-3]], '#3978ae');
+    rearPlate(ctx, [[-4,-3],[-1,-1],[4,-2],[5,0],[2,1],[-3,0]], '#058ae8');
+    ctx.fillStyle = '#67d8f0';
+    ctx.fillRect(-3, -8, 1, 2);
+    ctx.fillRect(3, -7, 1, 2);
+    ctx.restore();
+  }
+  function drawRearHelmet(ctx, p) {
+    ctx.save();
+    ctx.translate(p.neck.x, p.neck.y);
+    ctx.rotate(p.lean * 0.12 - 0.02);
+    ctx.scale(0.82 + 0.18 * p.backTurn, 1);
+    rearPlate(ctx, [[-7,-10],[-4,-14],[2,-14],[7,-11],[9,-7],[8,-2],[4,2],[-2,2],[-6,-2],[-8,-6]], '#071832');
+    rearPlate(ctx, [[-6,-10],[-3,-13],[2,-13],[6,-10],[8,-6],[6,-1],[2,1],[-2,0],[-5,-3],[-7,-6]], '#0b4eaf');
+    rearPlate(ctx, [[-5,-10],[-2,-12],[2,-12],[5,-10],[6,-7],[3,-5],[-2,-5],[-5,-7]], '#0878e8');
+    rearPlate(ctx, [[-4,-10],[-2,-11],[1,-11],[3,-9],[2,-8],[-2,-8]], '#249ce8');
+    rearPlate(ctx, [[-5,-6],[-2,-4],[3,-4],[6,-6],[5,-1],[2,0],[-2,-1]], '#123a7b');
+    // Ivory side crest seen from behind, with the ear node on the near side.
+    rearPlate(ctx, [[-7,-11],[-3,-9],[-4,-6],[-7,-4],[-9,-8],[-10,-12]], '#eeddb0');
+    rearPlate(ctx, [[-10,-12],[-6,-10],[-5,-8],[-7,-7],[-9,-9]], '#fff2d1');
+    rearPlate(ctx, [[6,-8],[9,-7],[10,-4],[9,-1],[6,-1],[5,-4]], '#11253c');
+    rearPlate(ctx, [[7,-7],[9,-5],[8,-2],[6,-3],[6,-5]], '#d67718');
+    ctx.fillStyle = '#ffc353'; ctx.fillRect(7, -5, 1, 2);
+    rearPlate(ctx, [[-3,0],[3,0],[5,2],[1,3],[-4,2]], '#0587c8');
+    ctx.restore();
+  }
   function draw(ctx, o) {
     var rig = g.AstraRunRig;
     if (!rig || !o.image || !o.image.complete || !o.image.naturalWidth) return false;
     loadTurn();
+    loadRising();
     var p = pose(o.stage, o.phase),
       img = o.image;
     // Match the redrawn idle build so the character keeps the same proportions mid-swing.
@@ -1123,8 +1268,24 @@
     if (o.facing < 0) ctx.scale(-1, 1);
     ctx.scale(build.x, build.y);
     ctx.imageSmoothingEnabled = false;
-    var spin = p.spin || 0;
-    if (p.stage === 4 || p.stage === 5) drawPlume(ctx, p, o.reducedMotion);
+    if ((p.stage === 4 || p.stage === 5) && risingReady) {
+      if (!o.bodyOnly) drawPlume(ctx, p, o.reducedMotion);
+      var cell = risingCells[p.risingFrame];
+      // Empty borders are trimmed/extended where a hilt or scarf crosses its nominal cell.
+      // The crop's offset is applied in source and destination, preserving measured anchors.
+      var crop = cell.crop || [0, 0, 384, 512], atlas = risingAtlases[Math.floor(p.risingFrame / 8)].image;
+      ctx.translate(p.hip.x, p.hip.y);
+      ctx.rotate(p.spin);
+      ctx.translate(-p.hip.x, -p.hip.y);
+      ctx.drawImage(atlas, (p.risingFrame % 4) * 384 + crop[0], Math.floor((p.risingFrame % 8) / 4) * 512 + crop[1],
+        crop[2], crop[3], (-cell.origin[0] + crop[0]) * RISING_SCALE, (-cell.origin[1] + crop[1]) * RISING_SCALE - 3,
+        crop[2] * RISING_SCALE, crop[3] * RISING_SCALE);
+      ctx.restore();
+      return true;
+    }
+    var spin = p.spin || 0,
+      rearView = p.backTurn > 0.45;
+    if ((p.stage === 4 || p.stage === 5) && !o.bodyOnly) drawPlume(ctx, p, o.reducedMotion);
     else if (p.stage === 2) horizontalTrail(ctx, p, false);
     else if (p.stage !== 6 && p.stage !== 7) trail(ctx, p, o.reducedMotion);
     // The rising cut turns the whole figure about its hip; the flame is drawn outside that turn
@@ -1144,7 +1305,7 @@
       part(SHIN, { x: 184, y: 190 }, { x: 164, y: 242 }, knee, foot);
       ctx.save();
       ctx.translate(foot.x, foot.y);
-      ctx.scale(1, build.limb || 1);
+      ctx.scale(rearView ? -1 : 1, build.limb || 1);
       ctx.translate(-foot.x, -foot.y);
       rig.rigidPart(ctx, img, { x: 314, y: 627 }, FOOT, { x: 164, y: 242 }, foot, 0.2, angle || 0);
       ctx.restore();
@@ -1160,7 +1321,7 @@
     var far = g.AstraArt && g.AstraArt.shade(img, 0.72);
     if (far) img = far;
     else ctx.filter = 'brightness(.72)';
-    leg(p.frontFoot, p.frontFootAngle);
+    leg(rearView ? p.rearFoot : p.frontFoot, rearView ? p.rearFootAngle : p.frontFootAngle);
     img = o.image;
     ctx.restore();
     // The reference keeps the off arm bent below the shoulder during the waist sweep.
@@ -1176,33 +1337,43 @@
       x: p.rearShoulder.x - 4 + 7 * p.twist - 3 * guard + 8 * finishGuard - 9 * fling,
       y: p.rearShoulder.y + 5 + 3 * p.twist - 6 * guard - 7 * fling
     };
-    rig.bonePart(
-      ctx,
-      img,
-      { x: 0, y: 0 },
-      UPPER,
-      { x: 153, y: 144 },
-      { x: 139, y: 164 },
-      p.rearShoulder,
-      rearElbow
-    );
-    rig.rigidPart(
-      ctx,
-      img,
-      { x: 0, y: 0 },
-      CANNON,
-      { x: 202, y: 164 },
-      rearElbow,
-      0.18,
-      (1.2 - p.lean - 1.4 * p.twist) * (1 - guard) + 3 * guard
-    );
-    leg(p.rearFoot, p.rearFootAngle);
+    function offArm() {
+      rig.bonePart(
+        ctx,
+        img,
+        { x: 0, y: 0 },
+        UPPER,
+        { x: 153, y: 144 },
+        { x: 139, y: 164 },
+        p.rearShoulder,
+        rearElbow
+      );
+      rig.rigidPart(
+        ctx,
+        img,
+        { x: 0, y: 0 },
+        CANNON,
+        { x: 202, y: 164 },
+        rearElbow,
+        0.18,
+        (1.2 - p.lean - 1.4 * p.twist) * (1 - guard) + 3 * guard
+      );
+    }
+    if (!rearView) offArm();
+    leg(rearView ? p.frontFoot : p.rearFoot, rearView ? p.frontFootAngle : p.rearFootAngle);
+    // The sword arm is the far shoulder while the back faces the camera. Its forearm
+    // emerges above the head; the near buster arm counterbalances after the torso.
+    if (rearView) arm(p.shoulder, p.hand);
     // Scarf follows the cut's acceleration, then settles during the held follow-through.
     var scarfAngle = -0.06 + clamp(0.17 * p.leanRate + 0.05 * p.driveRate, -1.15, 1.15);
     // The thrust's lunge is one long drive forward, and reading the scarf off its rates flicked it bolt
     // upright, at the start and again on the way back up. The sheet's hair streams straight back for as
     // long as the arm is out, so the thrust never reads the rates: it eases from rest to streaming and home.
-    if (p.stage === 6) {
+    if (p.stage === 4 || p.stage === 5) {
+      // Follow the ascent, then settle on the ride down. Pose interpolation rates made the
+      // scarf jump upright at every new key instead of streaming below the reference's head.
+      scarfAngle = p.stage === 4 ? -0.06 - 0.42 * ease(0.1, 0.25, p.t) : -0.48 + 0.42 * ease(0, 0.8, p.t);
+    } else if (p.stage === 6) {
       var streaming = ease(0, 0.2, p.t) * (1 - ease(0.8, 0.97, p.t));
       scarfAngle = -0.06 * (1 - streaming) + THRUST_SCARF * streaming;
     }
@@ -1216,7 +1387,9 @@
       0.2,
       scarfAngle
     );
-    if (turnReady && p.stage === 2 && p.viewTurn > 0.2) {
+    if (rearView) {
+      drawRearTorso(ctx, p);
+    } else if (turnReady && p.stage === 2 && p.viewTurn > 0.2) {
       // Reference: the torso opens during the horizontal sweep, but the face keeps looking at the target.
       // Only use the chest region of the turn atlas. Never draw its camera-facing helmet.
       var column = p.viewTurn > 0.65 ? 1 : 0,
@@ -1243,8 +1416,13 @@
       rig.rigidPart(ctx, img, { x: 0, y: 0 }, BODY, { x: 161, y: 183 }, { x: 0, y: 0 }, 0.2, 0);
       ctx.restore();
     }
-    rig.rigidPart(ctx, img, { x: 0, y: 0 }, HEAD, { x: 181, y: 141 }, p.neck, 0.2, p.lean * 0.12 - 0.02);
-    arm(p.shoulder, p.hand);
+    if (rearView) {
+      drawRearHelmet(ctx, p);
+      offArm();
+    } else {
+      rig.rigidPart(ctx, img, { x: 0, y: 0 }, HEAD, { x: 181, y: 141 }, p.neck, 0.2, p.lean * 0.12 - 0.02);
+      arm(p.shoulder, p.hand);
+    }
     if (p.stage === 2) horizontalTrail(ctx, p, true);
     // the thrust's light is in front of the fist and the arm, as it is on the sheet
     if (p.stage === 6) drawThrust(ctx, p, o.reducedMotion);
@@ -1315,7 +1493,7 @@
     return out;
   }
   g.AstraSaberRig = {
-    preload: loadTurn,
+    preload: preload,
     pose: pose,
     blade: blade,
     draw: draw,
@@ -1333,6 +1511,9 @@
     plume: plume,
     fireCells: fireCells,
     fireSlices: fireSlices,
+    get risingReady() {
+      return risingReady;
+    },
     get turnReady() {
       return turnReady;
     }
