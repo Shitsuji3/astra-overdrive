@@ -166,3 +166,13 @@ QA出力: qa/rising-direction-reach-20261003/range-and-targets.json、before-ran
 最新保存版はCURRENT-SNAPSHOTを参照。過去の原画/ZIPを保持、サブエージェントなし、GitHub未push/未公開。現在の16コマと背面を出発点として、参照への似方は今後のユーザー評価を優先する。
 
 試遊画面: http://127.0.0.1:4173/?rising=back16-20261003 をアプリ内ブラウザーの表示タブに開き、ASTRA // OVERDRIVEのタイトル/ボスラッシュ導線を確認。
+
+## 公開確認（2026-10-04）
+
+ユーザーの「GitHubに」に従い、この会話のアクション側のセイバー変更25ファイルを7fa89212435b30d0d6f87835f0a567d046d55a14でmainへコミット/push。16コマの最新素材・旧原画の保持・生成指示・再現QAを含む。同じフォルダーの別作業RPG、package.json/package-lock.json、RPGテスト/制作ツールはコードコミットへ混ぜずローカルに保持。先行する引き継ぎコミット11fd1edも同時に反映。
+
+npm test / npm run build:ciを再実行して成功。Pages Actions https://github.com/Shitsuji3/astra-overdrive/actions/runs/37135391034 はbuild/deployともsuccess。公開https://shitsuji3.github.io/astra-overdrive/?v=7fa8921 のassets/saber-rig.jsとplayer-rising-back16-a-v4.webp / back16-b-v4.webpを取得し、ローカルrelease内の同ファイルとSHA256一致を確認。
+
+公開版で16コマの体/炎を実描画、専用atlas32描画・左右/軽減64姿勢、44姿勢の炎/命中形状がローカルの検証データと一致。実↑＋Kでコマ0〜15を順に再生。高さ89.211111px/頂点.600秒/着地1.016667秒/落下保持13フレームも一致。ブラウザーエラー/画像リクエスト失敗0。出力qa/github-publish-20261004/reference-16-report.json、after*.json、公開ファイルpublic-*、public-back16.log/public-input.log、npm-test.log/build-web.log。
+
+最新の保存版はCURRENT-SNAPSHOTの概要を参照。旧ZIP保持、サブエージェントなし。今回の公開は実装と配信の確認であり、参考への似方のユーザー承認を代行しない。
