@@ -9,6 +9,7 @@
 - 起動: npm start。検証: npm test、npm run build:ci。保存: tools/save-backup.py 固有ラベル。
 
 ## 必要な時に読む資料
+- 新しいチャットの入口: work/HANDOFF-NEW-CHAT-20261003.md。最新状態・ルール・起動・残る確認をまとめたもの。
 - 全体の詳しい引き継ぎ: work/HANDOFF-20260919.md。
 - ボス追加16技の現在地: work/BOSS-EXTRA-MOVES-20261002.md。旧技はwork/BOSS-MOVES-20260917.md、COILHEAD-FLIGHT-20260916.md、BOSS-SIGNATURE-20260915.md。
 - スマホ操作: work/MOBILE-CONTROLS-20261002.md。左スティック＋右4ボタン、右上ポーズ/対応時全画面。設定で85〜125%調整。touch-controls.jsとgame.jsのtouchInput。
@@ -125,3 +126,5 @@ npm test242件＋既存チェック、通常配布版の複数タッチQA10項�
 ユーザー指定で右側アクション群の左をセイバー、右をダッシュへ交換。ジャンプの1.08倍・ダッシュの0.9倍をなくし、4つのアクションボタンを共通のtouch-unitへ統一。位置変更はCSSのみ、入力・攻撃値は維持。通常/Playables両ビルド成功。配布版のタッチQA10項目、横844×390・縦390×844・最小320×568でサイズ一致と位置、実タップで左セイバー/右ダッシュの動作を確認、ブラウザーエラー0。新規テスト追加なし。画像qa/mobile-controls/landscape.png。バックアップはCURRENT-SNAPSHOT.json。GitHub未push。
 
 公開確認（2026-10-03）：0c4a63fまでmainへpush済み（ボス追加16技、スマホの左スティック/右4ボタン、セイバーとダッシュ交換、4ボタン同サイズ）。Pages Actions 37084239872のbuild/deploy成功。公開index.html/style.css/touch-controls.js/game.js/assets/bosses.js/render.js/mastery.jsがローカル配布版と一致。公開サイトでタッチQA10項目、起動18項目成功・ブラウザーエラー0。Android/iOS実機での押し心地は引き続き未確認。最新保存版はCURRENT-SNAPSHOT.json。
+
+引き継ぎ準備（2026-10-03）：work/HANDOFF-NEW-CHAT-20261003.mdを作成。ゲームコード変更なし、追加実装の未完なし。GitHub mainとローカルの基準08e671d一致、Pages Actions 37084463270 success、保存済みZIPのSHAを確認。検証結果は前実装時の記録で今回再実行したものではない。作成時4173/4174/4175は待受なし、試遊時は正しいフォルダーから起動する。今回の引き継ぎ文書はローカル保存、GitHub未push。
